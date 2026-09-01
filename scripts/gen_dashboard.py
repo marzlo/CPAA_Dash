@@ -74,8 +74,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   }
   header h1 { margin: 0 0 4px; font-size: 22px; }
   header p { margin: 0; color: var(--text-secondary); font-size: 13px; }
-  .theme-toggle {
+  .toggle-row {
     position: absolute; top: 20px; right: 28px;
+    display: flex; gap: 8px;
+  }
+  .theme-toggle, .lang-toggle {
     background: var(--surface-1); border: 1px solid var(--border);
     border-radius: 8px; padding: 6px 12px; cursor: pointer; color: var(--text-primary);
     font-size: 13px;
@@ -163,17 +166,20 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 </style>
 </head>
 <body>
-<button class="theme-toggle" id="themeToggle">🌓 Theme</button>
+<div class="toggle-row">
+  <button class="lang-toggle" id="langToggle">中文 / EN</button>
+  <button class="theme-toggle" id="themeToggle">🌓 Theme</button>
+</div>
 <header>
-  <h1>CPAA SWE3 / SWE5 Ticket Dashboard</h1>
-  <p>Mobile Drive · Jira project NR1LT · filter 12399 · 資料來源：使用者匯出的 Jira Excel (CPAA_general_ticket)，共 __TOTAL__ 張 SWE3/SWE5 票、__BUGTOTAL__ 張 Bug 票</p>
-  <p style="margin-top:4px; font-weight:600;">最後更新日期：__UPDATED_AT__</p>
+  <h1 id="headerTitle"></h1>
+  <p id="headerSubtitle"></p>
+  <p style="margin-top:4px; font-weight:600;" id="headerUpdatedAt"></p>
 </header>
 <nav class="tabs" id="tabs">
-  <button data-tab="overview" class="active">Overview</button>
-  <button data-tab="Bug">Bug</button>
-  <button data-tab="Audio">Audio</button>
-  <button data-tab="Pretest">Pretest</button>
+  <button data-tab="overview" data-i18n-tab="overview" class="active">Overview</button>
+  <button data-tab="Bug" data-i18n-tab="bug">Bug</button>
+  <button data-tab="Audio" data-i18n-tab="audio">Audio</button>
+  <button data-tab="Pretest" data-i18n-tab="pretest">Pretest</button>
 </nav>
 <main>
 
@@ -181,7 +187,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     <div class="stat-row" id="completionTiles"></div>
 
     <section class="card">
-      <h2>Sub-feature 分佈(僅未完成票,SWE2+SWE3+SWE5 合併計算,依 CarPlay/Android Auto/iPod 分欄)</h2>
+      <h2 data-i18n="ov_subfeature_heading"></h2>
       <div style="display:flex; gap:24px; flex-wrap:wrap;">
         <div style="flex:1; min-width:280px;">
           <h3 style="margin:0 0 4px; font-size:14px;">CarPlay</h3>
@@ -202,53 +208,53 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     </section>
 
     <section class="card">
-      <h2>Assignee 分佈(僅未完成票,SWE2+SWE3+SWE5 合併計算,依組織分欄)</h2>
-      <p class="caption">組織對應依據 cpaa-dashboard skill 的 TEAM_MAP;沒有對應到組織的人歸在「Unknown」</p>
+      <h2 data-i18n="ov_assignee_heading"></h2>
+      <p class="caption" data-i18n="team_map_note"></p>
       <div id="assigneeBarsContainer" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:24px;"></div>
     </section>
 
     <section class="card">
-      <h2>票清單(依 Label 分類篩選)</h2>
+      <h2 data-i18n="ov_list_heading"></h2>
       <p class="caption" id="missingCaption"></p>
       <div class="filters">
         <select id="missingSweFilter">
-          <option value="">全部 SWE</option>
+          <option value="" data-i18n="all_swe"></option>
           <option value="SWE2">SWE2</option>
           <option value="SWE3">SWE3</option>
           <option value="SWE5">SWE5</option>
         </select>
         <select id="missingFeatureFilter">
-          <option value="">全部 Feature</option>
+          <option value="" data-i18n="all_feature"></option>
           <option value="CarPlay">CarPlay</option>
           <option value="Android Auto">Android Auto</option>
           <option value="iPod">iPod</option>
         </select>
         <select id="missingStatusFilter">
-          <option value="">全部狀態</option>
-          <option value="done">已完成</option>
-          <option value="not-done">未完成</option>
+          <option value="" data-i18n="all_status"></option>
+          <option value="done" data-i18n="status_done"></option>
+          <option value="not-done" data-i18n="status_not_done"></option>
         </select>
         <select id="missingLabelFilter">
-          <option value="">全部 Label 分類</option>
+          <option value="" data-i18n="all_label_bucket"></option>
           <option value="ASW-R2">ASW-R2</option>
-          <option value="ASW-R3 (不含CPAA 0830)">ASW-R3 (不含CPAA 0830)</option>
+          <option value="ASW-R3 (不含CPAA 0830)" data-i18n="label_bucket_asw_r3"></option>
           <option value="CPAA0830">CPAA0830</option>
-          <option value="三者皆無" selected>三者皆無</option>
+          <option value="三者皆無" selected data-i18n="label_bucket_none"></option>
         </select>
         <select id="missingSubFeatureFilter">
-          <option value="">全部 Sub-feature</option>
+          <option value="" data-i18n="all_subfeature"></option>
         </select>
         <select id="missingAssigneeFilter">
-          <option value="">全部 Assignee</option>
+          <option value="" data-i18n="all_assignee"></option>
         </select>
-        <input type="text" id="missingSearch" placeholder="搜尋 key 或 summary...">
+        <input type="text" id="missingSearch" data-i18n-placeholder="search_placeholder">
       </div>
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th data-sort="key">Key</th><th data-sort="swe">SWE</th><th data-sort="feature">Feature</th>
-            <th data-sort="subFeature">Sub-feature</th><th data-sort="assignee">Assignee</th>
-            <th data-sort="status">Status</th><th data-sort="labelBucket">Label 分類</th><th data-sort="summary">Summary</th>
+            <th data-sort="key">Key</th><th data-sort="swe">SWE</th><th data-sort="feature" data-i18n="th_feature"></th>
+            <th data-sort="subFeature" data-i18n="th_subfeature"></th><th data-sort="assignee" data-i18n="th_assignee"></th>
+            <th data-sort="status" data-i18n="th_status"></th><th data-sort="labelBucket" data-i18n="th_label_bucket"></th><th data-sort="summary" data-i18n="th_summary"></th>
           </tr></thead>
           <tbody id="missingTbody"></tbody>
         </table>
@@ -264,17 +270,145 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 
 <script>
 const RAW = __DATA_JSON__;
+const UPDATED_AT = "__UPDATED_AT__";
 const DATA = RAW.tickets;
 const BUGS = RAW.bugs;
 const AUDIO = RAW.audio;
 const PRETEST = RAW.pretest;
 const FEATURE_COLORS = { "CarPlay": "var(--series-cp)", "Android Auto": "var(--series-aa)", "iPod": "var(--series-ipod)" };
 
+// ---- i18n ----------------------------------------------------------------
+// Only UI chrome (headings, captions, filter labels, table headers, badges)
+// is translated. Actual Jira data (ticket keys, summaries, assignees, real
+// Jira status text, sub-feature taxonomy names, team codes) is left as-is —
+// translating that would misrepresent the source data.
+let LANG = 'zh';
+try {
+  const saved = localStorage.getItem('cpaaDashboardLang');
+  if (saved === 'zh' || saved === 'en') LANG = saved;
+} catch (e) { /* localStorage unavailable — default to zh */ }
+
+const STRINGS = {
+  headerTitle: { zh: 'CPAA SWE3 / SWE5 票務儀表板', en: 'CPAA SWE3 / SWE5 Ticket Dashboard' },
+  headerSubtitle: {
+    zh: (total, bugTotal) => `Mobile Drive · Jira project NR1LT · filter 12399 · 資料來源:使用者匯出的 Jira Excel (CPAA_general_ticket),共 ${total} 張 SWE3/SWE5 票、${bugTotal} 張 Bug 票`,
+    en: (total, bugTotal) => `Mobile Drive · Jira project NR1LT · filter 12399 · Source: user-exported Jira Excel (CPAA_general_ticket) — ${total} SWE3/SWE5 tickets, ${bugTotal} Bug tickets`,
+  },
+  headerUpdatedAt: { zh: d => `最後更新日期:${d}`, en: d => `Last updated: ${d}` },
+  tab_overview: { zh: '總覽', en: 'Overview' },
+  tab_bug: { zh: 'Bug', en: 'Bug' },
+  tab_audio: { zh: 'Audio', en: 'Audio' },
+  tab_pretest: { zh: 'Pretest', en: 'Pretest' },
+
+  ov_subfeature_heading: { zh: 'Sub-feature 分佈(僅未完成票,SWE2+SWE3+SWE5 合併計算,依 CarPlay/Android Auto/iPod 分欄)', en: 'Sub-feature breakdown (not-done tickets only, SWE2+SWE3+SWE5 combined, split by CarPlay/Android Auto/iPod)' },
+  ov_assignee_heading: { zh: 'Assignee 分佈(僅未完成票,SWE2+SWE3+SWE5 合併計算,依組織分欄)', en: 'Assignee breakdown (not-done tickets only, SWE2+SWE3+SWE5 combined, split by team)' },
+  team_map_note: { zh: '組織對應依據 cpaa-dashboard skill 的 TEAM_MAP;沒有對應到組織的人歸在「Unknown」', en: 'Team mapping follows the cpaa-dashboard skill’s TEAM_MAP; anyone not mapped falls under "Unknown"' },
+  ov_list_heading: { zh: '票清單(依 Label 分類篩選)', en: 'Ticket list (filter by label category)' },
+
+  all_swe: { zh: '全部 SWE', en: 'All SWE' },
+  all_feature: { zh: '全部 Feature', en: 'All Features' },
+  all_status: { zh: '全部狀態', en: 'All Statuses' },
+  status_done: { zh: '已完成', en: 'Done' },
+  status_not_done: { zh: '未完成', en: 'Not done' },
+  all_label_bucket: { zh: '全部 Label 分類', en: 'All Label Categories' },
+  label_bucket_asw_r3: { zh: 'ASW-R3 (不含CPAA 0830)', en: 'ASW-R3 (excl. CPAA 0830)' },
+  label_bucket_none: { zh: '三者皆無', en: 'None of the above' },
+  all_subfeature: { zh: '全部 Sub-feature', en: 'All Sub-features' },
+  all_assignee: { zh: '全部 Assignee', en: 'All Assignees' },
+  all_severity: { zh: '全部 Severity', en: 'All Severities' },
+  all_priority: { zh: '全部 Priority', en: 'All Priorities' },
+  all_group: { zh: '全部分類', en: 'All Categories' },
+  search_placeholder: { zh: '搜尋 key 或 summary...', en: 'Search key or summary...' },
+
+  th_feature: { zh: 'Feature', en: 'Feature' },
+  th_subfeature: { zh: 'Sub-feature', en: 'Sub-feature' },
+  th_assignee: { zh: 'Assignee', en: 'Assignee' },
+  th_status: { zh: 'Status', en: 'Status' },
+  th_label_bucket: { zh: 'Label 分類', en: 'Label Category' },
+  th_summary: { zh: 'Summary', en: 'Summary' },
+  th_severity: { zh: 'Severity', en: 'Severity' },
+  th_priority: { zh: 'Priority', en: 'Priority' },
+  th_group: { zh: '分類', en: 'Category' },
+  th_issue_type: { zh: 'Issue Type', en: 'Issue Type' },
+
+  empty_state: { zh: '沒有符合條件的票', en: 'No tickets match the current filters' },
+  uncategorized: { zh: '未分類', en: 'Uncategorized' },
+  severity_unspecified: { zh: '未標示', en: 'Unspecified' },
+
+  swe_completion_label: { zh: swe => `${swe} 完成率`, en: swe => `${swe} completion` },
+  swe_total_label: { zh: '合計 (SWE2+SWE3+SWE5)', en: 'Total (SWE2+SWE3+SWE5)' },
+  tile_sub: { zh: (d, t, p) => `未完成 · 完成率 ${p}%(${d} / ${t} 已完成)`, en: (d, t, p) => `Not done · ${p}% complete (${d} / ${t} done)` },
+
+  jump_tooltip: { zh: name => `點擊查看「${name}」的票`, en: name => `Click to view tickets for "${name}"` },
+  jump_tooltip_plain: { zh: name => `點擊查看 ${name} 的票`, en: name => `Click to view ${name}'s tickets` },
+  assignee_caption: { zh: total => `在 ${total} 張未完成票中,依 assignee 統計的票數`, en: total => `Ticket counts by assignee, out of ${total} not-done tickets` },
+  subfeature_caption: { zh: (total, feature) => `在 ${total} 張未完成的 ${feature} 票中(SWE2+SWE3+SWE5 合併),依功能子分類(cpaa-feature-taxonomy)統計的票數;無法明確對應到子分類的票歸在「未分類」`, en: (total, feature) => `Ticket counts by sub-feature (cpaa-feature-taxonomy), out of ${total} not-done ${feature} tickets (SWE2+SWE3+SWE5 combined); tickets that can't be clearly matched fall under "Uncategorized"` },
+  missing_caption: { zh: (n, total) => `共 ${n} 張票 (DATA 總數 ${total} 張,含已完成與未完成)`, en: (n, total) => `${n} tickets shown (out of ${total} total, done and not-done included)` },
+
+  bug_priority_bug_total: { zh: 'Bug 總數', en: 'Total Bugs' },
+  bug_label_heading: { zh: 'Label 分佈(僅未完成 Bug)', en: 'Label breakdown (not-done Bugs only)' },
+  bug_subfeature_heading: { zh: 'Sub-feature 分佈(僅未完成 Bug,依 CarPlay/Android Auto/iPod 分欄)', en: 'Sub-feature breakdown (not-done Bugs only, split by CarPlay/Android Auto/iPod)' },
+  bug_assignee_heading: { zh: 'Assignee 分佈(僅未完成 Bug,依組織分欄)', en: 'Assignee breakdown (not-done Bugs only, split by team)' },
+  bug_list_heading: { zh: 'Bug 清單(依 Feature / Label 分類篩選)', en: 'Bug list (filter by feature / label category)' },
+  bug_label_caption: { zh: t => `在 ${t} 張未完成的 Bug 票中,依標籤分類的票數(每張票只計入一類,依 ASW-R2 → ASW-R3(不含CPAA 0830) → CPAA0830 → 三者皆無 的優先順序判斷)`, en: t => `Ticket counts by label category, out of ${t} not-done Bugs (each ticket counted once, priority order: ASW-R2 → ASW-R3 (excl. CPAA 0830) → CPAA0830 → none of the above)` },
+  bug_subfeature_caption: { zh: (total, feature) => `在 ${total} 張未完成的 ${feature} Bug 中,依功能子分類(cpaa-feature-taxonomy)統計的票數;無法明確對應到子分類的票歸在「未分類」`, en: (total, feature) => `Ticket counts by sub-feature (cpaa-feature-taxonomy), out of ${total} not-done ${feature} Bugs; tickets that can't be clearly matched fall under "Uncategorized"` },
+  bug_assignee_caption: { zh: t => `在 ${t} 張未完成 Bug 中,依 assignee 統計的票數`, en: t => `Ticket counts by assignee, out of ${t} not-done Bugs` },
+  bug_missing_caption: { zh: n => `共 ${n} 張票 (Bug 總數 ${BUGS.length} 張)`, en: n => `${n} tickets shown (out of ${BUGS.length} Bugs total)` },
+
+  audio_not_done_count: { zh: '未完成數量', en: 'Not-done count' },
+  audio_pct_sub: { zh: (p, d, t) => `完成率 ${p}%(${d} / ${t} 已完成)`, en: (p, d, t) => `${p}% complete (${d} / ${t} done)` },
+  audio_group_heading: { zh: '依 SWE2 / SWE3 / SWE5 / Bug 分類', en: 'By SWE2 / SWE3 / SWE5 / Bug category' },
+  audio_group_desc: { zh: 'summary 中含有「audio」的票,依 Issue Type 為 Bug,或 summary 中的 SWE 標記分類(另有少量未分類的票一併列出,SWE1 不列入統計)。其中 SWE2 只挑出 Label 包含「HighPriDep」的項目,SWE3/SWE5/Bug 不受此限', en: 'Tickets whose summary mentions "audio", categorized by Issue Type = Bug or by the SWE tag in the summary (a small number of uncategorized tickets are also listed; SWE1 is excluded from the count). SWE2 is restricted to items with a "HighPriDep" label; SWE3/SWE5/Bug are not' },
+  audio_group_sub: { zh: (notDone, total, done, pct) => `未完成 · 共 ${total} 張,${done} 已完成 (${pct}%)`, en: (notDone, total, done, pct) => `Not done · ${total} total, ${done} done (${pct}%)` },
+  audio_list_heading: { zh: 'Audio 票清單(僅未完成)', en: 'Audio ticket list (not-done only)' },
+  audio_chip_all: { zh: n => `全部 (${n})`, en: n => `All (${n})` },
+  audio_caption: { zh: (n, total) => `共 ${n} 張未完成票 (Audio 未完成總數 ${total} 張)`, en: (n, total) => `${n} not-done tickets shown (out of ${total} not-done Audio tickets total)` },
+  audio_group_header_row: { zh: (name, n) => `${name} — 未完成 ${n} 張`, en: (name, n) => `${name} — ${n} not done` },
+
+  pretest_list_heading: { zh: 'Pretest 清單(Bug 票中 title 含「PCTS」或「Facet」)', en: 'Pretest list (Bug tickets whose title contains "PCTS" or "Facet")' },
+  pretest_caption: { zh: n => `共 ${n} 張票 (Pretest 總數 ${PRETEST.length} 張)`, en: n => `${n} tickets shown (out of ${PRETEST.length} Pretest tickets total)` },
+};
+
+function t(key, ...args) {
+  const entry = STRINGS[key];
+  if (!entry) return key;
+  const v = entry[LANG] ?? entry.zh;
+  return typeof v === 'function' ? v(...args) : v;
+}
+
+// Display-only translation for a handful of enumerated Chinese values that are
+// baked into the data (labelBucket / severity / priority / subFeature). The
+// underlying value used for filtering/matching is never changed — only what
+// the user sees is swapped per language.
+function labelBucketText(v) {
+  if (v === 'ASW-R3 (不含CPAA 0830)') return t('label_bucket_asw_r3');
+  if (v === '三者皆無') return t('label_bucket_none');
+  return v;
+}
+function severityText(v) {
+  return v === '未標示' ? t('severity_unspecified') : v;
+}
+function subFeatureDisplay(name) {
+  return name === '未分類' ? t('uncategorized') : stripGroupPrefix(name);
+}
+
+function applyStaticI18n() {
+  document.documentElement.lang = LANG === 'zh' ? 'zh-Hant' : 'en';
+  document.getElementById('langToggle').textContent = LANG === 'zh' ? '中文 / EN' : 'EN / 中文';
+  document.getElementById('headerTitle').textContent = t('headerTitle');
+  document.title = t('headerTitle');
+  document.getElementById('headerSubtitle').textContent = t('headerSubtitle', DATA.length, BUGS.length);
+  document.getElementById('headerUpdatedAt').textContent = t('headerUpdatedAt', UPDATED_AT);
+  document.querySelectorAll('[data-i18n-tab]').forEach(el => { el.textContent = t('tab_' + el.dataset.i18nTab); });
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.dataset.i18nPlaceholder); });
+}
+
 function esc(s) {
   return (s || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 }
 function statusBadge(rec) {
-  if (rec.done) return '<span class="badge done">Done</span>';
+  if (rec.done) return '<span class="badge done">' + esc(t('status_done')) + '</span>';
   if (rec.statusCategory === 'indeterminate') return '<span class="badge progress">' + esc(rec.status) + '</span>';
   return '<span class="badge todo">' + esc(rec.status) + '</span>';
 }
@@ -301,6 +435,7 @@ function jumpToSwe(swe) {
 
 function renderCompletion() {
   const el = document.getElementById('completionTiles');
+  el.innerHTML = '';
   ['SWE2', 'SWE3', 'SWE5'].forEach(swe => {
     const subset = DATA.filter(r => r.swe === swe);
     const done = subset.filter(r => r.done).length;
@@ -310,9 +445,9 @@ function renderCompletion() {
     const tile = document.createElement('div');
     tile.className = 'stat-tile stat-tile-clickable';
     tile.innerHTML = `
-      <div class="label">${swe} 完成率</div>
+      <div class="label">${esc(t('swe_completion_label', swe))}</div>
       <div class="value">${notDone}</div>
-      <div class="sub">未完成 · 完成率 ${pct}%(${done} / ${total} 已完成)</div>
+      <div class="sub">${esc(t('tile_sub', done, total, pct))}</div>
       <div class="meter"><div style="width:${pct}%"></div></div>
     `;
     tile.addEventListener('click', () => jumpToSwe(swe));
@@ -324,9 +459,9 @@ function renderCompletion() {
   const tile = document.createElement('div');
   tile.className = 'stat-tile stat-tile-clickable';
   tile.innerHTML = `
-    <div class="label">合計 (SWE2+SWE3+SWE5)</div>
+    <div class="label">${esc(t('swe_total_label'))}</div>
     <div class="value">${totalNotDone}</div>
-    <div class="sub">未完成 · 完成率 ${totalPct}%(${totalDone} / ${DATA.length} 已完成)</div>
+    <div class="sub">${esc(t('tile_sub', totalDone, DATA.length, totalPct))}</div>
     <div class="meter"><div style="width:${totalPct}%"></div></div>
   `;
   tile.addEventListener('click', () => jumpToSwe(''));
@@ -422,11 +557,11 @@ function renderSubFeatureBarsFor(group) {
   const notDone = DATA.filter(r => !r.done && r.feature === group.feature);
   const total = notDone.length;
   document.getElementById('subFeatureBarsCaption-' + group.elId).textContent =
-    `在 ${total} 張未完成的 ${group.feature} 票中(SWE2+SWE3+SWE5 合併),依功能子分類(cpaa-feature-taxonomy)統計的票數;無法明確對應到子分類的票歸在「未分類」`;
+    t('subfeature_caption', total, group.feature);
   const counts = {};
   notDone.forEach(r => { counts[r.subFeature] = (counts[r.subFeature] || 0) + 1; });
   const rows = Object.keys(counts)
-    .map(name => ({ name: stripGroupPrefix(name), fullName: name, count: counts[name] }))
+    .map(name => ({ name: subFeatureDisplay(name), fullName: name, count: counts[name] }))
     .sort((a, b) => b.count - a.count);
   el.innerHTML = '';
   rows.forEach(row => {
@@ -434,9 +569,9 @@ function renderSubFeatureBarsFor(group) {
     const color = row.fullName === '未分類' ? 'var(--muted)' : group.color;
     const div = document.createElement('div');
     div.className = 'bar-row bar-row-pct bar-row-clickable';
-    div.title = `點擊查看「${row.name}」的票`;
+    div.title = t('jump_tooltip', row.name);
     div.innerHTML = `
-      <div class="name wide" title="${row.name}">${row.name}</div>
+      <div class="name wide" title="${esc(row.name)}">${esc(row.name)}</div>
       <div class="pct-value" style="color:${color}">${pct}%</div>
       <div class="bar-count">${row.count}</div>
     `;
@@ -495,7 +630,7 @@ function renderAssigneeBars() {
     col.style.cssText = 'flex:1 1 260px; min-width:260px; max-width:100%; overflow:hidden;';
     col.innerHTML = `
       <h3 style="margin:0 0 4px; font-size:14px;">${esc(team)}</h3>
-      <p class="caption">在 ${total} 張未完成票中,依 assignee 統計的票數</p>
+      <p class="caption">${esc(t('assignee_caption', total))}</p>
       <div class="bars-target"></div>
     `;
     const target = col.querySelector('.bars-target');
@@ -503,7 +638,7 @@ function renderAssigneeBars() {
       const pct = total ? Math.round(row.count / total * 100) : 0;
       const div = document.createElement('div');
       div.className = 'bar-row bar-row-pct bar-row-clickable';
-      div.title = `點擊查看 ${row.name} 的票`;
+      div.title = t('jump_tooltip_plain', row.name);
       div.innerHTML = `
         <div class="name assignee" title="${esc(row.name)}">${esc(row.name)}</div>
         <div class="pct-value" style="color:var(--series-cp)">${pct}%</div>
@@ -518,6 +653,7 @@ function renderAssigneeBars() {
 
 function populateMissingSubFeatureFilter() {
   const sel = document.getElementById('missingSubFeatureFilter');
+  while (sel.options.length > 1) sel.remove(1);
   const byFeature = {};
   DATA.forEach(r => {
     if (r.subFeature === '未分類') return;
@@ -531,19 +667,20 @@ function populateMissingSubFeatureFilter() {
     Array.from(names).sort().forEach(full => {
       const opt = document.createElement('option');
       opt.value = full;
-      opt.textContent = stripGroupPrefix(full);
+      opt.textContent = subFeatureDisplay(full);
       optgroup.appendChild(opt);
     });
     sel.appendChild(optgroup);
   });
   const uncatOpt = document.createElement('option');
   uncatOpt.value = '未分類';
-  uncatOpt.textContent = '未分類';
+  uncatOpt.textContent = t('uncategorized');
   sel.appendChild(uncatOpt);
 }
 
 function populateMissingAssigneeFilter() {
   const sel = document.getElementById('missingAssigneeFilter');
+  while (sel.options.length > 1) sel.remove(1);
   const names = Array.from(new Set(DATA.map(r => r.assignee))).sort();
   names.forEach(name => {
     const opt = document.createElement('option');
@@ -572,19 +709,19 @@ function renderMissingTable() {
   if (assigneeFilter) rows = rows.filter(r => r.assignee === assigneeFilter);
   if (search) rows = rows.filter(r => r.key.toLowerCase().includes(search) || r.summary.toLowerCase().includes(search));
   rows = sortRows(rows, missingSortState.key, missingSortState.dir);
-  document.getElementById('missingCaption').textContent = `共 ${rows.length} 張票 (DATA 總數 ${DATA.length} 張,含已完成與未完成)`;
+  document.getElementById('missingCaption').textContent = t('missing_caption', rows.length, DATA.length);
   tbody.innerHTML = rows.length ? rows.map(r => `
     <tr>
       <td class="key"><a href="${ticketUrl(r.key)}" target="_blank">${r.key}</a></td>
       <td>${r.swe}</td>
       <td>${esc(r.feature)}</td>
-      <td>${esc(stripGroupPrefix(r.subFeature))}</td>
+      <td>${esc(subFeatureDisplay(r.subFeature))}</td>
       <td>${esc(r.assignee)}</td>
       <td>${statusBadge(r)}</td>
-      <td>${esc(r.labelBucket)}</td>
+      <td>${esc(labelBucketText(r.labelBucket))}</td>
       <td>${esc(r.summary)}</td>
     </tr>
-  `).join('') : '<tr><td colspan="8" class="empty-state">沒有符合條件的票</td></tr>';
+  `).join('') : `<tr><td colspan="8" class="empty-state">${esc(t('empty_state'))}</td></tr>`;
 }
 
 function renderBugPanel() {
@@ -595,12 +732,12 @@ function renderBugPanel() {
   panel.innerHTML = `
     <div class="stat-row" id="bugPriorityTiles"></div>
     <section class="card">
-      <h2>Label 分佈(僅未完成 Bug)</h2>
+      <h2>${esc(t('bug_label_heading'))}</h2>
       <p class="caption" id="bugLabelBarsCaption"></p>
       <div id="bugLabelBars"></div>
     </section>
     <section class="card">
-      <h2>Sub-feature 分佈(僅未完成 Bug,依 CarPlay/Android Auto/iPod 分欄)</h2>
+      <h2>${esc(t('bug_subfeature_heading'))}</h2>
       <div style="display:flex; gap:24px; flex-wrap:wrap;">
         <div style="flex:1; min-width:280px;">
           <h3 style="margin:0 0 4px; font-size:14px;">CarPlay</h3>
@@ -620,52 +757,52 @@ function renderBugPanel() {
       </div>
     </section>
     <section class="card">
-      <h2>Assignee 分佈(僅未完成 Bug,依組織分欄)</h2>
-      <p class="caption">組織對應依據 cpaa-dashboard skill 的 TEAM_MAP;沒有對應到組織的人歸在「Unknown」</p>
+      <h2>${esc(t('bug_assignee_heading'))}</h2>
+      <p class="caption">${esc(t('team_map_note'))}</p>
       <div id="bugAssigneeBarsContainer" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:24px;"></div>
     </section>
     <section class="card">
-      <h2>Bug 清單(依 Feature / Label 分類篩選)</h2>
+      <h2>${esc(t('bug_list_heading'))}</h2>
       <p class="caption" id="bugMissingCaption"></p>
       <div class="filters">
         <select id="bugFeatureFilter">
-          <option value="">全部 Feature</option>
+          <option value="">${esc(t('all_feature'))}</option>
           <option value="CarPlay">CarPlay</option>
           <option value="Android Auto">Android Auto</option>
           <option value="iPod">iPod</option>
         </select>
         <select id="bugStatusFilter">
-          <option value="">全部狀態</option>
-          <option value="done">已完成</option>
-          <option value="not-done">未完成</option>
+          <option value="">${esc(t('all_status'))}</option>
+          <option value="done">${esc(t('status_done'))}</option>
+          <option value="not-done">${esc(t('status_not_done'))}</option>
         </select>
         <select id="bugLabelFilter">
-          <option value="">全部 Label 分類</option>
+          <option value="">${esc(t('all_label_bucket'))}</option>
           <option value="ASW-R2">ASW-R2</option>
-          <option value="ASW-R3 (不含CPAA 0830)">ASW-R3 (不含CPAA 0830)</option>
+          <option value="ASW-R3 (不含CPAA 0830)">${esc(t('label_bucket_asw_r3'))}</option>
           <option value="CPAA0830">CPAA0830</option>
-          <option value="三者皆無">三者皆無</option>
+          <option value="三者皆無">${esc(t('label_bucket_none'))}</option>
         </select>
         <select id="bugSubFeatureFilter">
-          <option value="">全部 Sub-feature</option>
+          <option value="">${esc(t('all_subfeature'))}</option>
         </select>
         <select id="bugAssigneeFilter">
-          <option value="">全部 Assignee</option>
+          <option value="">${esc(t('all_assignee'))}</option>
         </select>
         <select id="bugSeverityFilter">
-          <option value="">全部 Severity</option>
+          <option value="">${esc(t('all_severity'))}</option>
         </select>
         <select id="bugPriorityFilter">
-          <option value="">全部 Priority</option>
+          <option value="">${esc(t('all_priority'))}</option>
         </select>
-        <input type="text" id="bugSearch" placeholder="搜尋 key 或 summary...">
+        <input type="text" id="bugSearch" placeholder="${esc(t('search_placeholder'))}">
       </div>
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th data-sort="key">Key</th><th data-sort="feature">Feature</th><th data-sort="subFeature">Sub-feature</th>
-            <th data-sort="assignee">Assignee</th><th data-sort="severity">Severity</th><th data-sort="priority">Priority</th><th data-sort="status">Status</th>
-            <th data-sort="labelBucket">Label 分類</th><th data-sort="summary">Summary</th>
+            <th data-sort="key">Key</th><th data-sort="feature">${esc(t('th_feature'))}</th><th data-sort="subFeature">${esc(t('th_subfeature'))}</th>
+            <th data-sort="assignee">${esc(t('th_assignee'))}</th><th data-sort="severity">${esc(t('th_severity'))}</th><th data-sort="priority">${esc(t('th_priority'))}</th><th data-sort="status">${esc(t('th_status'))}</th>
+            <th data-sort="labelBucket">${esc(t('th_label_bucket'))}</th><th data-sort="summary">${esc(t('th_summary'))}</th>
           </tr></thead>
           <tbody id="bugTbody"></tbody>
         </table>
@@ -677,19 +814,18 @@ function renderBugPanel() {
     const el = document.getElementById('bugLabelBars');
     el.innerHTML = '';
     const notDone = BUGS.filter(r => !r.done);
-    const t = notDone.length;
-    document.getElementById('bugLabelBarsCaption').textContent =
-      `在 ${t} 張未完成的 Bug 票中,依標籤分類的票數(每張票只計入一類,依 ASW-R2 → ASW-R3(不含CPAA 0830) → CPAA0830 → 三者皆無 的優先順序判斷)`;
+    const notDoneCount = notDone.length;
+    document.getElementById('bugLabelBarsCaption').textContent = t('bug_label_caption', notDoneCount);
     LABEL_BUCKETS.map(name => ({
-      name,
+      name: labelBucketText(name),
       count: notDone.filter(r => r.labelBucket === name).length,
       color: LABEL_BUCKET_COLORS[name],
     })).forEach(row => {
-      const pct2 = t ? Math.round(row.count / t * 100) : 0;
+      const pct2 = notDoneCount ? Math.round(row.count / notDoneCount * 100) : 0;
       const div = document.createElement('div');
       div.className = 'bar-row';
       div.innerHTML = `
-        <div class="name">${row.name}</div>
+        <div class="name">${esc(row.name)}</div>
         <div class="bar-track"><div class="bar-fill" style="width:${Math.max(pct2,3)}%; background:${row.color}"><span>${pct2}%</span></div></div>
         <div class="bar-count">${row.count}</div>
       `;
@@ -743,14 +879,14 @@ function renderBugPanel() {
       Array.from(names).sort().forEach(full => {
         const opt = document.createElement('option');
         opt.value = full;
-        opt.textContent = stripGroupPrefix(full);
+        opt.textContent = subFeatureDisplay(full);
         optgroup.appendChild(opt);
       });
       subFeatureSel.appendChild(optgroup);
     });
     const uncatOpt = document.createElement('option');
     uncatOpt.value = '未分類';
-    uncatOpt.textContent = '未分類';
+    uncatOpt.textContent = t('uncategorized');
     subFeatureSel.appendChild(uncatOpt);
   })();
 
@@ -769,20 +905,20 @@ function renderBugPanel() {
     const q = search.value.toLowerCase();
     if (q) rows = rows.filter(r => r.key.toLowerCase().includes(q) || r.summary.toLowerCase().includes(q));
     rows = sortRows(rows, bugSortState.key, bugSortState.dir);
-    document.getElementById('bugMissingCaption').textContent = `共 ${rows.length} 張票 (Bug 總數 ${BUGS.length} 張)`;
+    document.getElementById('bugMissingCaption').textContent = t('bug_missing_caption', rows.length);
     tbody.innerHTML = rows.length ? rows.map(r => `
       <tr>
         <td class="key"><a href="${ticketUrl(r.key)}" target="_blank">${r.key}</a></td>
         <td>${esc(r.feature)}</td>
-        <td>${esc(stripGroupPrefix(r.subFeature))}</td>
+        <td>${esc(subFeatureDisplay(r.subFeature))}</td>
         <td>${esc(r.assignee)}</td>
-        <td>${esc(r.severity)}</td>
+        <td>${esc(severityText(r.severity))}</td>
         <td>${esc(r.priority)}</td>
         <td>${bugStatusBadge(r)}</td>
-        <td>${esc(r.labelBucket)}</td>
+        <td>${esc(labelBucketText(r.labelBucket))}</td>
         <td>${esc(r.summary)}</td>
       </tr>
-    `).join('') : '<tr><td colspan="9" class="empty-state">沒有符合條件的票</td></tr>';
+    `).join('') : `<tr><td colspan="9" class="empty-state">${esc(t('empty_state'))}</td></tr>`;
   }
   [featureSel, statusSel, labelSel, subFeatureSel, assigneeSel, severitySel, prioritySel].forEach(el => el.addEventListener('change', renderBugTable));
   search.addEventListener('input', renderBugTable);
@@ -807,21 +943,21 @@ function renderBugPanel() {
     el.innerHTML = '';
     const makeTile = (label, subset, clickValue) => {
       const d = subset.filter(r => r.done).length;
-      const t = subset.length;
-      const notDone = t - d;
-      const p = t ? Math.round(d / t * 100) : 0;
+      const total = subset.length;
+      const notDone = total - d;
+      const p = total ? Math.round(d / total * 100) : 0;
       const tile = document.createElement('div');
       tile.className = clickValue !== null ? 'stat-tile stat-tile-clickable' : 'stat-tile';
       tile.innerHTML = `
         <div class="label">${esc(label)}</div>
         <div class="value">${notDone}</div>
-        <div class="sub">未完成 · 完成率 ${p}%(${d} / ${t} 已完成)</div>
+        <div class="sub">${esc(t('tile_sub', d, total, p))}</div>
         <div class="meter"><div style="width:${p}%"></div></div>
       `;
       if (clickValue !== null) tile.addEventListener('click', () => jumpToBugPriority(clickValue));
       el.appendChild(tile);
     };
-    makeTile('Bug 總數', BUGS, null);
+    makeTile(t('bug_priority_bug_total'), BUGS, null);
     PRIORITY_ORDER.filter(p => BUGS.some(r => r.priority === p)).forEach(pri => {
       makeTile(pri, BUGS.filter(r => r.priority === pri), pri);
     });
@@ -860,11 +996,11 @@ function renderBugPanel() {
       const notDone = BUGS.filter(r => !r.done && r.feature === group.feature);
       const total = notDone.length;
       document.getElementById('bugSubFeatureBarsCaption-' + group.elId).textContent =
-        `在 ${total} 張未完成的 ${group.feature} Bug 中,依功能子分類(cpaa-feature-taxonomy)統計的票數;無法明確對應到子分類的票歸在「未分類」`;
+        t('bug_subfeature_caption', total, group.feature);
       const counts = {};
       notDone.forEach(r => { counts[r.subFeature] = (counts[r.subFeature] || 0) + 1; });
       const rows = Object.keys(counts)
-        .map(name => ({ name: stripGroupPrefix(name), fullName: name, count: counts[name] }))
+        .map(name => ({ name: subFeatureDisplay(name), fullName: name, count: counts[name] }))
         .sort((a, b) => b.count - a.count);
       el.innerHTML = '';
       rows.forEach(row => {
@@ -872,7 +1008,7 @@ function renderBugPanel() {
         const color = row.fullName === '未分類' ? 'var(--muted)' : group.color;
         const div = document.createElement('div');
         div.className = 'bar-row bar-row-pct bar-row-clickable';
-        div.title = `點擊查看「${row.name}」的票`;
+        div.title = t('jump_tooltip', row.name);
         div.innerHTML = `
           <div class="name wide" title="${esc(row.name)}">${esc(row.name)}</div>
           <div class="pct-value" style="color:${color}">${pct}%</div>
@@ -892,7 +1028,7 @@ function renderBugPanel() {
     const teamsPresent = TEAM_ORDER.filter(team => notDone.some(r => r.team === team));
     teamsPresent.forEach(team => {
       const teamRows = notDone.filter(r => r.team === team);
-      const t = teamRows.length;
+      const teamTotal = teamRows.length;
       const counts = {};
       teamRows.forEach(r => { counts[r.assignee] = (counts[r.assignee] || 0) + 1; });
       const rows = Object.keys(counts)
@@ -903,15 +1039,15 @@ function renderBugPanel() {
       col.style.cssText = 'flex:1 1 260px; min-width:260px; max-width:100%; overflow:hidden;';
       col.innerHTML = `
         <h3 style="margin:0 0 4px; font-size:14px;">${esc(team)}</h3>
-        <p class="caption">在 ${t} 張未完成 Bug 中,依 assignee 統計的票數</p>
+        <p class="caption">${esc(t('bug_assignee_caption', teamTotal))}</p>
         <div class="bars-target"></div>
       `;
       const target = col.querySelector('.bars-target');
       rows.forEach(row => {
-        const pct2 = t ? Math.round(row.count / t * 100) : 0;
+        const pct2 = teamTotal ? Math.round(row.count / teamTotal * 100) : 0;
         const div = document.createElement('div');
         div.className = 'bar-row bar-row-pct bar-row-clickable';
-        div.title = `點擊查看 ${row.name} 的票`;
+        div.title = t('jump_tooltip_plain', row.name);
         div.innerHTML = `
           <div class="name assignee" title="${esc(row.name)}">${esc(row.name)}</div>
           <div class="pct-value" style="color:var(--series-cp)">${pct2}%</div>
@@ -951,41 +1087,41 @@ function renderAudioPanel() {
   panel.innerHTML = `
     <div class="stat-row">
       <div class="stat-tile">
-        <div class="label">未完成數量</div>
+        <div class="label">${esc(t('audio_not_done_count'))}</div>
         <div class="value">${notDone}</div>
-        <div class="sub">完成率 ${pct}%（${done} / ${total} 已完成）</div>
+        <div class="sub">${esc(t('audio_pct_sub', pct, done, total))}</div>
         <div class="meter"><div style="width:${pct}%"></div></div>
       </div>
     </div>
     <section class="card">
-      <h2>依 SWE2 / SWE3 / SWE5 / Bug 分類</h2>
-      <p class="caption">summary 中含有「audio」的票,依 Issue Type 為 Bug,或 summary 中的 SWE 標記分類(另有少量未分類的票一併列出,SWE1 不列入統計)。其中 SWE2 只挑出 Label 包含「HighPriDep」的項目,SWE3/SWE5/Bug 不受此限</p>
+      <h2>${esc(t('audio_group_heading'))}</h2>
+      <p class="caption">${esc(t('audio_group_desc'))}</p>
       <div class="stat-row">
         ${groupRows.map(g => `
           <div class="stat-tile stat-tile-clickable" data-group="${esc(g.group)}">
             <div class="label">${g.group}</div>
             <div class="value">${g.notDone}</div>
-            <div class="sub">未完成 · 共 ${g.total} 張,${g.done} 已完成 (${g.total ? Math.round(g.done/g.total*100) : 0}%)</div>
+            <div class="sub">${esc(t('audio_group_sub', g.notDone, g.total, g.done, g.total ? Math.round(g.done/g.total*100) : 0))}</div>
           </div>
         `).join('')}
       </div>
     </section>
     <section class="card">
-      <h2>Audio 票清單(僅未完成)</h2>
+      <h2>${esc(t('audio_list_heading'))}</h2>
       <p class="caption" id="audioCaption"></p>
       <div class="chip-row" id="audioAssigneeChips"></div>
       <div class="filters">
         <select id="audioGroupFilter">
-          <option value="">全部分類</option>
+          <option value="">${esc(t('all_group'))}</option>
           ${[...AUDIO_GROUPS, 'Other'].map(g => `<option value="${g}">${g}</option>`).join('')}
         </select>
-        <input type="text" id="audioSearch" placeholder="搜尋 key 或 summary...">
+        <input type="text" id="audioSearch" placeholder="${esc(t('search_placeholder'))}">
       </div>
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th data-sort="key">Key</th><th data-sort="group">分類</th><th data-sort="issueType">Issue Type</th>
-            <th data-sort="status">Status</th><th data-sort="assignee">Assignee</th><th data-sort="summary">Summary</th>
+            <th data-sort="key">Key</th><th data-sort="group">${esc(t('th_group'))}</th><th data-sort="issueType">${esc(t('th_issue_type'))}</th>
+            <th data-sort="status">${esc(t('th_status'))}</th><th data-sort="assignee">${esc(t('th_assignee'))}</th><th data-sort="summary">${esc(t('th_summary'))}</th>
           </tr></thead>
           <tbody id="audioTbody"></tbody>
         </table>
@@ -1006,7 +1142,7 @@ function renderAudioPanel() {
   AUDIO_NOT_DONE.forEach(r => { assigneeCounts[r.assignee] = (assigneeCounts[r.assignee] || 0) + 1; });
   const assignees = Object.keys(assigneeCounts).sort((a, b) => assigneeCounts[b] - assigneeCounts[a]);
   function renderChips() {
-    const all = [{ name: '', label: `全部 (${AUDIO_NOT_DONE.length})` }, ...assignees.map(a => ({ name: a, label: `${a} (${assigneeCounts[a]})` }))];
+    const all = [{ name: '', label: t('audio_chip_all', AUDIO_NOT_DONE.length) }, ...assignees.map(a => ({ name: a, label: `${a} (${assigneeCounts[a]})` }))];
     chipRow.innerHTML = all.map(c => `<button type="button" class="chip${c.name === selectedAssignee ? ' active' : ''}" data-assignee="${esc(c.name)}">${esc(c.label)}</button>`).join('');
     chipRow.querySelectorAll('.chip').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -1038,10 +1174,10 @@ function renderAudioPanel() {
     if (groupSel.value) rows = rows.filter(r => r.group === groupSel.value);
     const q = search.value.toLowerCase();
     if (q) rows = rows.filter(r => r.key.toLowerCase().includes(q) || r.summary.toLowerCase().includes(q));
-    document.getElementById('audioCaption').textContent = `共 ${rows.length} 張未完成票 (Audio 未完成總數 ${AUDIO_NOT_DONE.length} 張)`;
+    document.getElementById('audioCaption').textContent = t('audio_caption', rows.length, AUDIO_NOT_DONE.length);
 
     if (!rows.length) {
-      tbody.innerHTML = '<tr><td colspan="6" class="empty-state">沒有符合條件的票</td></tr>';
+      tbody.innerHTML = `<tr><td colspan="6" class="empty-state">${esc(t('empty_state'))}</td></tr>`;
       return;
     }
 
@@ -1063,7 +1199,7 @@ function renderAudioPanel() {
     const orderedAssignees = Object.keys(byAssignee).sort((a, b) => byAssignee[b].length - byAssignee[a].length);
     tbody.innerHTML = orderedAssignees.map(a => {
       const grp = byAssignee[a];
-      return `<tr><td colspan="6" class="group-header">${esc(a)} — 未完成 ${grp.length} 張</td></tr>` + grp.map(rowHtml).join('');
+      return `<tr><td colspan="6" class="group-header">${esc(t('audio_group_header_row', a, grp.length))}</td></tr>` + grp.map(rowHtml).join('');
     }).join('');
   }
 
@@ -1090,29 +1226,29 @@ function renderPretestPanel() {
   panel.innerHTML = `
     <div class="stat-row" id="pretestTiles"></div>
     <section class="card">
-      <h2>Pretest 清單(Bug 票中 title 含「PCTS」或「Facet」)</h2>
+      <h2>${esc(t('pretest_list_heading'))}</h2>
       <p class="caption" id="pretestCaption"></p>
       <div class="filters">
         <select id="pretestGroupFilter">
-          <option value="">全部分類</option>
+          <option value="">${esc(t('all_group'))}</option>
           <option value="CP (Facet)">CP (Facet)</option>
           <option value="AA (PCTS)">AA (PCTS)</option>
         </select>
         <select id="pretestStatusFilter">
-          <option value="">全部狀態</option>
-          <option value="done">已完成</option>
-          <option value="not-done">未完成</option>
+          <option value="">${esc(t('all_status'))}</option>
+          <option value="done">${esc(t('status_done'))}</option>
+          <option value="not-done">${esc(t('status_not_done'))}</option>
         </select>
         <select id="pretestSeverityFilter">
-          <option value="">全部 Severity</option>
+          <option value="">${esc(t('all_severity'))}</option>
         </select>
-        <input type="text" id="pretestSearch" placeholder="搜尋 key 或 summary...">
+        <input type="text" id="pretestSearch" placeholder="${esc(t('search_placeholder'))}">
       </div>
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th data-sort="key">Key</th><th data-sort="pretestGroup">分類</th><th data-sort="assignee">Assignee</th>
-            <th data-sort="severity">Severity</th><th data-sort="status">Status</th><th data-sort="summary">Summary</th>
+            <th data-sort="key">Key</th><th data-sort="pretestGroup">${esc(t('th_group'))}</th><th data-sort="assignee">${esc(t('th_assignee'))}</th>
+            <th data-sort="severity">${esc(t('th_severity'))}</th><th data-sort="status">${esc(t('th_status'))}</th><th data-sort="summary">${esc(t('th_summary'))}</th>
           </tr></thead>
           <tbody id="pretestTbody"></tbody>
         </table>
@@ -1125,15 +1261,15 @@ function renderPretestPanel() {
     el.innerHTML = '';
     const makeTile = (label, subset, clickValue) => {
       const d = subset.filter(r => r.done).length;
-      const t = subset.length;
-      const notDone = t - d;
-      const p = t ? Math.round(d / t * 100) : 0;
+      const total = subset.length;
+      const notDone = total - d;
+      const p = total ? Math.round(d / total * 100) : 0;
       const tile = document.createElement('div');
       tile.className = 'stat-tile stat-tile-clickable';
       tile.innerHTML = `
         <div class="label">${esc(label)}</div>
         <div class="value">${notDone}</div>
-        <div class="sub">未完成 · 完成率 ${p}%(${d} / ${t} 已完成)</div>
+        <div class="sub">${esc(t('tile_sub', d, total, p))}</div>
         <div class="meter"><div style="width:${p}%"></div></div>
       `;
       tile.addEventListener('click', () => jumpToPretestGroup(clickValue));
@@ -1154,7 +1290,7 @@ function renderPretestPanel() {
     SEVERITY_ORDER.filter(s => PRETEST.some(r => r.severity === s)).forEach(sev => {
       const opt = document.createElement('option');
       opt.value = sev;
-      opt.textContent = sev;
+      opt.textContent = severityText(sev);
       severitySel.appendChild(opt);
     });
   })();
@@ -1170,17 +1306,17 @@ function renderPretestPanel() {
     const q = search.value.toLowerCase();
     if (q) rows = rows.filter(r => r.key.toLowerCase().includes(q) || r.summary.toLowerCase().includes(q));
     rows = sortRows(rows, pretestSortState.key, pretestSortState.dir);
-    document.getElementById('pretestCaption').textContent = `共 ${rows.length} 張票 (Pretest 總數 ${PRETEST.length} 張)`;
+    document.getElementById('pretestCaption').textContent = t('pretest_caption', rows.length);
     tbody.innerHTML = rows.length ? rows.map(r => `
       <tr>
         <td class="key"><a href="${ticketUrl(r.key)}" target="_blank">${r.key}</a></td>
         <td>${esc(r.pretestGroup)}</td>
         <td>${esc(r.assignee)}</td>
-        <td>${esc(r.severity)}</td>
+        <td>${esc(severityText(r.severity))}</td>
         <td>${bugStatusBadge(r)}</td>
         <td>${esc(r.summary)}</td>
       </tr>
-    `).join('') : '<tr><td colspan="6" class="empty-state">沒有符合條件的票</td></tr>';
+    `).join('') : `<tr><td colspan="6" class="empty-state">${esc(t('empty_state'))}</td></tr>`;
   }
   [groupSel, statusSel, severitySel].forEach(el => el.addEventListener('change', renderPretestTable));
   search.addEventListener('input', renderPretestTable);
@@ -1215,6 +1351,22 @@ document.getElementById('themeToggle').addEventListener('click', () => {
   root.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
 });
 
+document.getElementById('langToggle').addEventListener('click', () => {
+  LANG = LANG === 'zh' ? 'en' : 'zh';
+  try { localStorage.setItem('cpaaDashboardLang', LANG); } catch (e) { /* localStorage unavailable */ }
+  applyStaticI18n();
+  renderCompletion();
+  renderSubFeatureBars();
+  renderAssigneeBars();
+  populateMissingSubFeatureFilter();
+  populateMissingAssigneeFilter();
+  renderMissingTable();
+  renderBugPanel();
+  renderAudioPanel();
+  renderPretestPanel();
+});
+
+applyStaticI18n();
 renderCompletion();
 renderSubFeatureBars();
 renderAssigneeBars();
@@ -1238,7 +1390,7 @@ initTabs();
 </html>
 """
 
-html = HTML_TEMPLATE.replace("__DATA_JSON__", DATA_JSON).replace("__TOTAL__", str(len(DATA["tickets"]))).replace("__BUGTOTAL__", str(len(DATA["bugs"]))).replace("__UPDATED_AT__", UPDATED_AT)
+html = HTML_TEMPLATE.replace("__DATA_JSON__", DATA_JSON).replace("__UPDATED_AT__", UPDATED_AT)
 
 with open("dashboard.html", "w", encoding="utf-8") as f:
     f.write(html)
