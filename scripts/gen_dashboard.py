@@ -593,7 +593,6 @@ function renderBugPanel() {
   const total = BUGS.length;
   const pct = total ? Math.round(done / total * 100) : 0;
   panel.innerHTML = `
-    <div class="stat-row" id="bugSeverityTiles"></div>
     <div class="stat-row" id="bugPriorityTiles"></div>
     <section class="card">
       <h2>Label 分佈(僅未完成 Bug)</h2>
@@ -790,19 +789,6 @@ function renderBugPanel() {
   attachSortHandlers(tbody.closest('table').querySelector('thead'), bugSortState, renderBugTable);
   renderBugTable();
 
-  function jumpToBugSeverity(severity) {
-    severitySel.value = severity;
-    prioritySel.value = '';
-    featureSel.value = '';
-    subFeatureSel.value = '';
-    assigneeSel.value = '';
-    statusSel.value = 'not-done';
-    labelSel.value = '';
-    search.value = '';
-    renderBugTable();
-    tbody.closest('section.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-
   function jumpToBugPriority(priority) {
     prioritySel.value = priority;
     severitySel.value = '';
@@ -815,32 +801,6 @@ function renderBugPanel() {
     renderBugTable();
     tbody.closest('section.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
-
-  function renderBugSeverityTiles() {
-    const el = document.getElementById('bugSeverityTiles');
-    el.innerHTML = '';
-    const makeTile = (label, subset, clickValue) => {
-      const d = subset.filter(r => r.done).length;
-      const t = subset.length;
-      const notDone = t - d;
-      const p = t ? Math.round(d / t * 100) : 0;
-      const tile = document.createElement('div');
-      tile.className = clickValue !== null ? 'stat-tile stat-tile-clickable' : 'stat-tile';
-      tile.innerHTML = `
-        <div class="label">${esc(label)}</div>
-        <div class="value">${notDone}</div>
-        <div class="sub">未完成 · 完成率 ${p}%(${d} / ${t} 已完成)</div>
-        <div class="meter"><div style="width:${p}%"></div></div>
-      `;
-      if (clickValue !== null) tile.addEventListener('click', () => jumpToBugSeverity(clickValue));
-      el.appendChild(tile);
-    };
-    makeTile('Bug 總數', BUGS, null);
-    SEVERITY_ORDER.filter(s => BUGS.some(r => r.severity === s)).forEach(sev => {
-      makeTile(sev, BUGS.filter(r => r.severity === sev), sev);
-    });
-  }
-  renderBugSeverityTiles();
 
   function renderBugPriorityTiles() {
     const el = document.getElementById('bugPriorityTiles');
