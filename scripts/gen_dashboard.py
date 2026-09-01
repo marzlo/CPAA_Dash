@@ -732,11 +732,6 @@ function renderBugPanel() {
   panel.innerHTML = `
     <div class="stat-row" id="bugPriorityTiles"></div>
     <section class="card">
-      <h2>${esc(t('bug_label_heading'))}</h2>
-      <p class="caption" id="bugLabelBarsCaption"></p>
-      <div id="bugLabelBars"></div>
-    </section>
-    <section class="card">
       <h2>${esc(t('bug_subfeature_heading'))}</h2>
       <div style="display:flex; gap:24px; flex-wrap:wrap;">
         <div style="flex:1; min-width:280px;">
@@ -809,30 +804,6 @@ function renderBugPanel() {
       </div>
     </section>
   `;
-
-  function renderBugLabelBars() {
-    const el = document.getElementById('bugLabelBars');
-    el.innerHTML = '';
-    const notDone = BUGS.filter(r => !r.done);
-    const notDoneCount = notDone.length;
-    document.getElementById('bugLabelBarsCaption').textContent = t('bug_label_caption', notDoneCount);
-    LABEL_BUCKETS.map(name => ({
-      name: labelBucketText(name),
-      count: notDone.filter(r => r.labelBucket === name).length,
-      color: LABEL_BUCKET_COLORS[name],
-    })).forEach(row => {
-      const pct2 = notDoneCount ? Math.round(row.count / notDoneCount * 100) : 0;
-      const div = document.createElement('div');
-      div.className = 'bar-row';
-      div.innerHTML = `
-        <div class="name">${esc(row.name)}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.max(pct2,3)}%; background:${row.color}"><span>${pct2}%</span></div></div>
-        <div class="bar-count">${row.count}</div>
-      `;
-      el.appendChild(div);
-    });
-  }
-  renderBugLabelBars();
 
   const featureSel = document.getElementById('bugFeatureFilter');
   const statusSel = document.getElementById('bugStatusFilter');
