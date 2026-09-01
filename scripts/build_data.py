@@ -57,6 +57,8 @@ TEAM_MAP = {
     'TS-赵洪': 'TS_FW',
     'JerryCCChen(陳璟錞)': 'MDT_PM',
     '杨百全': 'TS_CPAA',
+    # Added per user confirmation (2026-09-01)
+    'Shaik Mohammed Arif': 'MDI_System',
 }
 
 DONE_STATUSES = {"Done"}  # statusCategory 'done'
