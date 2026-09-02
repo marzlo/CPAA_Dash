@@ -185,6 +185,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 </header>
 <nav class="tabs" id="tabs">
   <button data-tab="overview" data-i18n-tab="overview" class="active">Overview</button>
+  <button data-tab="Stats" data-i18n-tab="stats">Stats</button>
   <button data-tab="Bug" data-i18n-tab="bug">Bug</button>
   <button data-tab="Audio" data-i18n-tab="audio">Audio</button>
   <button data-tab="Pretest" data-i18n-tab="pretest">Pretest</button>
@@ -193,24 +194,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 
   <div class="panel active" id="panel-overview">
     <div class="stat-row" id="completionTiles"></div>
-
-    <section class="card">
-      <h2 data-i18n="ov_trend_heading"></h2>
-      <p class="caption" id="trendCaption"></p>
-      <div id="trendChartWrap"></div>
-    </section>
-
-    <section class="card">
-      <h2 data-i18n="ov_aging_heading"></h2>
-      <p class="caption" id="agingCaption"></p>
-      <div id="agingBars"></div>
-    </section>
-
-    <section class="card">
-      <h2 data-i18n="ov_buginflow_heading"></h2>
-      <p class="caption" id="bugInflowCaption"></p>
-      <div id="bugInflowChartWrap"></div>
-    </section>
 
     <section class="card">
       <h2 data-i18n="ov_subfeature_heading"></h2>
@@ -288,6 +271,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     </section>
   </div>
 
+  <div class="panel" id="panel-Stats"></div>
   <div class="panel" id="panel-Bug"></div>
   <div class="panel" id="panel-Audio"></div>
   <div class="panel" id="panel-Pretest"></div>
@@ -323,6 +307,7 @@ const STRINGS = {
   },
   headerUpdatedAt: { zh: d => `最後更新日期:${d}`, en: d => `Last updated: ${d}` },
   tab_overview: { zh: '總覽', en: 'Overview' },
+  tab_stats: { zh: '統計數據', en: 'Stats' },
   tab_bug: { zh: 'Bug', en: 'Bug' },
   tab_audio: { zh: 'Audio', en: 'Audio' },
   tab_pretest: { zh: 'Pretest', en: 'Pretest' },
@@ -336,16 +321,22 @@ const STRINGS = {
   trend_caption: { zh: (a, b) => `每日快照,${a} ~ ${b}(每天自動記錄一次;資料從此功能上線那天開始累積,無法回溯更早的歷史)`, en: (a, b) => `Daily snapshots, ${a} – ${b} (recorded automatically once per day; history starts from when this feature was deployed and can't be backfilled further)` },
   trend_insufficient_body: { zh: '目前累積的快照天數還不夠畫趨勢線。系統會從今天開始每天自動記錄一筆,幾天後這裡就會出現趨勢圖', en: "Not enough daily snapshots yet to draw a trend line. One is recorded automatically every day starting today, so a trend will appear here after a few days" },
 
-  ov_aging_heading: { zh: '未完成票的卡住天數分佈(SWE2/3/5 + Bug 合併)', en: 'Age distribution of not-done tickets (SWE2/3/5 + Bug combined)' },
-  aging_caption: { zh: (total, unknown) => `共 ${total} 張未完成票,依建立日期至今的天數分佈${unknown ? `(其中 ${unknown} 張沒有建立日期資料,未計入)` : ''}`, en: (total, unknown) => `${total} not-done tickets, bucketed by days since creation${unknown ? ` (${unknown} without a creation date, excluded)` : ''}` },
+  ov_aging_heading: { zh: '未完成 Bug 的卡住天數分佈(點擊可跳到 Bug 清單)', en: 'Age distribution of not-done Bugs (click a bar to jump to the Bug list)' },
+  aging_caption: { zh: (total, unknown) => `共 ${total} 張未完成 Bug,依建立日期至今的天數分佈${unknown ? `(其中 ${unknown} 張沒有建立日期資料,未計入)` : ''}`, en: (total, unknown) => `${total} not-done Bugs, bucketed by days since creation${unknown ? ` (${unknown} without a creation date, excluded)` : ''}` },
   aging_0_7: { zh: '0-7 天', en: '0-7 days' },
   aging_8_14: { zh: '8-14 天', en: '8-14 days' },
   aging_15_30: { zh: '15-30 天', en: '15-30 days' },
   aging_30_plus: { zh: '超過 30 天', en: 'Over 30 days' },
 
-  ov_buginflow_heading: { zh: 'Bug 每週新增數量(近 12 週,依建立日期)', en: 'Weekly new bugs (last 12 weeks, by creation date)' },
-  buginflow_caption: { zh: (a, b) => `ISO 週次 ${a} ~ ${b}`, en: (a, b) => `ISO week ${a} – ${b}` },
+  ov_buginflow_heading: { zh: 'Bug 每週新增數量(近 12 週,依建立日期,含 0 筆的週)', en: 'Weekly new bugs (trailing 12 weeks by creation date, zero weeks included)' },
+  buginflow_caption: { zh: (a, b) => `ISO 週次 ${a} ~ ${b}(固定顯示到今天為止最近 12 週,即使某幾週沒有新票也會顯示為 0)`, en: (a, b) => `ISO week ${a} – ${b} (always the trailing 12 weeks up to today; weeks with no new bugs show as 0)` },
   buginflow_no_data: { zh: '目前的資料沒有建立日期欄位,無法統計', en: 'No creation-date data available to chart' },
+
+  bug_age_filter_all: { zh: '全部卡住天數', en: 'All ages' },
+  bug_age_0_7: { zh: '0-7 天', en: '0-7 days' },
+  bug_age_8_14: { zh: '8-14 天', en: '8-14 days' },
+  bug_age_15_30: { zh: '15-30 天', en: '15-30 days' },
+  bug_age_30_plus: { zh: '超過 30 天', en: 'Over 30 days' },
 
   all_swe: { zh: '全部 SWE', en: 'All SWE' },
   all_feature: { zh: '全部 Feature', en: 'All Features' },
@@ -560,64 +551,22 @@ function renderLineChartSvg(xLabels, series, dataSets) {
   `;
 }
 
-function renderTrendChart() {
-  const wrap = document.getElementById('trendChartWrap');
-  const caption = document.getElementById('trendCaption');
-  const dates = Object.keys(HISTORY).sort();
-  if (dates.length < 2) {
-    caption.textContent = '';
-    wrap.innerHTML = `<div class="empty-state">${esc(t('trend_insufficient_body'))}</div>`;
-    return;
-  }
-  caption.textContent = t('trend_caption', dates[0], dates[dates.length - 1]);
-  const series = [
-    { key: 'swe2', label: 'SWE2', color: 'var(--series-cp)' },
-    { key: 'swe3', label: 'SWE3', color: 'var(--series-aa)' },
-    { key: 'swe5', label: 'SWE5', color: 'var(--series-ipod)' },
-    { key: 'bugs', label: t('tab_bug'), color: 'var(--critical)' },
-  ];
-  const dataSets = series.map(s => dates.map(d => {
-    const snap = HISTORY[d] && HISTORY[d][s.key];
-    return snap ? (snap.total - snap.done) : null;
-  }));
-  wrap.innerHTML = renderLineChartSvg(dates, series, dataSets);
-}
+const AGE_BUCKETS = [
+  { key: '0-7', labelKey: 'aging_0_7', min: 0, max: 7, color: 'var(--good)' },
+  { key: '8-14', labelKey: 'aging_8_14', min: 8, max: 14, color: 'var(--warning)' },
+  { key: '15-30', labelKey: 'aging_15_30', min: 15, max: 30, color: 'var(--serious)' },
+  { key: '30+', labelKey: 'aging_30_plus', min: 31, max: Infinity, color: 'var(--critical)' },
+];
 
-function renderAgingBars() {
-  const el = document.getElementById('agingBars');
-  const caption = document.getElementById('agingCaption');
-  const notDone = [...DATA.filter(r => !r.done), ...BUGS.filter(r => !r.done)];
-  const now = Date.now();
-  const buckets = [
-    { key: '0-7', label: t('aging_0_7'), min: 0, max: 7, color: 'var(--good)' },
-    { key: '8-14', label: t('aging_8_14'), min: 8, max: 14, color: 'var(--warning)' },
-    { key: '15-30', label: t('aging_15_30'), min: 15, max: 30, color: 'var(--serious)' },
-    { key: '30+', label: t('aging_30_plus'), min: 31, max: Infinity, color: 'var(--critical)' },
-  ];
-  const counts = { '0-7': 0, '8-14': 0, '15-30': 0, '30+': 0 };
-  let unknown = 0;
-  notDone.forEach(r => {
-    if (!r.created) { unknown++; return; }
-    const days = Math.floor((now - new Date(r.created).getTime()) / 86400000);
-    if (isNaN(days)) { unknown++; return; }
-    const b = buckets.find(b => days >= b.min && days <= b.max) || buckets[buckets.length - 1];
-    counts[b.key]++;
-  });
-  const total = notDone.length;
-  caption.textContent = t('aging_caption', total, unknown);
-  el.innerHTML = '';
-  buckets.forEach(b => {
-    const count = counts[b.key];
-    const pct = total ? Math.round(count / total * 100) : 0;
-    const div = document.createElement('div');
-    div.className = 'bar-row';
-    div.innerHTML = `
-      <div class="name">${esc(b.label)}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${Math.max(pct, 3)}%; background:${b.color}"><span>${pct}%</span></div></div>
-      <div class="bar-count">${count}</div>
-    `;
-    el.appendChild(div);
-  });
+// Returns the age-bucket key ('0-7' / '8-14' / '15-30' / '30+') for a ticket's `created`
+// date as of right now, or null if there's no usable creation date. Shared by the Stats
+// tab's aging chart and the Bug tab's age filter so the two stay in sync.
+function ageBucketOf(created) {
+  if (!created) return null;
+  const days = Math.floor((Date.now() - new Date(created).getTime()) / 86400000);
+  if (isNaN(days)) return null;
+  const b = AGE_BUCKETS.find(b => days >= b.min && days <= b.max);
+  return b ? b.key : AGE_BUCKETS[AGE_BUCKETS.length - 1].key;
 }
 
 function isoWeekLabel(date) {
@@ -629,36 +578,133 @@ function isoWeekLabel(date) {
   return `${d.getUTCFullYear()}-W${String(weekNum).padStart(2, '0')}`;
 }
 
-function renderBugInflowChart() {
-  const wrap = document.getElementById('bugInflowChartWrap');
-  const caption = document.getElementById('bugInflowCaption');
-  const withCreated = BUGS.filter(r => r.created);
-  if (!withCreated.length) {
-    caption.textContent = t('buginflow_no_data');
-    wrap.innerHTML = '';
-    return;
-  }
-  const counts = {};
-  withCreated.forEach(r => {
-    const wk = isoWeekLabel(new Date(r.created));
-    counts[wk] = (counts[wk] || 0) + 1;
-  });
-  const weeks = Object.keys(counts).sort().slice(-12);
-  caption.textContent = t('buginflow_caption', weeks[0], weeks[weeks.length - 1]);
-  const maxV = Math.max(...weeks.map(w => counts[w]), 1);
-  wrap.innerHTML = `
-    <div style="display:flex; align-items:flex-end; gap:6px; height:160px; padding-top:8px;">
-      ${weeks.map(w => {
-        const v = counts[w];
-        const h = Math.round((v / maxV) * 100);
-        return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;">
-          <div style="font-size:11px; color:var(--text-secondary); margin-bottom:2px;">${v}</div>
-          <div style="width:100%; max-width:28px; height:${Math.max(h, 3)}%; background:var(--series-aa); border-radius:3px 3px 0 0;"></div>
-          <div style="font-size:9px; color:var(--muted); margin-top:4px;">${esc(w.slice(6))}</div>
-        </div>`;
-      }).join('')}
-    </div>
+// Switches to the Bug tab and applies the given age-bucket filter (plus "not done"),
+// by driving the Bug panel's own filter <select>s and firing 'change' — the Bug panel's
+// own listeners (already attached, since renderBugPanel() runs once at load) do the rest.
+function jumpToBugFromStats(ageBucketKey) {
+  const bugTabBtn = document.querySelector('nav.tabs button[data-tab="Bug"]');
+  if (bugTabBtn) bugTabBtn.click();
+  const ageSel = document.getElementById('bugAgeFilter');
+  const statusSel = document.getElementById('bugStatusFilter');
+  if (ageSel) { ageSel.value = ageBucketKey || ''; ageSel.dispatchEvent(new Event('change')); }
+  if (statusSel) { statusSel.value = 'not-done'; statusSel.dispatchEvent(new Event('change')); }
+  document.getElementById('bugTbody').closest('section.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderStatsPanel() {
+  const panel = document.getElementById('panel-Stats');
+  panel.innerHTML = `
+    <section class="card">
+      <h2>${esc(t('ov_trend_heading'))}</h2>
+      <p class="caption" id="trendCaption"></p>
+      <div id="trendChartWrap"></div>
+    </section>
+    <section class="card">
+      <h2>${esc(t('ov_aging_heading'))}</h2>
+      <p class="caption" id="agingCaption"></p>
+      <div id="agingBars"></div>
+    </section>
+    <section class="card">
+      <h2>${esc(t('ov_buginflow_heading'))}</h2>
+      <p class="caption" id="bugInflowCaption"></p>
+      <div id="bugInflowChartWrap"></div>
+    </section>
   `;
+
+  // --- Trend / burndown chart ------------------------------------------------
+  (function renderTrendChart() {
+    const wrap = document.getElementById('trendChartWrap');
+    const caption = document.getElementById('trendCaption');
+    const dates = Object.keys(HISTORY).sort();
+    if (dates.length < 2) {
+      caption.textContent = '';
+      wrap.innerHTML = `<div class="empty-state">${esc(t('trend_insufficient_body'))}</div>`;
+      return;
+    }
+    caption.textContent = t('trend_caption', dates[0], dates[dates.length - 1]);
+    const series = [
+      { key: 'swe2', label: 'SWE2', color: 'var(--series-cp)' },
+      { key: 'swe3', label: 'SWE3', color: 'var(--series-aa)' },
+      { key: 'swe5', label: 'SWE5', color: 'var(--series-ipod)' },
+      { key: 'bugs', label: t('tab_bug'), color: 'var(--critical)' },
+    ];
+    const dataSets = series.map(s => dates.map(d => {
+      const snap = HISTORY[d] && HISTORY[d][s.key];
+      return snap ? (snap.total - snap.done) : null;
+    }));
+    wrap.innerHTML = renderLineChartSvg(dates, series, dataSets);
+  })();
+
+  // --- Bug aging chart (Bug tickets only; bars jump to the Bug tab) -----------
+  (function renderAgingBars() {
+    const el = document.getElementById('agingBars');
+    const caption = document.getElementById('agingCaption');
+    const notDone = BUGS.filter(r => !r.done);
+    const counts = { '0-7': 0, '8-14': 0, '15-30': 0, '30+': 0 };
+    let unknown = 0;
+    notDone.forEach(r => {
+      const bucket = ageBucketOf(r.created);
+      if (!bucket) { unknown++; return; }
+      counts[bucket]++;
+    });
+    const total = notDone.length;
+    caption.textContent = t('aging_caption', total, unknown);
+    el.innerHTML = '';
+    AGE_BUCKETS.forEach(b => {
+      const count = counts[b.key];
+      const pct = total ? Math.round(count / total * 100) : 0;
+      const div = document.createElement('div');
+      div.className = 'bar-row bar-row-pct bar-row-clickable';
+      div.title = t('jump_tooltip_plain', t(b.labelKey));
+      div.innerHTML = `
+        <div class="name">${esc(t(b.labelKey))}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.max(pct, 3)}%; background:${b.color}"><span>${pct}%</span></div></div>
+        <div class="bar-count">${count}</div>
+      `;
+      div.addEventListener('click', () => jumpToBugFromStats(b.key));
+      el.appendChild(div);
+    });
+  })();
+
+  // --- Weekly bug inflow: always the trailing 12 calendar weeks up to today,
+  // zero-filled, so the chart doesn't start wherever the earliest bug happens
+  // to sit — it's a fixed rolling window, not "the weeks that have data".
+  (function renderBugInflowChart() {
+    const wrap = document.getElementById('bugInflowChartWrap');
+    const caption = document.getElementById('bugInflowCaption');
+    const withCreated = BUGS.filter(r => r.created);
+    if (!withCreated.length) {
+      caption.textContent = t('buginflow_no_data');
+      wrap.innerHTML = '';
+      return;
+    }
+    const counts = {};
+    withCreated.forEach(r => {
+      const wk = isoWeekLabel(new Date(r.created));
+      counts[wk] = (counts[wk] || 0) + 1;
+    });
+    const weeks = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i * 7);
+      weeks.push(isoWeekLabel(d));
+    }
+    caption.textContent = t('buginflow_caption', weeks[0], weeks[weeks.length - 1]);
+    const maxV = Math.max(...weeks.map(w => counts[w] || 0), 1);
+    wrap.innerHTML = `
+      <div style="display:flex; align-items:flex-end; gap:6px; height:160px; padding-top:8px;">
+        ${weeks.map(w => {
+          const v = counts[w] || 0;
+          const h = Math.round((v / maxV) * 100);
+          return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;">
+            <div style="font-size:11px; color:var(--text-secondary); margin-bottom:2px;">${v}</div>
+            <div style="width:100%; max-width:28px; height:${v ? Math.max(h, 3) : 1}%; background:var(--series-aa); border-radius:3px 3px 0 0;"></div>
+            <div style="font-size:9px; color:var(--muted); margin-top:4px;">${esc(w.slice(6))}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    `;
+  })();
 }
 
 const LABEL_BUCKETS = ['ASW-R2', 'ASW-R3 (不含CPAA 0830)', 'CPAA0830', '三者皆無'];
@@ -983,6 +1029,13 @@ function renderBugPanel() {
         <select id="bugPriorityFilter">
           <option value="">${esc(t('all_priority'))}</option>
         </select>
+        <select id="bugAgeFilter">
+          <option value="">${esc(t('bug_age_filter_all'))}</option>
+          <option value="0-7">${esc(t('bug_age_0_7'))}</option>
+          <option value="8-14">${esc(t('bug_age_8_14'))}</option>
+          <option value="15-30">${esc(t('bug_age_15_30'))}</option>
+          <option value="30+">${esc(t('bug_age_30_plus'))}</option>
+        </select>
         <input type="text" id="bugSearch" placeholder="${esc(t('search_placeholder'))}">
       </div>
       <div class="table-wrap">
@@ -1005,6 +1058,7 @@ function renderBugPanel() {
   const assigneeSel = document.getElementById('bugAssigneeFilter');
   const severitySel = document.getElementById('bugSeverityFilter');
   const prioritySel = document.getElementById('bugPriorityFilter');
+  const ageSel = document.getElementById('bugAgeFilter');
   const search = document.getElementById('bugSearch');
   const tbody = document.getElementById('bugTbody');
 
@@ -1066,6 +1120,7 @@ function renderBugPanel() {
     if (assigneeSel.value) rows = rows.filter(r => r.assignee === assigneeSel.value);
     if (severitySel.value) rows = rows.filter(r => r.severity === severitySel.value);
     if (prioritySel.value) rows = rows.filter(r => r.priority === prioritySel.value);
+    if (ageSel.value) rows = rows.filter(r => ageBucketOf(r.created) === ageSel.value);
     const q = search.value.toLowerCase();
     if (q) rows = rows.filter(r => r.key.toLowerCase().includes(q) || r.summary.toLowerCase().includes(q));
     rows = sortRows(rows, bugSortState.key, bugSortState.dir);
@@ -1084,7 +1139,7 @@ function renderBugPanel() {
       </tr>
     `).join('') : `<tr><td colspan="9" class="empty-state">${esc(t('empty_state'))}</td></tr>`;
   }
-  [featureSel, statusSel, labelSel, subFeatureSel, assigneeSel, severitySel, prioritySel].forEach(el => el.addEventListener('change', renderBugTable));
+  [featureSel, statusSel, labelSel, subFeatureSel, assigneeSel, severitySel, prioritySel, ageSel].forEach(el => el.addEventListener('change', renderBugTable));
   search.addEventListener('input', renderBugTable);
   attachSortHandlers(tbody.closest('table').querySelector('thead'), bugSortState, renderBugTable);
   renderBugTable();
@@ -1097,6 +1152,7 @@ function renderBugPanel() {
     assigneeSel.value = '';
     statusSel.value = 'not-done';
     labelSel.value = '';
+    ageSel.value = '';
     search.value = '';
     renderBugTable();
     tbody.closest('section.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1136,6 +1192,7 @@ function renderBugPanel() {
     prioritySel.value = '';
     statusSel.value = 'not-done';
     labelSel.value = '';
+    ageSel.value = '';
     search.value = '';
     renderBugTable();
     tbody.closest('section.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1149,6 +1206,7 @@ function renderBugPanel() {
     prioritySel.value = '';
     statusSel.value = 'not-done';
     labelSel.value = '';
+    ageSel.value = '';
     search.value = '';
     renderBugTable();
     tbody.closest('section.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1520,14 +1578,12 @@ document.getElementById('langToggle').addEventListener('click', () => {
   try { localStorage.setItem('cpaaDashboardLang', LANG); } catch (e) { /* localStorage unavailable */ }
   applyStaticI18n();
   renderCompletion();
-  renderTrendChart();
-  renderAgingBars();
-  renderBugInflowChart();
   renderSubFeatureBars();
   renderAssigneeBars();
   populateMissingSubFeatureFilter();
   populateMissingAssigneeFilter();
   renderMissingTable();
+  renderStatsPanel();
   renderBugPanel();
   renderAudioPanel();
   renderPretestPanel();
@@ -1535,9 +1591,6 @@ document.getElementById('langToggle').addEventListener('click', () => {
 
 applyStaticI18n();
 renderCompletion();
-renderTrendChart();
-renderAgingBars();
-renderBugInflowChart();
 renderSubFeatureBars();
 renderAssigneeBars();
 populateMissingSubFeatureFilter();
@@ -1551,6 +1604,7 @@ document.getElementById('missingSubFeatureFilter').addEventListener('change', re
 document.getElementById('missingAssigneeFilter').addEventListener('change', renderMissingTable);
 document.getElementById('missingSearch').addEventListener('input', renderMissingTable);
 attachSortHandlers(document.getElementById('missingTbody').closest('table').querySelector('thead'), missingSortState, renderMissingTable);
+renderStatsPanel();
 renderBugPanel();
 renderAudioPanel();
 renderPretestPanel();
