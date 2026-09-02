@@ -1043,7 +1043,7 @@ function renderBugPanel() {
           <thead><tr>
             <th data-sort="key">Key</th><th data-sort="feature">${esc(t('th_feature'))}</th><th data-sort="subFeature">${esc(t('th_subfeature'))}</th>
             <th data-sort="assignee">${esc(t('th_assignee'))}</th><th data-sort="severity">${esc(t('th_severity'))}</th><th data-sort="priority">${esc(t('th_priority'))}</th><th data-sort="status">${esc(t('th_status'))}</th>
-            <th data-sort="labelBucket">${esc(t('th_label_bucket'))}</th><th data-sort="summary">${esc(t('th_summary'))}</th>
+            <th data-sort="summary">${esc(t('th_summary'))}</th>
           </tr></thead>
           <tbody id="bugTbody"></tbody>
         </table>
@@ -1134,10 +1134,9 @@ function renderBugPanel() {
         <td>${esc(severityText(r.severity))}</td>
         <td>${esc(r.priority)}</td>
         <td>${bugStatusBadge(r)}</td>
-        <td>${esc(labelBucketText(r.labelBucket))}</td>
         <td>${esc(r.summary)}</td>
       </tr>
-    `).join('') : `<tr><td colspan="9" class="empty-state">${esc(t('empty_state'))}</td></tr>`;
+    `).join('') : `<tr><td colspan="8" class="empty-state">${esc(t('empty_state'))}</td></tr>`;
   }
   [featureSel, statusSel, labelSel, subFeatureSel, assigneeSel, severitySel, prioritySel, ageSel].forEach(el => el.addEventListener('change', renderBugTable));
   search.addEventListener('input', renderBugTable);
