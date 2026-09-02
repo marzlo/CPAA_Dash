@@ -1,4 +1,4 @@
-import openpyxl, re, json, csv, os
+import openpyxl, re, json, csv, os, datetime as _dt
 
 # In the GitHub Actions pipeline, fetch_jira.py writes this CSV (same column shape as a
 # manual Jira CSV export) right before this script runs. Override with JIRA_CSV_PATH if needed.
@@ -28,7 +28,16 @@ IDX_STATUS = header.index("Status")
 IDX_ASSIGNEE = header.index("Assignee") if "Assignee" in header else None
 IDX_SEVERITY = header.index("Custom field (Severity)") if "Custom field (Severity)" in header else None
 IDX_PRIORITY = header.index("Priority") if "Priority" in header else None
+IDX_CREATED = header.index("Created") if "Created" in header else None
 LABEL_COLS = [i for i, h in enumerate(header) if h == "Labels" or (isinstance(h, str) and h.startswith("Labels_"))]
+
+# Normalise the "Created" cell to an ISO date string regardless of source: the CSV path
+# (fetch_jira.py, live pipeline) gives an ISO datetime string straight from the Jira API;
+# the manual .xlsx export path gives an openpyxl-parsed datetime/date object.
+def created_iso(v):
+    if isinstance(v, (_dt.datetime, _dt.date)):
+        return v.isoformat()
+    return v or None
 
 # Assignee -> team/org mapping, sourced from the cpaa-dashboard skill's TEAM_MAP
 # (build_all_swe.py). Anyone not in here falls under "Unknown" and should be
@@ -216,6 +225,7 @@ for r in data:
         "hasCPAA0830": "CPAA_0830" in labels,
         "assignee": assignee,
         "team": TEAM_MAP.get(assignee, "Unknown"),
+        "created": created_iso(r[IDX_CREATED]) if IDX_CREATED is not None else None,
     }
     rec["labelBucket"] = label_bucket(rec["hasR2"], rec["hasR3"], rec["hasCPAA0830"])
     rec["subFeature"] = classify_subfeature(rec["feature"], summary) or "未分類"
@@ -290,6 +300,7 @@ for r in data:
         "team": TEAM_MAP.get(assignee, "Unknown"),
         "severity": severity,
         "priority": priority,
+        "created": created_iso(r[IDX_CREATED]) if IDX_CREATED is not None else None,
     }
     rec["labelBucket"] = label_bucket(rec["hasR2"], rec["hasR3"], rec["hasCPAA0830"])
     rec["subFeature"] = classify_subfeature(rec["feature"], summary) or "未分類"

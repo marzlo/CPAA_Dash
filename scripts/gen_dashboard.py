@@ -4,6 +4,14 @@ from datetime import datetime
 with open("dashboard_data.json", encoding="utf-8") as f:
     DATA = json.load(f)
 
+try:
+    with open("history.json", encoding="utf-8") as f:
+        HISTORY = json.load(f)
+except FileNotFoundError:
+    HISTORY = {}
+
+DATA["history"] = HISTORY
+
 DATA_JSON = json.dumps(DATA, ensure_ascii=False)
 UPDATED_AT = datetime.now().strftime("%Y-%m-%d")
 
@@ -187,6 +195,24 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     <div class="stat-row" id="completionTiles"></div>
 
     <section class="card">
+      <h2 data-i18n="ov_trend_heading"></h2>
+      <p class="caption" id="trendCaption"></p>
+      <div id="trendChartWrap"></div>
+    </section>
+
+    <section class="card">
+      <h2 data-i18n="ov_aging_heading"></h2>
+      <p class="caption" id="agingCaption"></p>
+      <div id="agingBars"></div>
+    </section>
+
+    <section class="card">
+      <h2 data-i18n="ov_buginflow_heading"></h2>
+      <p class="caption" id="bugInflowCaption"></p>
+      <div id="bugInflowChartWrap"></div>
+    </section>
+
+    <section class="card">
       <h2 data-i18n="ov_subfeature_heading"></h2>
       <div style="display:flex; gap:24px; flex-wrap:wrap;">
         <div style="flex:1; min-width:280px;">
@@ -275,6 +301,7 @@ const DATA = RAW.tickets;
 const BUGS = RAW.bugs;
 const AUDIO = RAW.audio;
 const PRETEST = RAW.pretest;
+const HISTORY = RAW.history || {};
 const FEATURE_COLORS = { "CarPlay": "var(--series-cp)", "Android Auto": "var(--series-aa)", "iPod": "var(--series-ipod)" };
 
 // ---- i18n ----------------------------------------------------------------
@@ -304,6 +331,21 @@ const STRINGS = {
   ov_assignee_heading: { zh: 'Assignee 分佈(僅未完成票,SWE2+SWE3+SWE5 合併計算,依組織分欄)', en: 'Assignee breakdown (not-done tickets only, SWE2+SWE3+SWE5 combined, split by team)' },
   team_map_note: { zh: '組織對應依據 cpaa-dashboard skill 的 TEAM_MAP;沒有對應到組織的人歸在「Unknown」', en: 'Team mapping follows the cpaa-dashboard skill’s TEAM_MAP; anyone not mapped falls under "Unknown"' },
   ov_list_heading: { zh: '票清單(依 Label 分類篩選)', en: 'Ticket list (filter by label category)' },
+
+  ov_trend_heading: { zh: '進度趨勢(燃盡圖 · 未完成票數隨時間變化)', en: 'Progress trend (burndown · not-done count over time)' },
+  trend_caption: { zh: (a, b) => `每日快照,${a} ~ ${b}(每天自動記錄一次;資料從此功能上線那天開始累積,無法回溯更早的歷史)`, en: (a, b) => `Daily snapshots, ${a} – ${b} (recorded automatically once per day; history starts from when this feature was deployed and can't be backfilled further)` },
+  trend_insufficient_body: { zh: '目前累積的快照天數還不夠畫趨勢線。系統會從今天開始每天自動記錄一筆,幾天後這裡就會出現趨勢圖', en: "Not enough daily snapshots yet to draw a trend line. One is recorded automatically every day starting today, so a trend will appear here after a few days" },
+
+  ov_aging_heading: { zh: '未完成票的卡住天數分佈(SWE2/3/5 + Bug 合併)', en: 'Age distribution of not-done tickets (SWE2/3/5 + Bug combined)' },
+  aging_caption: { zh: (total, unknown) => `共 ${total} 張未完成票,依建立日期至今的天數分佈${unknown ? `(其中 ${unknown} 張沒有建立日期資料,未計入)` : ''}`, en: (total, unknown) => `${total} not-done tickets, bucketed by days since creation${unknown ? ` (${unknown} without a creation date, excluded)` : ''}` },
+  aging_0_7: { zh: '0-7 天', en: '0-7 days' },
+  aging_8_14: { zh: '8-14 天', en: '8-14 days' },
+  aging_15_30: { zh: '15-30 天', en: '15-30 days' },
+  aging_30_plus: { zh: '超過 30 天', en: 'Over 30 days' },
+
+  ov_buginflow_heading: { zh: 'Bug 每週新增數量(近 12 週,依建立日期)', en: 'Weekly new bugs (last 12 weeks, by creation date)' },
+  buginflow_caption: { zh: (a, b) => `ISO 週次 ${a} ~ ${b}`, en: (a, b) => `ISO week ${a} – ${b}` },
+  buginflow_no_data: { zh: '目前的資料沒有建立日期欄位,無法統計', en: 'No creation-date data available to chart' },
 
   all_swe: { zh: '全部 SWE', en: 'All SWE' },
   all_feature: { zh: '全部 Feature', en: 'All Features' },
@@ -466,6 +508,157 @@ function renderCompletion() {
   `;
   tile.addEventListener('click', () => jumpToSwe(''));
   el.appendChild(tile);
+}
+
+// ---- Trend / health section (Overview page) --------------------------------
+// All three charts are hand-rolled (SVG / flex bars) rather than pulled from a
+// charting library, so dashboard.html stays a single self-contained file.
+
+function renderLineChartSvg(xLabels, series, dataSets) {
+  const W = 760, H = 220, padL = 40, padR = 16, padT = 16, padB = 28;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  let maxY = 1;
+  dataSets.forEach(arr => arr.forEach(v => { if (v != null && v > maxY) maxY = v; }));
+  maxY = Math.ceil(maxY * 1.15) || 1;
+  const n = xLabels.length;
+  const xFor = i => padL + (n === 1 ? plotW / 2 : (i / (n - 1)) * plotW);
+  const yFor = v => padT + plotH - (v / maxY) * plotH;
+
+  let gridSvg = '';
+  const steps = 4;
+  for (let s = 0; s <= steps; s++) {
+    const v = Math.round(maxY * s / steps);
+    const y = yFor(v);
+    gridSvg += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="var(--grid)" stroke-width="1"/>`;
+    gridSvg += `<text x="${padL - 6}" y="${y + 4}" text-anchor="end" font-size="10" fill="var(--muted)">${v}</text>`;
+  }
+  let xLabelSvg = '';
+  const labelEvery = Math.max(1, Math.ceil(n / 6));
+  xLabels.forEach((d, i) => {
+    if (i % labelEvery === 0 || i === n - 1) {
+      xLabelSvg += `<text x="${xFor(i)}" y="${H - 8}" text-anchor="middle" font-size="10" fill="var(--muted)">${esc(d.slice(5))}</text>`;
+    }
+  });
+
+  let linesSvg = '';
+  series.forEach((s, si) => {
+    const pts = dataSets[si];
+    const coords = pts.map((v, i) => (v == null ? null : `${xFor(i)},${yFor(v)}`)).filter(Boolean);
+    if (coords.length) {
+      linesSvg += `<polyline points="${coords.join(' ')}" fill="none" stroke="${s.color}" stroke-width="2"/>`;
+      pts.forEach((v, i) => { if (v != null) linesSvg += `<circle cx="${xFor(i)}" cy="${yFor(v)}" r="2.5" fill="${s.color}"/>`; });
+    }
+  });
+
+  const legendSvg = series.map(s => `<span style="display:inline-flex; align-items:center; gap:6px; margin-right:16px; font-size:12px; color:var(--text-secondary);"><span style="width:10px; height:10px; border-radius:2px; background:${s.color}; display:inline-block;"></span>${esc(s.label)}</span>`).join('');
+
+  return `
+    <div style="margin-bottom:8px;">${legendSvg}</div>
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%; height:auto; max-width:${W}px;">
+      ${gridSvg}${xLabelSvg}${linesSvg}
+    </svg>
+  `;
+}
+
+function renderTrendChart() {
+  const wrap = document.getElementById('trendChartWrap');
+  const caption = document.getElementById('trendCaption');
+  const dates = Object.keys(HISTORY).sort();
+  if (dates.length < 2) {
+    caption.textContent = '';
+    wrap.innerHTML = `<div class="empty-state">${esc(t('trend_insufficient_body'))}</div>`;
+    return;
+  }
+  caption.textContent = t('trend_caption', dates[0], dates[dates.length - 1]);
+  const series = [
+    { key: 'swe2', label: 'SWE2', color: 'var(--series-cp)' },
+    { key: 'swe3', label: 'SWE3', color: 'var(--series-aa)' },
+    { key: 'swe5', label: 'SWE5', color: 'var(--series-ipod)' },
+    { key: 'bugs', label: t('tab_bug'), color: 'var(--critical)' },
+  ];
+  const dataSets = series.map(s => dates.map(d => {
+    const snap = HISTORY[d] && HISTORY[d][s.key];
+    return snap ? (snap.total - snap.done) : null;
+  }));
+  wrap.innerHTML = renderLineChartSvg(dates, series, dataSets);
+}
+
+function renderAgingBars() {
+  const el = document.getElementById('agingBars');
+  const caption = document.getElementById('agingCaption');
+  const notDone = [...DATA.filter(r => !r.done), ...BUGS.filter(r => !r.done)];
+  const now = Date.now();
+  const buckets = [
+    { key: '0-7', label: t('aging_0_7'), min: 0, max: 7, color: 'var(--good)' },
+    { key: '8-14', label: t('aging_8_14'), min: 8, max: 14, color: 'var(--warning)' },
+    { key: '15-30', label: t('aging_15_30'), min: 15, max: 30, color: 'var(--serious)' },
+    { key: '30+', label: t('aging_30_plus'), min: 31, max: Infinity, color: 'var(--critical)' },
+  ];
+  const counts = { '0-7': 0, '8-14': 0, '15-30': 0, '30+': 0 };
+  let unknown = 0;
+  notDone.forEach(r => {
+    if (!r.created) { unknown++; return; }
+    const days = Math.floor((now - new Date(r.created).getTime()) / 86400000);
+    if (isNaN(days)) { unknown++; return; }
+    const b = buckets.find(b => days >= b.min && days <= b.max) || buckets[buckets.length - 1];
+    counts[b.key]++;
+  });
+  const total = notDone.length;
+  caption.textContent = t('aging_caption', total, unknown);
+  el.innerHTML = '';
+  buckets.forEach(b => {
+    const count = counts[b.key];
+    const pct = total ? Math.round(count / total * 100) : 0;
+    const div = document.createElement('div');
+    div.className = 'bar-row';
+    div.innerHTML = `
+      <div class="name">${esc(b.label)}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.max(pct, 3)}%; background:${b.color}"><span>${pct}%</span></div></div>
+      <div class="bar-count">${count}</div>
+    `;
+    el.appendChild(div);
+  });
+}
+
+function isoWeekLabel(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - dayNum + 3);
+  const firstThursday = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+  const weekNum = 1 + Math.round(((d - firstThursday) / 86400000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7);
+  return `${d.getUTCFullYear()}-W${String(weekNum).padStart(2, '0')}`;
+}
+
+function renderBugInflowChart() {
+  const wrap = document.getElementById('bugInflowChartWrap');
+  const caption = document.getElementById('bugInflowCaption');
+  const withCreated = BUGS.filter(r => r.created);
+  if (!withCreated.length) {
+    caption.textContent = t('buginflow_no_data');
+    wrap.innerHTML = '';
+    return;
+  }
+  const counts = {};
+  withCreated.forEach(r => {
+    const wk = isoWeekLabel(new Date(r.created));
+    counts[wk] = (counts[wk] || 0) + 1;
+  });
+  const weeks = Object.keys(counts).sort().slice(-12);
+  caption.textContent = t('buginflow_caption', weeks[0], weeks[weeks.length - 1]);
+  const maxV = Math.max(...weeks.map(w => counts[w]), 1);
+  wrap.innerHTML = `
+    <div style="display:flex; align-items:flex-end; gap:6px; height:160px; padding-top:8px;">
+      ${weeks.map(w => {
+        const v = counts[w];
+        const h = Math.round((v / maxV) * 100);
+        return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;">
+          <div style="font-size:11px; color:var(--text-secondary); margin-bottom:2px;">${v}</div>
+          <div style="width:100%; max-width:28px; height:${Math.max(h, 3)}%; background:var(--series-aa); border-radius:3px 3px 0 0;"></div>
+          <div style="font-size:9px; color:var(--muted); margin-top:4px;">${esc(w.slice(6))}</div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
 }
 
 const LABEL_BUCKETS = ['ASW-R2', 'ASW-R3 (不含CPAA 0830)', 'CPAA0830', '三者皆無'];
@@ -1327,6 +1520,9 @@ document.getElementById('langToggle').addEventListener('click', () => {
   try { localStorage.setItem('cpaaDashboardLang', LANG); } catch (e) { /* localStorage unavailable */ }
   applyStaticI18n();
   renderCompletion();
+  renderTrendChart();
+  renderAgingBars();
+  renderBugInflowChart();
   renderSubFeatureBars();
   renderAssigneeBars();
   populateMissingSubFeatureFilter();
@@ -1339,6 +1535,9 @@ document.getElementById('langToggle').addEventListener('click', () => {
 
 applyStaticI18n();
 renderCompletion();
+renderTrendChart();
+renderAgingBars();
+renderBugInflowChart();
 renderSubFeatureBars();
 renderAssigneeBars();
 populateMissingSubFeatureFilter();
