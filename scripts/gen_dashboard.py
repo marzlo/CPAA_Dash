@@ -184,8 +184,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <p style="margin-top:4px; font-weight:600;" id="headerUpdatedAt"></p>
 </header>
 <nav class="tabs" id="tabs">
-  <button data-tab="overview" data-i18n-tab="overview" class="active">Overview</button>
   <button data-tab="Stats" data-i18n-tab="stats">Stats</button>
+  <button data-tab="overview" data-i18n-tab="overview" class="active">Overview</button>
   <button data-tab="Bug" data-i18n-tab="bug">Bug</button>
   <button data-tab="Audio" data-i18n-tab="audio">Audio</button>
   <button data-tab="Pretest" data-i18n-tab="pretest">Pretest</button>
@@ -1010,13 +1010,6 @@ function renderBugPanel() {
           <option value="done">${esc(t('status_done'))}</option>
           <option value="not-done">${esc(t('status_not_done'))}</option>
         </select>
-        <select id="bugLabelFilter">
-          <option value="">${esc(t('all_label_bucket'))}</option>
-          <option value="ASW-R2">ASW-R2</option>
-          <option value="ASW-R3 (不含CPAA 0830)">${esc(t('label_bucket_asw_r3'))}</option>
-          <option value="CPAA0830">CPAA0830</option>
-          <option value="三者皆無">${esc(t('label_bucket_none'))}</option>
-        </select>
         <select id="bugSubFeatureFilter">
           <option value="">${esc(t('all_subfeature'))}</option>
         </select>
@@ -1053,7 +1046,6 @@ function renderBugPanel() {
 
   const featureSel = document.getElementById('bugFeatureFilter');
   const statusSel = document.getElementById('bugStatusFilter');
-  const labelSel = document.getElementById('bugLabelFilter');
   const subFeatureSel = document.getElementById('bugSubFeatureFilter');
   const assigneeSel = document.getElementById('bugAssigneeFilter');
   const severitySel = document.getElementById('bugSeverityFilter');
@@ -1115,7 +1107,6 @@ function renderBugPanel() {
     if (featureSel.value) rows = rows.filter(r => r.feature === featureSel.value);
     if (statusSel.value === 'done') rows = rows.filter(r => r.done);
     if (statusSel.value === 'not-done') rows = rows.filter(r => !r.done);
-    if (labelSel.value) rows = rows.filter(r => r.labelBucket === labelSel.value);
     if (subFeatureSel.value) rows = rows.filter(r => r.subFeature === subFeatureSel.value);
     if (assigneeSel.value) rows = rows.filter(r => r.assignee === assigneeSel.value);
     if (severitySel.value) rows = rows.filter(r => r.severity === severitySel.value);
@@ -1138,7 +1129,7 @@ function renderBugPanel() {
       </tr>
     `).join('') : `<tr><td colspan="8" class="empty-state">${esc(t('empty_state'))}</td></tr>`;
   }
-  [featureSel, statusSel, labelSel, subFeatureSel, assigneeSel, severitySel, prioritySel, ageSel].forEach(el => el.addEventListener('change', renderBugTable));
+  [featureSel, statusSel, subFeatureSel, assigneeSel, severitySel, prioritySel, ageSel].forEach(el => el.addEventListener('change', renderBugTable));
   search.addEventListener('input', renderBugTable);
   attachSortHandlers(tbody.closest('table').querySelector('thead'), bugSortState, renderBugTable);
   renderBugTable();
@@ -1150,7 +1141,6 @@ function renderBugPanel() {
     subFeatureSel.value = '';
     assigneeSel.value = '';
     statusSel.value = 'not-done';
-    labelSel.value = '';
     ageSel.value = '';
     search.value = '';
     renderBugTable();
@@ -1190,7 +1180,6 @@ function renderBugPanel() {
     severitySel.value = '';
     prioritySel.value = '';
     statusSel.value = 'not-done';
-    labelSel.value = '';
     ageSel.value = '';
     search.value = '';
     renderBugTable();
@@ -1204,7 +1193,6 @@ function renderBugPanel() {
     severitySel.value = '';
     prioritySel.value = '';
     statusSel.value = 'not-done';
-    labelSel.value = '';
     ageSel.value = '';
     search.value = '';
     renderBugTable();
