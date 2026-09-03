@@ -1,6 +1,9 @@
 """
-Append today's snapshot (not-done / total counts per SWE2/SWE3/SWE5/Bug) to history.json,
-so gen_dashboard.py can render a burndown-style trend chart on the Overview page.
+Append today's snapshot to history.json, so gen_dashboard.py can render a
+burndown-style trend chart on the Stats tab: not-done / total counts per
+SWE2/SWE3/SWE5/Bug overall, plus a per-team breakdown of Bug tickets (the
+Stats tab's trend chart plots the latter — Bug not-done count over time, one
+line per team).
 
 history.json is a repo-committed file (see refresh-dashboard.yml's "Commit history
 snapshot" step) — it is the only piece of state this pipeline carries across runs.
@@ -20,11 +23,25 @@ from zoneinfo import ZoneInfo
 DATA_PATH = "dashboard_data.json"
 HISTORY_PATH = "history.json"
 
+# Same fixed team order as gen_dashboard.py's TEAM_ORDER, so the trend chart's
+# per-team lines get a stable, non-cycled color assignment (TEAM_COLORS there).
+TEAM_ORDER = ['TS_FW', 'TS_CPAA', 'MDT_System', 'MDT_PM', 'MDT_App', 'MDI_System', 'Unassigned', 'Unknown']
+
 
 def counts(rows):
     total = len(rows)
     done = sum(1 for r in rows if r["done"])
     return {"total": total, "done": done}
+
+
+def bugs_by_team(bugs):
+    teams = list(TEAM_ORDER) + sorted({r.get("team", "Unknown") for r in bugs} - set(TEAM_ORDER))
+    result = {}
+    for team in teams:
+        rows = [r for r in bugs if r.get("team", "Unknown") == team]
+        if rows:
+            result[team] = counts(rows)
+    return result
 
 
 def main():
@@ -41,6 +58,7 @@ def main():
         "swe3": counts([r for r in tickets if r["swe"] == "SWE3"]),
         "swe5": counts([r for r in tickets if r["swe"] == "SWE5"]),
         "bugs": counts(bugs),
+        "bugs_by_team": bugs_by_team(bugs),
     }
 
     if os.path.exists(HISTORY_PATH):

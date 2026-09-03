@@ -35,6 +35,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     --series-cp: #2a78d6;
     --series-aa: #eb6834;
     --series-ipod: #1baf7a;
+    --series-yellow: #eda100;
+    --series-magenta: #e87ba4;
+    --series-green: #008300;
+    --series-violet: #4a3aa7;
+    --series-red: #e34948;
     --good: #0ca30c;
     --warning: #fab219;
     --serious: #ec835a;
@@ -54,6 +59,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       --series-cp: #3987e5;
       --series-aa: #d95926;
       --series-ipod: #199e70;
+      --series-yellow: #c98500;
+      --series-magenta: #d55181;
+      --series-green: #008300;
+      --series-violet: #9085e9;
+      --series-red: #e66767;
     }
   }
   :root[data-theme="dark"] {
@@ -69,6 +79,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     --series-cp: #3987e5;
     --series-aa: #d95926;
     --series-ipod: #199e70;
+    --series-yellow: #c98500;
+    --series-magenta: #d55181;
+    --series-green: #008300;
+    --series-violet: #9085e9;
+    --series-red: #e66767;
   }
   * { box-sizing: border-box; }
   body {
@@ -159,6 +174,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   }
   .table-wrap { max-height: 480px; overflow: auto; }
   .empty-state { color: var(--muted); font-size: 13px; padding: 20px; text-align: center; }
+  .trend-table-details { margin-top: 10px; }
+  .trend-table-details summary { cursor: pointer; font-size: 13px; color: var(--text-secondary); }
+  .trend-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; }
+  .trend-table th, .trend-table td { padding: 5px 8px; border-bottom: 1px solid var(--grid); text-align: right; white-space: nowrap; }
+  .trend-table th:first-child, .trend-table td:first-child { text-align: left; }
   .feature-mini { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
   .feature-mini .stat-tile { flex: 1; min-width: 160px; }
   .chip-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
@@ -317,9 +337,11 @@ const STRINGS = {
   team_map_note: { zh: '組織對應依據 cpaa-dashboard skill 的 TEAM_MAP;沒有對應到組織的人歸在「Unknown」', en: 'Team mapping follows the cpaa-dashboard skill’s TEAM_MAP; anyone not mapped falls under "Unknown"' },
   ov_list_heading: { zh: '票清單(依 Label 分類篩選)', en: 'Ticket list (filter by label category)' },
 
-  ov_trend_heading: { zh: '進度趨勢(燃盡圖 · 未完成票數隨時間變化)', en: 'Progress trend (burndown · not-done count over time)' },
+  ov_trend_heading: { zh: 'Bug 未完成票數趨勢(燃盡圖 · 依 Team 分類)', en: 'Bug not-done trend (burndown · by team)' },
   trend_caption: { zh: (a, b) => `每日快照,${a} ~ ${b}(每天自動記錄一次;資料從此功能上線那天開始累積,無法回溯更早的歷史)`, en: (a, b) => `Daily snapshots, ${a} – ${b} (recorded automatically once per day; history starts from when this feature was deployed and can't be backfilled further)` },
   trend_insufficient_body: { zh: '目前累積的快照天數還不夠畫趨勢線。系統會從今天開始每天自動記錄一筆,幾天後這裡就會出現趨勢圖', en: "Not enough daily snapshots yet to draw a trend line. One is recorded automatically every day starting today, so a trend will appear here after a few days" },
+  trend_table_toggle: { zh: '顯示資料表格', en: 'Show data table' },
+  trend_th_date: { zh: '日期', en: 'Date' },
 
   ov_aging_heading: { zh: '未完成 Bug 的卡住天數分佈(點擊可跳到 Bug 清單)', en: 'Age distribution of not-done Bugs (click a bar to jump to the Bug list)' },
   aging_caption: { zh: (total, unknown) => `共 ${total} 張未完成 Bug,依建立日期至今的天數分佈${unknown ? `(其中 ${unknown} 張沒有建立日期資料,未計入)` : ''}`, en: (total, unknown) => `${total} not-done Bugs, bucketed by days since creation${unknown ? ` (${unknown} without a creation date, excluded)` : ''}` },
@@ -615,24 +637,42 @@ function renderStatsPanel() {
   (function renderTrendChart() {
     const wrap = document.getElementById('trendChartWrap');
     const caption = document.getElementById('trendCaption');
-    const dates = Object.keys(HISTORY).sort();
+    const dates = Object.keys(HISTORY).filter(d => HISTORY[d] && HISTORY[d].bugs_by_team).sort();
     if (dates.length < 2) {
       caption.textContent = '';
       wrap.innerHTML = `<div class="empty-state">${esc(t('trend_insufficient_body'))}</div>`;
       return;
     }
     caption.textContent = t('trend_caption', dates[0], dates[dates.length - 1]);
-    const series = [
-      { key: 'swe2', label: 'SWE2', color: 'var(--series-cp)' },
-      { key: 'swe3', label: 'SWE3', color: 'var(--series-aa)' },
-      { key: 'swe5', label: 'SWE5', color: 'var(--series-ipod)' },
-      { key: 'bugs', label: t('tab_bug'), color: 'var(--critical)' },
-    ];
+    const teamsPresent = TEAM_ORDER.filter(team => dates.some(d => HISTORY[d].bugs_by_team[team]));
+    const series = teamsPresent.map(team => ({ key: team, label: team, color: TEAM_COLORS[team] || 'var(--muted)' }));
     const dataSets = series.map(s => dates.map(d => {
-      const snap = HISTORY[d] && HISTORY[d][s.key];
+      const snap = HISTORY[d].bugs_by_team[s.key];
       return snap ? (snap.total - snap.done) : null;
     }));
     wrap.innerHTML = renderLineChartSvg(dates, series, dataSets);
+
+    // Data-table fallback: with up to 8 team lines on one chart, a few color
+    // pairs sit close together, so an exact-numbers table is always available
+    // alongside the chart rather than relying on color alone.
+    const details = document.createElement('details');
+    details.className = 'trend-table-details';
+    const summary = document.createElement('summary');
+    summary.textContent = t('trend_table_toggle');
+    details.appendChild(summary);
+    const table = document.createElement('table');
+    table.className = 'trend-table';
+    table.innerHTML = `
+      <thead><tr>
+        <th>${esc(t('trend_th_date'))}</th>
+        ${series.map(s => `<th>${esc(s.label)}</th>`).join('')}
+      </tr></thead>
+      <tbody>${dates.map((d, i) => `
+        <tr><td>${esc(d)}</td>${series.map((s, si) => `<td>${dataSets[si][i] ?? ''}</td>`).join('')}</tr>
+      `).join('')}</tbody>
+    `;
+    details.appendChild(table);
+    wrap.appendChild(details);
   })();
 
   // --- Bug aging chart (Bug tickets only; bars jump to the Bug tab) -----------
@@ -835,6 +875,19 @@ function renderSubFeatureBars() {
 }
 
 const TEAM_ORDER = ['TS_FW', 'TS_CPAA', 'MDT_System', 'MDT_PM', 'MDT_App', 'MDI_System', 'Unassigned', 'Unknown'];
+// Fixed categorical hue order (never cycled) used to color the Stats tab's
+// per-team Bug burndown lines; matches the palette already used for
+// FEATURE_COLORS/SWE_COLORS (slots 1-3), extended with slots 4-8.
+const TEAM_COLORS = {
+  TS_FW: 'var(--series-cp)',
+  TS_CPAA: 'var(--series-aa)',
+  MDT_System: 'var(--series-ipod)',
+  MDT_PM: 'var(--series-yellow)',
+  MDT_App: 'var(--series-magenta)',
+  MDI_System: 'var(--series-green)',
+  Unassigned: 'var(--series-violet)',
+  Unknown: 'var(--series-red)',
+};
 const SEVERITY_ORDER = ['Critical', 'Serious', 'Moderate', 'Minor', '未標示'];
 const PRIORITY_ORDER = ['Critical', 'Highest', 'High', 'Medium', 'Low', 'Lowest', '未標示'];
 const missingSortState = { key: '', dir: 'asc' };
