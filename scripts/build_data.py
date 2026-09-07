@@ -68,6 +68,13 @@ TEAM_MAP = {
     '杨百全': 'TS_CPAA',
     # Added per user confirmation (2026-09-01)
     'Shaik Mohammed Arif': 'MDI_System',
+    # Added per user confirmation (2026-09-07) — aliases for people already
+    # in TEAM_MAP under a different display-name format (e.g. 'SHANE YEH' vs
+    # 'ShanehhYeh', 'Justin Chen' vs 'JustinCCChen')
+    'ShanehhYeh': 'MDT_App',
+    'BrianZYYang': 'MDT_App',
+    'Anis Parveen Mohammed': 'MDI_System',
+    'JustinCCChen': 'MDT_App',
 }
 
 DONE_STATUSES = {"Done"}  # statusCategory 'done'
