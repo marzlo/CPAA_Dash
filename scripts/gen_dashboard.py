@@ -166,6 +166,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .badge.done { background: color-mix(in srgb, var(--good) 18%, transparent); color: var(--good); }
   .badge.progress { background: color-mix(in srgb, var(--warning) 22%, transparent); color: #8a6200; }
   .badge.todo { background: color-mix(in srgb, var(--critical) 15%, transparent); color: var(--critical); }
+  .badge.new { background: var(--critical); color: #fff; margin-left: 6px; }
   :root[data-theme="dark"] .badge.progress, @media (prefers-color-scheme: dark) { }
   .filters { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
   .filters select, .filters input {
@@ -408,6 +409,9 @@ const STRINGS = {
   bug_label_caption: { zh: t => `在 ${t} 張未完成的 Bug 票中,依標籤分類的票數(每張票只計入一類,依 ASW-R2 → ASW-R3(不含CPAA 0830) → CPAA0830 → 三者皆無 的優先順序判斷)`, en: t => `Ticket counts by label category, out of ${t} not-done Bugs (each ticket counted once, priority order: ASW-R2 → ASW-R3 (excl. CPAA 0830) → CPAA0830 → none of the above)` },
   bug_subfeature_caption: { zh: (total, feature) => `在 ${total} 張未完成的 ${feature} Bug 中,依功能子分類(cpaa-feature-taxonomy)統計的票數;無法明確對應到子分類的票歸在「未分類」`, en: (total, feature) => `Ticket counts by sub-feature (cpaa-feature-taxonomy), out of ${total} not-done ${feature} Bugs; tickets that can't be clearly matched fall under "Uncategorized"` },
   bug_assignee_caption: { zh: t => `在 ${t} 張未完成 Bug 中,依 assignee 統計的票數`, en: t => `Ticket counts by assignee, out of ${t} not-done Bugs` },
+  top_assignee_heading: { zh: '目前 Bug 數最多的 Assignee(前 10 名)', en: 'Top 10 assignees by open bug count' },
+  top_assignee_caption: { zh: total => `在 ${total} 張未完成 Bug 中,票數最多的前 10 位 assignee,點擊可跳轉至 Bug 頁籤查看清單`, en: total => `Top 10 assignees by not-done bug count (out of ${total}) — click a row to jump to the Bug tab` },
+  new_badge: { zh: 'New!', en: 'New!' },
   bug_missing_caption: { zh: n => `共 ${n} 張票 (Bug 總數 ${BUGS.length} 張)`, en: n => `${n} tickets shown (out of ${BUGS.length} Bugs total)` },
 
   audio_not_done_count: { zh: '未完成數量', en: 'Not-done count' },
@@ -600,6 +604,16 @@ function isoWeekLabel(date) {
   return `${d.getUTCFullYear()}-W${String(weekNum).padStart(2, '0')}`;
 }
 
+// Whether a ticket's `created` date falls in the current ISO week (Mon-Sun), for the
+// Bug tab's "New!" badge next to the Jira key. Reuses isoWeekLabel so "this week" lines
+// up with the Stats tab's weekly bug-inflow chart.
+function isNewThisWeek(created) {
+  if (!created) return false;
+  const d = new Date(created);
+  if (isNaN(d.getTime())) return false;
+  return isoWeekLabel(d) === isoWeekLabel(new Date());
+}
+
 // Switches to the Bug tab and applies the given age-bucket filter (plus "not done"),
 // by driving the Bug panel's own filter <select>s and firing 'change' — the Bug panel's
 // own listeners (already attached, since renderBugPanel() runs once at load) do the rest.
@@ -609,6 +623,19 @@ function jumpToBugFromStats(ageBucketKey) {
   const ageSel = document.getElementById('bugAgeFilter');
   const statusSel = document.getElementById('bugStatusFilter');
   if (ageSel) { ageSel.value = ageBucketKey || ''; ageSel.dispatchEvent(new Event('change')); }
+  if (statusSel) { statusSel.value = 'not-done'; statusSel.dispatchEvent(new Event('change')); }
+  document.getElementById('bugTbody').closest('section.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Switches to the Bug tab and filters to a single assignee (plus "not done"), by
+// driving the Bug panel's own filter <select>s and firing 'change' — same pattern as
+// jumpToBugFromStats(). Used by the Stats tab's "top assignees by open bug count" chart.
+function jumpToBugAssigneeFromStats(assignee) {
+  const bugTabBtn = document.querySelector('nav.tabs button[data-tab="Bug"]');
+  if (bugTabBtn) bugTabBtn.click();
+  const assigneeSel = document.getElementById('bugAssigneeFilter');
+  const statusSel = document.getElementById('bugStatusFilter');
+  if (assigneeSel) { assigneeSel.value = assignee || ''; assigneeSel.dispatchEvent(new Event('change')); }
   if (statusSel) { statusSel.value = 'not-done'; statusSel.dispatchEvent(new Event('change')); }
   document.getElementById('bugTbody').closest('section.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -630,6 +657,11 @@ function renderStatsPanel() {
       <h2>${esc(t('ov_buginflow_heading'))}</h2>
       <p class="caption" id="bugInflowCaption"></p>
       <div id="bugInflowChartWrap"></div>
+    </section>
+    <section class="card">
+      <h2>${esc(t('top_assignee_heading'))}</h2>
+      <p class="caption" id="topAssigneeCaption"></p>
+      <div id="topAssigneesWrap"></div>
     </section>
   `;
 
@@ -744,6 +776,37 @@ function renderStatsPanel() {
         }).join('')}
       </div>
     `;
+  })();
+
+  // --- Top 10 assignees by open (not-done) bug count -------------------------
+  (function renderTopAssignees() {
+    const wrap = document.getElementById('topAssigneesWrap');
+    const caption = document.getElementById('topAssigneeCaption');
+    const notDoneBugs = BUGS.filter(r => !r.done);
+    const counts = {};
+    notDoneBugs.forEach(r => { counts[r.assignee] = (counts[r.assignee] || 0) + 1; });
+    const top = Object.keys(counts)
+      .map(name => ({ name, count: counts[name] }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+    caption.textContent = t('top_assignee_caption', notDoneBugs.length);
+    if (!top.length) {
+      wrap.innerHTML = `<div class="empty-state">${esc(t('empty_state'))}</div>`;
+      return;
+    }
+    wrap.innerHTML = top.map((row, i) => {
+      const pct = notDoneBugs.length ? Math.round(row.count / notDoneBugs.length * 100) : 0;
+      return `
+        <div class="bar-row bar-row-pct bar-row-clickable" title="${esc(t('jump_tooltip_plain', row.name))}" data-assignee="${esc(row.name)}">
+          <div class="name assignee" title="${esc(row.name)}">${i + 1}. ${esc(row.name)}</div>
+          <div class="pct-value" style="color:var(--critical)">${pct}%</div>
+          <div class="bar-count">${row.count}</div>
+        </div>
+      `;
+    }).join('');
+    wrap.querySelectorAll('.bar-row-clickable').forEach(el => {
+      el.addEventListener('click', () => jumpToBugAssigneeFromStats(el.dataset.assignee));
+    });
   })();
 }
 
@@ -1171,7 +1234,7 @@ function renderBugPanel() {
     document.getElementById('bugMissingCaption').textContent = t('bug_missing_caption', rows.length);
     tbody.innerHTML = rows.length ? rows.map(r => `
       <tr>
-        <td class="key"><a href="${ticketUrl(r.key)}" target="_blank">${r.key}</a></td>
+        <td class="key"><a href="${ticketUrl(r.key)}" target="_blank">${r.key}</a>${isNewThisWeek(r.created) ? ` <span class="badge new">${esc(t('new_badge'))}</span>` : ''}</td>
         <td>${esc(r.feature)}</td>
         <td>${esc(subFeatureDisplay(r.subFeature))}</td>
         <td>${esc(r.assignee)}</td>
