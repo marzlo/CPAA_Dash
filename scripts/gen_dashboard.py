@@ -12,6 +12,20 @@ except FileNotFoundError:
 
 DATA["history"] = HISTORY
 
+try:
+    with open("overview_notes.json", encoding="utf-8") as f:
+        OVERVIEW_NOTES = json.load(f)
+except FileNotFoundError:
+    OVERVIEW_NOTES = {
+        "updated_at": None,
+        "updated_by": None,
+        "development_status": "",
+        "certification_status": "",
+        "risk": "",
+    }
+
+DATA["overview_notes"] = OVERVIEW_NOTES
+
 DATA_JSON = json.dumps(DATA, ensure_ascii=False)
 UPDATED_AT = datetime.now().strftime("%Y-%m-%d")
 
@@ -192,6 +206,28 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     padding: 8px 10px; font-size: 12px; font-weight: 700; color: var(--text-secondary);
     background: var(--page); border-bottom: 1px solid var(--grid);
   }
+  .notes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 900px) { .notes-grid { grid-template-columns: 1fr; } }
+  .notes-col {
+    background: var(--page); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; min-height: 140px;
+  }
+  .notes-col h3 { margin: 0 0 10px; font-size: 14px; color: var(--text-primary); }
+  .notes-col ul { margin: 0; padding-left: 18px; font-size: 13px; color: var(--text-primary); line-height: 1.6; }
+  .notes-col ul li { margin-bottom: 4px; }
+  .notes-col textarea {
+    width: 100%; min-height: 140px; resize: vertical; background: var(--surface-1);
+    border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-size: 13px;
+    color: var(--text-primary); font-family: inherit; box-sizing: border-box;
+  }
+  .notes-empty { color: var(--muted); font-size: 13px; font-style: italic; }
+  .btn {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 14px; cursor: pointer; color: var(--text-primary); font-size: 13px;
+  }
+  .btn:hover { border-color: var(--series-cp); }
+  .btn.primary { background: var(--series-cp); border-color: var(--series-cp); color: #fff; }
+  .btn.small { padding: 6px 9px; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -307,6 +343,7 @@ const BUGS = RAW.bugs;
 const AUDIO = RAW.audio;
 const PRETEST = RAW.pretest;
 const HISTORY = RAW.history || {};
+const OVERVIEW_NOTES = RAW.overview_notes || { updated_at: null, updated_by: null, development_status: '', certification_status: '', risk: '' };
 const FEATURE_COLORS = { "CarPlay": "var(--series-cp)", "Android Auto": "var(--series-aa)", "iPod": "var(--series-ipod)" };
 
 // ---- i18n ----------------------------------------------------------------
@@ -412,6 +449,23 @@ const STRINGS = {
   top_assignee_heading: { zh: '目前 Bug 數最多的 Assignee(前 10 名)', en: 'Top 10 assignees by open bug count' },
   top_assignee_caption: { zh: total => `在 ${total} 張未完成 Bug 中,票數最多的前 10 位 assignee,點擊可跳轉至 Bug 頁籤查看清單`, en: total => `Top 10 assignees by not-done bug count (out of ${total}) — click a row to jump to the Bug tab` },
   new_badge: { zh: 'New!', en: 'New!' },
+  overview_notes_heading: { zh: '專案總覽(可編輯)', en: 'Project Overview (editable)' },
+  notes_dev_heading: { zh: 'Development status', en: 'Development status' },
+  notes_cert_heading: { zh: 'Certification status', en: 'Certification status' },
+  notes_risk_heading: { zh: 'Risk', en: 'Risk' },
+  notes_empty: { zh: '尚未填寫,點擊「編輯」開始撰寫', en: 'Not filled in yet — click Edit to add notes' },
+  notes_meta: { zh: (at, who) => `最後更新:${String(at).slice(0, 10)} by ${who}`, en: (at, who) => `Last updated ${String(at).slice(0, 10)} by ${who}` },
+  notes_meta_never: { zh: '尚未儲存過任何內容', en: 'Nothing saved yet' },
+  notes_meta_unknown: { zh: '不明', en: 'someone' },
+  edit_button: { zh: '編輯', en: 'Edit' },
+  cancel_button: { zh: '取消', en: 'Cancel' },
+  save_button: { zh: '儲存', en: 'Save' },
+  saving_button: { zh: '儲存中…', en: 'Saving…' },
+  notes_token_prompt: { zh: '請貼上具備此 repo 寫入權限的 GitHub Personal Access Token(僅會存在你自己瀏覽器裡,不會傳給任何第三方):', en: 'Paste a GitHub Personal Access Token with write access to this repo (stored only in your own browser, never sent anywhere else):' },
+  notes_name_prompt: { zh: '你的名字(會顯示在「最後更新」旁):', en: 'Your name (shown next to "last updated"):' },
+  notes_saved_msg: { zh: '已儲存!Dashboard 將在數分鐘內自動重新整理套用最新內容。', en: 'Saved! The dashboard will refresh automatically within a few minutes.' },
+  notes_save_error: { zh: msg => `儲存失敗:${msg}`, en: msg => `Save failed: ${msg}` },
+  notes_change_token: { zh: '更換 Token', en: 'Change token' },
   bug_missing_caption: { zh: n => `共 ${n} 張票 (Bug 總數 ${BUGS.length} 張)`, en: n => `${n} tickets shown (out of ${BUGS.length} Bugs total)` },
 
   audio_not_done_count: { zh: '未完成數量', en: 'Not-done count' },
@@ -640,9 +694,152 @@ function jumpToBugAssigneeFromStats(assignee) {
   document.getElementById('bugTbody').closest('section.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+// --- Editable "Project Overview" block at the top of the Stats tab ---------
+// Content (development_status / certification_status / risk) is baked into
+// dashboard.html at build time from overview_notes.json (same pattern as
+// HISTORY), so it always matches the last successful Actions run. Saving from
+// the browser writes overview_notes.json straight to GitHub via the Contents
+// API using a token the editor supplies (stored only in their own browser's
+// localStorage), then kicks off a workflow_dispatch so the site rebuilds and
+// picks up the change within a few minutes — no separate backend needed.
+const GITHUB_REPO = 'marzlo/CPAA_Dash';
+const GITHUB_NOTES_PATH = 'overview_notes.json';
+let overviewNotesEditing = false;
+
+function overviewNotesColumns() {
+  return [
+    { key: 'development_status', label: t('notes_dev_heading') },
+    { key: 'certification_status', label: t('notes_cert_heading') },
+    { key: 'risk', label: t('notes_risk_heading') },
+  ];
+}
+
+function renderOverviewNotesBlock() {
+  const metaEl = document.getElementById('overviewNotesMeta');
+  const gridEl = document.getElementById('overviewNotesGrid');
+  const editBtn = document.getElementById('overviewNotesEditBtn');
+  const saveBtn = document.getElementById('overviewNotesSaveBtn');
+  const cols = overviewNotesColumns();
+
+  metaEl.textContent = OVERVIEW_NOTES.updated_at
+    ? t('notes_meta', OVERVIEW_NOTES.updated_at, OVERVIEW_NOTES.updated_by || t('notes_meta_unknown'))
+    : t('notes_meta_never');
+
+  if (overviewNotesEditing) {
+    gridEl.innerHTML = cols.map(c => `
+      <div class="notes-col">
+        <h3>${esc(c.label)}</h3>
+        <textarea data-key="${c.key}">${esc(OVERVIEW_NOTES[c.key] || '')}</textarea>
+      </div>
+    `).join('');
+    editBtn.textContent = t('cancel_button');
+    saveBtn.textContent = t('save_button');
+    saveBtn.hidden = false;
+  } else {
+    gridEl.innerHTML = cols.map(c => {
+      const raw = (OVERVIEW_NOTES[c.key] || '').trim();
+      const lines = raw ? raw.split('\n').map(l => l.trim()).filter(Boolean) : [];
+      const body = lines.length
+        ? `<ul>${lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>`
+        : `<div class="notes-empty">${esc(t('notes_empty'))}</div>`;
+      return `<div class="notes-col"><h3>${esc(c.label)}</h3>${body}</div>`;
+    }).join('');
+    editBtn.textContent = t('edit_button');
+    saveBtn.hidden = true;
+  }
+}
+
+function getGithubToken(forcePrompt) {
+  let token = null;
+  try { token = localStorage.getItem('cpaaDashboardGhToken'); } catch (e) { /* localStorage unavailable */ }
+  if (!token || forcePrompt) {
+    const entered = prompt(t('notes_token_prompt'), '');
+    if (entered && entered.trim()) {
+      token = entered.trim();
+      try { localStorage.setItem('cpaaDashboardGhToken', token); } catch (e) { /* localStorage unavailable */ }
+    } else if (!token) {
+      return null;
+    }
+  }
+  return token;
+}
+
+async function saveOverviewNotes() {
+  const token = getGithubToken(false);
+  if (!token) return;
+
+  const draft = {};
+  document.querySelectorAll('#overviewNotesGrid textarea[data-key]').forEach(ta => { draft[ta.dataset.key] = ta.value; });
+  const who = (prompt(t('notes_name_prompt'), OVERVIEW_NOTES.updated_by || '') || OVERVIEW_NOTES.updated_by || '').trim();
+
+  const payload = {
+    updated_at: new Date().toISOString(),
+    updated_by: who,
+    development_status: draft.development_status || '',
+    certification_status: draft.certification_status || '',
+    risk: draft.risk || '',
+  };
+
+  const saveBtn = document.getElementById('overviewNotesSaveBtn');
+  saveBtn.disabled = true;
+  saveBtn.textContent = t('saving_button');
+  try {
+    const apiBase = `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_NOTES_PATH}`;
+    const getResp = await fetch(apiBase, { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' } });
+    let sha;
+    if (getResp.ok) {
+      sha = (await getResp.json()).sha;
+    } else if (getResp.status !== 404) {
+      throw new Error('GET ' + getResp.status);
+    }
+    const contentStr = JSON.stringify(payload, null, 2);
+    const b64 = btoa(unescape(encodeURIComponent(contentStr)));
+    const putResp = await fetch(apiBase, {
+      method: 'PUT',
+      headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'Update overview notes via dashboard', content: b64, sha, branch: 'main' }),
+    });
+    if (!putResp.ok) {
+      const errBody = await putResp.text();
+      throw new Error('PUT ' + putResp.status + ': ' + errBody.slice(0, 200));
+    }
+    try {
+      await fetch(`https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/refresh-dashboard.yml/dispatches`, {
+        method: 'POST',
+        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ref: 'main' }),
+      });
+    } catch (e) { /* commit already succeeded — a manual/scheduled run will pick it up */ }
+
+    Object.assign(OVERVIEW_NOTES, payload);
+    overviewNotesEditing = false;
+    renderOverviewNotesBlock();
+    alert(t('notes_saved_msg'));
+  } catch (err) {
+    alert(t('notes_save_error', String((err && err.message) || err)));
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = t('save_button');
+  }
+}
+
 function renderStatsPanel() {
   const panel = document.getElementById('panel-Stats');
   panel.innerHTML = `
+    <section class="card" id="overviewNotesCard">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
+        <div>
+          <h2 style="margin:0;">${esc(t('overview_notes_heading'))}</h2>
+          <p class="caption" id="overviewNotesMeta" style="margin:4px 0 0;"></p>
+        </div>
+        <div style="display:flex; gap:8px; flex-shrink:0;">
+          <button type="button" class="btn small" id="overviewNotesTokenBtn" title="${esc(t('notes_change_token'))}">🔑</button>
+          <button type="button" class="btn" id="overviewNotesEditBtn"></button>
+          <button type="button" class="btn primary" id="overviewNotesSaveBtn" hidden></button>
+        </div>
+      </div>
+      <div class="notes-grid" id="overviewNotesGrid"></div>
+    </section>
     <section class="card">
       <h2>${esc(t('ov_trend_heading'))}</h2>
       <p class="caption" id="trendCaption"></p>
@@ -664,6 +861,15 @@ function renderStatsPanel() {
       <div id="topAssigneesWrap"></div>
     </section>
   `;
+
+  overviewNotesEditing = false;
+  renderOverviewNotesBlock();
+  document.getElementById('overviewNotesEditBtn').addEventListener('click', () => {
+    overviewNotesEditing = !overviewNotesEditing;
+    renderOverviewNotesBlock();
+  });
+  document.getElementById('overviewNotesSaveBtn').addEventListener('click', saveOverviewNotes);
+  document.getElementById('overviewNotesTokenBtn').addEventListener('click', () => getGithubToken(true));
 
   // --- Trend / burndown chart ------------------------------------------------
   (function renderTrendChart() {
