@@ -1,7 +1,7 @@
 {
-  "updated_at": "2026-09-09T03:12:35.924Z",
+  "updated_at": "2026-09-09T03:15:08.940Z",
   "updated_by": "Leyo",
   "development_status": "",
   "certification_status": "",
-  "risk": "Audio\n\tLack of SWE2 ducument"
+  "risk": "Audio\n\tLack of SWE2 document\n\tSource calibration: Subbu need to provide info to Harman"
 }
