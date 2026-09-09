@@ -1,7 +1,7 @@
 {
-  "updated_at": "2026-09-09T07:48:25.310Z",
+  "updated_at": "2026-09-09T07:57:45.131Z",
   "updated_by": "Leyo",
-  "development_status": "Overall status: 80%\n\n\tOOB : target R3\n\tAudio integration: target R3\n\t\tAudio link\n\t\tAudio Focus & Resource Management \n\t\tDucking\n\t\tVolume Control\n\t\tECNR\n\t\tPerformance & MMAP Low Latency\n\t",
+  "development_status": "Overall status: 80%\n\n\tOOB : target R3\n\tAudio integration: target R3\n\t\t\n\t",
   "certification_status": "Smoke test : Pass rate 66% /\nPretest: CP 35% / AA 22%\n\tBlocker:\n\t\tCertification bench: metadata to cluster/Power/knob\n\t\tEA session\n\t\tRVC\nAPQM: ( 9/14~ 10/9 4W)\n\tBlocker: \n\t\tCerence setup\n\t\t\tTune connection issue (uplink & downlink test)\n\t\t\tFrequent audio distortions\n",
-  "risk": "Audio (Subbu)\n\tLack of SWE2 document\n\tSource calibration: Subbu need to provide info to Harman (already delayed since Aug 19)"
+  "risk": "Audio (Subbu)\n\tLack of SWE2 document\n\t\tAudio link\n\t\tAudio Focus & Resource Management \n\t\tDucking\n\t\tVolume Control\n\t\tECNR\n\t\tPerformance & MMAP Low Latency\n\tSource calibration: Subbu need to provide info to Harman (already delayed since Aug 19)"
 }
