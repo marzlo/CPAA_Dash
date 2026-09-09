@@ -463,7 +463,8 @@ const STRINGS = {
   saving_button: { zh: '儲存中…', en: 'Saving…' },
   notes_token_prompt: { zh: '請貼上具備此 repo 寫入權限的 GitHub Personal Access Token(僅會存在你自己瀏覽器裡,不會傳給任何第三方):', en: 'Paste a GitHub Personal Access Token with write access to this repo (stored only in your own browser, never sent anywhere else):' },
   notes_name_prompt: { zh: '你的名字(會顯示在「最後更新」旁):', en: 'Your name (shown next to "last updated"):' },
-  notes_saved_msg: { zh: '已儲存!Dashboard 將在數分鐘內自動重新整理套用最新內容。', en: 'Saved! The dashboard will refresh automatically within a few minutes.' },
+  notes_saved_msg: { zh: '已儲存!其他人重新整理頁面後,大約 1 分鐘內就會看到最新內容。', en: 'Saved! Others will see the update within about a minute after refreshing the page.' },
+  notes_indent_hint: { zh: '提示:在文字框裡按 Tab 可以縮排(建立子項目),Shift+Tab 可以取消縮排', en: 'Tip: press Tab to indent (make a sub-item), Shift+Tab to outdent' },
   notes_save_error: { zh: msg => `儲存失敗:${msg}`, en: msg => `Save failed: ${msg}` },
   notes_change_token: { zh: '更換 Token', en: 'Change token' },
   bug_missing_caption: { zh: n => `共 ${n} 張票 (Bug 總數 ${BUGS.length} 張)`, en: n => `${n} tickets shown (out of ${BUGS.length} Bugs total)` },
@@ -697,13 +698,17 @@ function jumpToBugAssigneeFromStats(assignee) {
 // --- Editable "Project Overview" block at the top of the Stats tab ---------
 // Content (development_status / certification_status / risk) is baked into
 // dashboard.html at build time from overview_notes.json (same pattern as
-// HISTORY), so it always matches the last successful Actions run. Saving from
+// HISTORY) as a fallback, but on every load/tab-visit the page also fetches
+// the file live from raw.githubusercontent.com (the repo is public, so no
+// auth needed to read) — this is what makes a save visible to every viewer
+// within moments, without waiting for the next Actions rebuild. Saving from
 // the browser writes overview_notes.json straight to GitHub via the Contents
 // API using a token the editor supplies (stored only in their own browser's
-// localStorage), then kicks off a workflow_dispatch so the site rebuilds and
-// picks up the change within a few minutes — no separate backend needed.
+// localStorage), then best-effort kicks off a workflow_dispatch so the
+// baked-in fallback in dashboard.html eventually catches up too.
 const GITHUB_REPO = 'marzlo/CPAA_Dash';
 const GITHUB_NOTES_PATH = 'overview_notes.json';
+const GITHUB_RAW_NOTES_URL = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/${GITHUB_NOTES_PATH}`;
 let overviewNotesEditing = false;
 
 function overviewNotesColumns() {
@@ -712,6 +717,65 @@ function overviewNotesColumns() {
     { key: 'certification_status', label: t('notes_cert_heading') },
     { key: 'risk', label: t('notes_risk_heading') },
   ];
+}
+
+// Parses newline-separated text into a nested bullet tree using indentation
+// (Tab or 2 spaces per level — see attachTabIndent()), so notes can express
+// sub-points instead of only a single flat list.
+function parseIndentedLines(raw) {
+  const rows = (raw || '').split('\n')
+    .map(l => l.replace(/\t/g, '  '))
+    .map(l => {
+      const m = l.match(/^( *)(.*)$/);
+      return { level: Math.floor(m[1].length / 2), text: m[2].trim() };
+    })
+    .filter(r => r.text);
+  const root = { text: '', children: [] };
+  const stack = [{ level: -1, node: root }];
+  rows.forEach(r => {
+    while (stack.length > 1 && stack[stack.length - 1].level >= r.level) stack.pop();
+    const parent = stack[stack.length - 1].node;
+    const node = { text: r.text, children: [] };
+    parent.children.push(node);
+    stack.push({ level: r.level, node });
+  });
+  return root;
+}
+
+function renderNoteTree(node) {
+  if (!node.children.length) return '';
+  return `<ul>${node.children.map(c => `<li>${esc(c.text)}${renderNoteTree(c)}</li>`).join('')}</ul>`;
+}
+
+function renderIndentedList(raw) {
+  const tree = parseIndentedLines(raw);
+  return tree.children.length ? renderNoteTree(tree) : null;
+}
+
+// Lets Tab / Shift+Tab indent and outdent the current line inside a notes
+// textarea (by default Tab just moves focus out of the field).
+function attachTabIndent(textarea) {
+  textarea.addEventListener('keydown', (e) => {
+    if (e.key !== 'Tab') return;
+    e.preventDefault();
+    const start = textarea.selectionStart;
+    const value = textarea.value;
+    const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+    if (e.shiftKey) {
+      const lineText = value.slice(lineStart, start);
+      let removeLen = 0;
+      if (lineText.startsWith('\t')) removeLen = 1;
+      else if (lineText.startsWith('  ')) removeLen = 2;
+      else if (lineText.startsWith(' ')) removeLen = 1;
+      if (removeLen) {
+        textarea.value = value.slice(0, lineStart) + value.slice(lineStart + removeLen);
+        textarea.selectionStart = textarea.selectionEnd = start - removeLen;
+      }
+    } else {
+      textarea.value = value.slice(0, start) + '\t' + value.slice(start);
+      textarea.selectionStart = textarea.selectionEnd = start + 1;
+    }
+  });
 }
 
 function renderOverviewNotesBlock() {
@@ -731,22 +795,35 @@ function renderOverviewNotesBlock() {
         <h3>${esc(c.label)}</h3>
         <textarea data-key="${c.key}">${esc(OVERVIEW_NOTES[c.key] || '')}</textarea>
       </div>
-    `).join('');
+    `).join('') + `<p class="caption" style="grid-column:1/-1; margin:8px 0 0;">${esc(t('notes_indent_hint'))}</p>`;
+    gridEl.querySelectorAll('textarea[data-key]').forEach(attachTabIndent);
     editBtn.textContent = t('cancel_button');
     saveBtn.textContent = t('save_button');
     saveBtn.hidden = false;
   } else {
     gridEl.innerHTML = cols.map(c => {
-      const raw = (OVERVIEW_NOTES[c.key] || '').trim();
-      const lines = raw ? raw.split('\n').map(l => l.trim()).filter(Boolean) : [];
-      const body = lines.length
-        ? `<ul>${lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul>`
-        : `<div class="notes-empty">${esc(t('notes_empty'))}</div>`;
+      const body = renderIndentedList(OVERVIEW_NOTES[c.key]) || `<div class="notes-empty">${esc(t('notes_empty'))}</div>`;
       return `<div class="notes-col"><h3>${esc(c.label)}</h3>${body}</div>`;
     }).join('');
     editBtn.textContent = t('edit_button');
     saveBtn.hidden = true;
   }
+}
+
+// Fetches the latest overview_notes.json straight from GitHub (bypassing the
+// Actions/Pages rebuild delay entirely) and re-renders if nothing is being
+// edited right now. Safe to call repeatedly; silently keeps the baked-in
+// fallback on any failure (offline, blocked network, local file:// testing).
+async function refreshOverviewNotesFromGithub() {
+  try {
+    const resp = await fetch(GITHUB_RAW_NOTES_URL + '?t=' + Date.now(), { cache: 'no-store' });
+    if (!resp.ok) return;
+    const fresh = await resp.json();
+    if (fresh && typeof fresh === 'object') {
+      Object.assign(OVERVIEW_NOTES, fresh);
+      if (!overviewNotesEditing) renderOverviewNotesBlock();
+    }
+  } catch (e) { /* offline, blocked network, or file:// testing — keep the baked-in fallback */ }
 }
 
 function getGithubToken(forcePrompt) {
@@ -870,6 +947,7 @@ function renderStatsPanel() {
   });
   document.getElementById('overviewNotesSaveBtn').addEventListener('click', saveOverviewNotes);
   document.getElementById('overviewNotesTokenBtn').addEventListener('click', () => getGithubToken(true));
+  refreshOverviewNotesFromGithub();
 
   // --- Trend / burndown chart ------------------------------------------------
   (function renderTrendChart() {
