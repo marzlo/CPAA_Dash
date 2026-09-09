@@ -241,15 +241,15 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <p style="margin-top:4px; font-weight:600;" id="headerUpdatedAt"></p>
 </header>
 <nav class="tabs" id="tabs">
-  <button data-tab="Stats" data-i18n-tab="stats">Stats</button>
-  <button data-tab="overview" data-i18n-tab="overview" class="active">Overview</button>
+  <button data-tab="Stats" data-i18n-tab="stats" class="active">Stats</button>
+  <button data-tab="overview" data-i18n-tab="overview">Overview</button>
   <button data-tab="Bug" data-i18n-tab="bug">Bug</button>
   <button data-tab="Audio" data-i18n-tab="audio">Audio</button>
   <button data-tab="Pretest" data-i18n-tab="pretest">Pretest</button>
 </nav>
 <main>
 
-  <div class="panel active" id="panel-overview">
+  <div class="panel" id="panel-overview">
     <div class="stat-row" id="completionTiles"></div>
 
     <section class="card">
@@ -328,7 +328,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     </section>
   </div>
 
-  <div class="panel" id="panel-Stats"></div>
+  <div class="panel active" id="panel-Stats"></div>
   <div class="panel" id="panel-Bug"></div>
   <div class="panel" id="panel-Audio"></div>
   <div class="panel" id="panel-Pretest"></div>
@@ -467,6 +467,11 @@ const STRINGS = {
   notes_indent_hint: { zh: '提示:在文字框裡按 Tab 可以縮排(建立子項目),Shift+Tab 可以取消縮排', en: 'Tip: press Tab to indent (make a sub-item), Shift+Tab to outdent' },
   notes_save_error: { zh: msg => `儲存失敗:${msg}`, en: msg => `Save failed: ${msg}` },
   notes_change_token: { zh: '更換 Token', en: 'Change token' },
+  refresh_data_button: { zh: '🔄 更新最新資料', en: '🔄 Refresh latest data' },
+  refreshing_data_button: { zh: '觸發中…', en: 'Triggering…' },
+  refresh_data_confirm: { zh: '這會觸發 GitHub Actions 重新抓取 Jira 最新資料並重建整個網站,通常需要 1-2 分鐘完成。確定要繼續嗎?', en: 'This will trigger GitHub Actions to fetch the latest Jira data and rebuild the whole site, usually taking 1-2 minutes. Continue?' },
+  refresh_data_success: { zh: '已觸發更新!請等待約 1-2 分鐘後重新整理頁面查看最新資料。', en: 'Update triggered! Please wait about 1-2 minutes, then refresh the page to see the latest data.' },
+  refresh_data_error: { zh: msg => `觸發失敗:${msg}`, en: msg => `Trigger failed: ${msg}` },
   bug_missing_caption: { zh: n => `共 ${n} 張票 (Bug 總數 ${BUGS.length} 張)`, en: n => `${n} tickets shown (out of ${BUGS.length} Bugs total)` },
 
   audio_not_done_count: { zh: '未完成數量', en: 'Not-done count' },
@@ -900,6 +905,31 @@ async function saveOverviewNotes() {
   }
 }
 
+async function refreshLatestData() {
+  const token = getGithubToken(false);
+  if (!token) return;
+  if (!confirm(t('refresh_data_confirm'))) return;
+
+  const btn = document.getElementById('refreshDataBtn');
+  if (btn) { btn.disabled = true; btn.textContent = t('refreshing_data_button'); }
+  try {
+    const resp = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/refresh-dashboard.yml/dispatches`, {
+      method: 'POST',
+      headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ref: 'main' }),
+    });
+    if (!resp.ok) {
+      const errBody = await resp.text();
+      throw new Error(resp.status + ': ' + errBody.slice(0, 200));
+    }
+    alert(t('refresh_data_success'));
+  } catch (err) {
+    alert(t('refresh_data_error', String((err && err.message) || err)));
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = t('refresh_data_button'); }
+  }
+}
+
 function renderStatsPanel() {
   const panel = document.getElementById('panel-Stats');
   panel.innerHTML = `
@@ -909,7 +939,8 @@ function renderStatsPanel() {
           <h2 style="margin:0;">${esc(t('overview_notes_heading'))}</h2>
           <p class="caption" id="overviewNotesMeta" style="margin:4px 0 0;"></p>
         </div>
-        <div style="display:flex; gap:8px; flex-shrink:0;">
+        <div style="display:flex; gap:8px; flex-shrink:0; flex-wrap:wrap;">
+          <button type="button" class="btn small" id="refreshDataBtn">${esc(t('refresh_data_button'))}</button>
           <button type="button" class="btn small" id="overviewNotesTokenBtn" title="${esc(t('notes_change_token'))}">🔑</button>
           <button type="button" class="btn" id="overviewNotesEditBtn"></button>
           <button type="button" class="btn primary" id="overviewNotesSaveBtn" hidden></button>
@@ -947,6 +978,7 @@ function renderStatsPanel() {
   });
   document.getElementById('overviewNotesSaveBtn').addEventListener('click', saveOverviewNotes);
   document.getElementById('overviewNotesTokenBtn').addEventListener('click', () => getGithubToken(true));
+  document.getElementById('refreshDataBtn').addEventListener('click', refreshLatestData);
   refreshOverviewNotesFromGithub();
 
   // --- Trend / burndown chart ------------------------------------------------
