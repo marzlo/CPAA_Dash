@@ -314,7 +314,7 @@
  },
  "2026-09-09": {
   "bugs": {
-   "done": 167,
+   "done": 169,
    "total": 245
   },
   "bugs_by_team": {
@@ -324,7 +324,7 @@
    },
    "MDT_App": {
     "done": 7,
-    "total": 35
+    "total": 36
    },
    "MDT_PM": {
     "done": 17,
@@ -335,8 +335,8 @@
     "total": 16
    },
    "TS_CPAA": {
-    "done": 114,
-    "total": 129
+    "done": 116,
+    "total": 128
    },
    "TS_FW": {
     "done": 19,
@@ -354,7 +354,7 @@
   "date": "2026-09-09",
   "swe2": {
    "done": 306,
-   "total": 701
+   "total": 711
   },
   "swe3": {
    "done": 247,
