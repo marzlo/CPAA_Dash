@@ -113,9 +113,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   header p { margin: 0; color: var(--text-secondary); font-size: 13px; }
   .toggle-row {
     position: absolute; top: 20px; right: 28px;
-    display: flex; gap: 8px;
+    display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;
   }
-  .theme-toggle, .lang-toggle {
+  .theme-toggle, .lang-toggle, .refresh-toggle {
     background: var(--surface-1); border: 1px solid var(--border);
     border-radius: 8px; padding: 6px 12px; cursor: pointer; color: var(--text-primary);
     font-size: 13px;
@@ -232,6 +232,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 </head>
 <body>
 <div class="toggle-row">
+  <button class="refresh-toggle" id="refreshDataBtn" data-i18n="refresh_data_button"></button>
   <button class="lang-toggle" id="langToggle">中文 / EN</button>
   <button class="theme-toggle" id="themeToggle">🌓 Theme</button>
 </div>
@@ -940,7 +941,6 @@ function renderStatsPanel() {
           <p class="caption" id="overviewNotesMeta" style="margin:4px 0 0;"></p>
         </div>
         <div style="display:flex; gap:8px; flex-shrink:0; flex-wrap:wrap;">
-          <button type="button" class="btn small" id="refreshDataBtn">${esc(t('refresh_data_button'))}</button>
           <button type="button" class="btn small" id="overviewNotesTokenBtn" title="${esc(t('notes_change_token'))}">🔑</button>
           <button type="button" class="btn" id="overviewNotesEditBtn"></button>
           <button type="button" class="btn primary" id="overviewNotesSaveBtn" hidden></button>
@@ -978,7 +978,6 @@ function renderStatsPanel() {
   });
   document.getElementById('overviewNotesSaveBtn').addEventListener('click', saveOverviewNotes);
   document.getElementById('overviewNotesTokenBtn').addEventListener('click', () => getGithubToken(true));
-  document.getElementById('refreshDataBtn').addEventListener('click', refreshLatestData);
   refreshOverviewNotesFromGithub();
 
   // --- Trend / burndown chart ------------------------------------------------
@@ -1985,6 +1984,8 @@ function initTabs() {
     });
   });
 }
+
+document.getElementById('refreshDataBtn').addEventListener('click', refreshLatestData);
 
 document.getElementById('themeToggle').addEventListener('click', () => {
   const root = document.documentElement;
