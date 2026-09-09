@@ -1,7 +1,7 @@
 {
-  "updated_at": "2026-09-09T03:32:22.313Z",
+  "updated_at": "2026-09-09T04:08:56.819Z",
   "updated_by": "Leyo",
-  "development_status": "Overall status: 80%\nOOB\nAudio implementation",
-  "certification_status": "Smoke test : Pass rate 66% /\n\tBlocker:\n\t\tCertification bench: metadata to cluster\n\t\tEA session\n\t\tAVM (RVC)\nAPQM: ( W\n",
+  "development_status": "Overall status: 80%\n\nOOB : target R3\nAudio implementation: target R3\n\t",
+  "certification_status": "Smoke test : Pass rate 66% /\nPretest: CP 35% / AA 22%\n\tBlocker:\n\t\tCertification bench: metadata to cluster/Power/knob\n\t\tEA session\n\t\tRVC\nAPQM: ( 9/14~ 10/9 4W)\n\tBlocker: \n\t\tCerence bench setup\n",
   "risk": "Audio (Subbu)\n\tLack of SWE2 document\n\tSource calibration: Subbu need to provide info to Harman"
 }
