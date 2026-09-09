@@ -1,7 +1,7 @@
 {
-  "updated_at": "2026-09-09T10:34:54.429Z",
+  "updated_at": "2026-09-09T10:42:47.625Z",
   "updated_by": "Leyo",
   "development_status": "Overall status: 80%\n\n\tOOB : target R3\n\tAudio integration: target R3\n\t\t\n\t",
   "certification_status": "Smoke test : Pass rate 66% /\nPretest: CP 35% / AA 22%\n\tBlocker:\n\t\tCertification bench: metadata to cluster/Power/knob\n\t\tEA session\n\t\tRVC\nAPQM: ( 9/14~ 10/9 4W)\n\tBlocker: \n\t\tCerence setup\n\t\t\tTune connection issue (uplink & downlink test)\n\t\t\tFrequent audio distortions\n",
-  "risk": "Audio (Subbu)\n\tLack of SWE2 document\n\t\tStreams & Audio Link\n\t\tAudio Focus\n\t\tResource Management \n\t\tMix\n\t\tDucking\n\t\tVolume Control\n\t\tMic\n\t\tECNR & Performance\n\tSource calibration: Subbu need to provide info to Harman (already delayed since Aug 19)\n\nDMS (Shane)\n\tBug increasing too fast and lack of capacity to consume"
+  "risk": "Audio (Subbu)\n\tLack of SWE2 document\n\t\tStreams & Audio Link\n\t\tAudio Focus\n\t\tResource Management \n\t\tMix\n\t\tDucking\n\t\tVolume Control\n\t\tMic\n\t\tECNR & Performance\n\tSource calibration: Subbu need to provide info to Harman (already delayed since Aug 19)\n\t\tRingtone test file\n\t\tApplicable Test Use Case\n\nDMS (Shane)\n\tBug increasing too fast and lack of capacity to consume"
 }
