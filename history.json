@@ -368,16 +368,16 @@
  "2026-09-10": {
   "bugs": {
    "done": 170,
-   "total": 248
+   "total": 249
   },
   "bugs_by_team": {
    "MDI_System": {
     "done": 0,
-    "total": 3
+    "total": 4
    },
    "MDT_App": {
     "done": 8,
-    "total": 36
+    "total": 37
    },
    "MDT_PM": {
     "done": 18,
@@ -393,7 +393,7 @@
    },
    "TS_FW": {
     "done": 16,
-    "total": 19
+    "total": 18
    },
    "Unassigned": {
     "done": 1,
