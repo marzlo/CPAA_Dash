@@ -113,9 +113,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   header p { margin: 0; color: var(--text-secondary); font-size: 13px; }
   .toggle-row {
     position: absolute; top: 20px; right: 28px;
-    display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;
+    display: flex; gap: 8px;
   }
-  .theme-toggle, .lang-toggle, .refresh-toggle {
+  .theme-toggle, .lang-toggle {
     background: var(--surface-1); border: 1px solid var(--border);
     border-radius: 8px; padding: 6px 12px; cursor: pointer; color: var(--text-primary);
     font-size: 13px;
@@ -228,11 +228,27 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .btn:hover { border-color: var(--series-cp); }
   .btn.primary { background: var(--series-cp); border-color: var(--series-cp); color: #fff; }
   .btn.small { padding: 6px 9px; font-size: 13px; }
+  #assigneeBreakdownSelect {
+    background: var(--page); border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 10px; font-size: 13px; color: var(--text-primary);
+  }
+  .assignee-breakdown-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px; }
+  .assignee-breakdown-table th, .assignee-breakdown-table td { text-align: right; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  .assignee-breakdown-table th:first-child, .assignee-breakdown-table td:first-child { text-align: left; }
+  .assignee-breakdown-table thead th { color: var(--text-secondary); font-weight: 600; font-size: 12px; }
+  .assignee-breakdown-table tfoot td { font-weight: 700; border-top: 2px solid var(--border); border-bottom: none; }
+  .abd-stackbar-row { display:flex; align-items:center; gap:10px; margin: 8px 0; }
+  .abd-stackbar-row .name { width: 74px; font-size: 13px; color: var(--text-secondary); flex-shrink:0; }
+  .abd-stackbar-track { flex:1; height: 18px; border-radius: 5px; overflow:hidden; display:flex; background: var(--grid); }
+  .abd-stackbar-seg { height:100%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:600; }
+  .abd-stackbar-total { width: 30px; text-align:right; font-size:13px; font-variant-numeric: tabular-nums; }
+  .abd-legend { display:flex; gap:16px; margin-top:6px; flex-wrap:wrap; }
+  .abd-legend span { display:inline-flex; align-items:center; gap:6px; font-size:12px; color: var(--text-secondary); }
+  .abd-legend i { width:10px; height:10px; border-radius:2px; display:inline-block; }
 </style>
 </head>
 <body>
 <div class="toggle-row">
-  <button class="refresh-toggle" id="refreshDataBtn" data-i18n="refresh_data_button"></button>
   <button class="lang-toggle" id="langToggle">中文 / EN</button>
   <button class="theme-toggle" id="themeToggle">🌓 Theme</button>
 </div>
@@ -473,6 +489,14 @@ const STRINGS = {
   refresh_data_confirm: { zh: '這會觸發 GitHub Actions 重新抓取 Jira 最新資料並重建整個網站,通常需要 1-2 分鐘完成。確定要繼續嗎?', en: 'This will trigger GitHub Actions to fetch the latest Jira data and rebuild the whole site, usually taking 1-2 minutes. Continue?' },
   refresh_data_success: { zh: '已觸發更新!請等待約 1-2 分鐘後重新整理頁面查看最新資料。', en: 'Update triggered! Please wait about 1-2 minutes, then refresh the page to see the latest data.' },
   refresh_data_error: { zh: msg => `觸發失敗:${msg}`, en: msg => `Trigger failed: ${msg}` },
+  assignee_breakdown_heading: { zh: 'Assignee Bug 統計(依 Priority × Pretest)', en: 'Assignee Bug Breakdown (Priority × Pretest)' },
+  assignee_breakdown_caption: { zh: (name, n) => `${name}目前有 ${n} 張未完成的 Bug 票(不含已關閉)`, en: (name, n) => `${name} has ${n} open (not-done) Bug tickets` },
+  assignee_breakdown_col_priority: { zh: 'Priority', en: 'Priority' },
+  assignee_breakdown_col_nonpretest: { zh: 'Non-Pretest', en: 'Non-Pretest' },
+  assignee_breakdown_col_pcts: { zh: 'AA (PCTS)', en: 'AA (PCTS)' },
+  assignee_breakdown_col_facet: { zh: 'CP (Facet)', en: 'CP (Facet)' },
+  assignee_breakdown_col_subtotal: { zh: '小計', en: 'Subtotal' },
+  assignee_breakdown_total_row: { zh: '小計', en: 'Subtotal' },
   bug_missing_caption: { zh: n => `共 ${n} 張票 (Bug 總數 ${BUGS.length} 張)`, en: n => `${n} tickets shown (out of ${BUGS.length} Bugs total)` },
 
   audio_not_done_count: { zh: '未完成數量', en: 'Not-done count' },
@@ -941,6 +965,7 @@ function renderStatsPanel() {
           <p class="caption" id="overviewNotesMeta" style="margin:4px 0 0;"></p>
         </div>
         <div style="display:flex; gap:8px; flex-shrink:0; flex-wrap:wrap;">
+          <button type="button" class="btn small" id="refreshDataBtn">${esc(t('refresh_data_button'))}</button>
           <button type="button" class="btn small" id="overviewNotesTokenBtn" title="${esc(t('notes_change_token'))}">🔑</button>
           <button type="button" class="btn" id="overviewNotesEditBtn"></button>
           <button type="button" class="btn primary" id="overviewNotesSaveBtn" hidden></button>
@@ -968,6 +993,14 @@ function renderStatsPanel() {
       <p class="caption" id="topAssigneeCaption"></p>
       <div id="topAssigneesWrap"></div>
     </section>
+    <section class="card">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:4px;">
+        <h2 style="margin:0;">${esc(t('assignee_breakdown_heading'))}</h2>
+        <select id="assigneeBreakdownSelect"></select>
+      </div>
+      <p class="caption" id="assigneeBreakdownCaption"></p>
+      <div id="assigneeBreakdownWrap"></div>
+    </section>
   `;
 
   overviewNotesEditing = false;
@@ -978,6 +1011,7 @@ function renderStatsPanel() {
   });
   document.getElementById('overviewNotesSaveBtn').addEventListener('click', saveOverviewNotes);
   document.getElementById('overviewNotesTokenBtn').addEventListener('click', () => getGithubToken(true));
+  document.getElementById('refreshDataBtn').addEventListener('click', refreshLatestData);
   refreshOverviewNotesFromGithub();
 
   // --- Trend / burndown chart ------------------------------------------------
@@ -1121,6 +1155,104 @@ function renderStatsPanel() {
     }).join('');
     wrap.querySelectorAll('.bar-row-clickable').forEach(el => {
       el.addEventListener('click', () => jumpToBugAssigneeFromStats(el.dataset.assignee));
+    });
+  })();
+
+  // --- Assignee Bug breakdown by Priority x Pretest ---------------------------
+  (function renderAssigneeBreakdown() {
+    const sel = document.getElementById('assigneeBreakdownSelect');
+    const caption = document.getElementById('assigneeBreakdownCaption');
+    const wrap = document.getElementById('assigneeBreakdownWrap');
+    const notDoneBugs = BUGS.filter(r => !r.done);
+
+    function pretestGroupOf(bug) {
+      const s = (bug.summary || '').toLowerCase();
+      if (s.includes('facet')) return 'facet';
+      if (s.includes('pcts')) return 'pcts';
+      return 'none';
+    }
+
+    const counts = {};
+    notDoneBugs.forEach(r => { counts[r.assignee] = (counts[r.assignee] || 0) + 1; });
+    const assignees = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+
+    if (!assignees.length) {
+      sel.innerHTML = '';
+      caption.textContent = '';
+      wrap.innerHTML = `<div class="empty-state">${esc(t('empty_state'))}</div>`;
+      return;
+    }
+
+    sel.innerHTML = assignees.map(name => `<option value="${esc(name)}">${esc(name)} (${counts[name]})</option>`).join('');
+    if (!sel.dataset.userPicked) sel.value = assignees[0];
+
+    function renderFor(name) {
+      const rows = notDoneBugs.filter(r => r.assignee === name);
+      caption.textContent = t('assignee_breakdown_caption', name, rows.length);
+
+      const groupKeys = ['none', 'pcts', 'facet'];
+      const groupLabels = { none: t('assignee_breakdown_col_nonpretest'), pcts: t('assignee_breakdown_col_pcts'), facet: t('assignee_breakdown_col_facet') };
+      const groupColors = { none: '#898781', pcts: 'var(--series-aa)', facet: 'var(--series-cp)' };
+
+      const table = {};
+      rows.forEach(r => {
+        const pri = r.priority || '未標示';
+        const grp = pretestGroupOf(r);
+        if (!table[pri]) table[pri] = { none: 0, pcts: 0, facet: 0 };
+        table[pri][grp] += 1;
+      });
+      const priorities = PRIORITY_ORDER.filter(p => table[p]);
+
+      if (!priorities.length) {
+        wrap.innerHTML = `<div class="empty-state">${esc(t('empty_state'))}</div>`;
+        return;
+      }
+
+      const colTotals = { none: 0, pcts: 0, facet: 0 };
+      priorities.forEach(p => groupKeys.forEach(g => { colTotals[g] += table[p][g]; }));
+      const grandTotal = groupKeys.reduce((sum, g) => sum + colTotals[g], 0);
+
+      let html = `<table class="assignee-breakdown-table"><thead><tr>
+        <th>${esc(t('assignee_breakdown_col_priority'))}</th>
+        <th>${esc(groupLabels.none)}</th><th>${esc(groupLabels.pcts)}</th><th>${esc(groupLabels.facet)}</th>
+        <th>${esc(t('assignee_breakdown_col_subtotal'))}</th>
+      </tr></thead><tbody>`;
+      priorities.forEach(p => {
+        const row = table[p];
+        const subtotal = groupKeys.reduce((sum, g) => sum + row[g], 0);
+        html += `<tr><td>${esc(p)}</td><td>${row.none}</td><td>${row.pcts}</td><td>${row.facet}</td><td>${subtotal}</td></tr>`;
+      });
+      html += `</tbody><tfoot><tr><td>${esc(t('assignee_breakdown_total_row'))}</td><td>${colTotals.none}</td><td>${colTotals.pcts}</td><td>${colTotals.facet}</td><td>${grandTotal}</td></tr></tfoot></table>`;
+
+      html += priorities.map(p => {
+        const row = table[p];
+        const subtotal = groupKeys.reduce((sum, g) => sum + row[g], 0) || 1;
+        const segs = groupKeys.filter(g => row[g] > 0).map(g => {
+          const pct = (row[g] / subtotal * 100).toFixed(1);
+          return `<div class="abd-stackbar-seg" style="width:${pct}%; background:${groupColors[g]};">${row[g]}</div>`;
+        }).join('');
+        return `
+          <div class="abd-stackbar-row">
+            <div class="name">${esc(p)}</div>
+            <div class="abd-stackbar-track">${segs}</div>
+            <div class="abd-stackbar-total">${subtotal === 1 && row.none + row.pcts + row.facet === 0 ? 0 : (row.none + row.pcts + row.facet)}</div>
+          </div>
+        `;
+      }).join('') + `
+        <div class="abd-legend">
+          <span><i style="background:#898781;"></i>${esc(groupLabels.none)}</span>
+          <span><i style="background:var(--series-aa);"></i>${esc(groupLabels.pcts)}</span>
+          <span><i style="background:var(--series-cp);"></i>${esc(groupLabels.facet)}</span>
+        </div>
+      `;
+
+      wrap.innerHTML = html;
+    }
+
+    renderFor(sel.value);
+    sel.addEventListener('change', () => {
+      sel.dataset.userPicked = '1';
+      renderFor(sel.value);
     });
   })();
 }
@@ -1984,8 +2116,6 @@ function initTabs() {
     });
   });
 }
-
-document.getElementById('refreshDataBtn').addEventListener('click', refreshLatestData);
 
 document.getElementById('themeToggle').addEventListener('click', () => {
   const root = document.documentElement;
