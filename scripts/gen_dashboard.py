@@ -215,12 +215,26 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .notes-col h3 { margin: 0 0 10px; font-size: 14px; color: var(--text-primary); }
   .notes-col ul { margin: 0; padding-left: 18px; font-size: 13px; color: var(--text-primary); line-height: 1.6; }
   .notes-col ul li { margin-bottom: 4px; }
-  .notes-col textarea {
-    width: 100%; min-height: 140px; resize: vertical; background: var(--surface-1);
+  .notes-editor {
+    width: 100%; min-height: 140px; background: var(--surface-1);
     border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-size: 13px;
-    color: var(--text-primary); font-family: inherit; box-sizing: border-box;
+    color: var(--text-primary); font-family: inherit; box-sizing: border-box; line-height: 1.6;
   }
+  .notes-editor:focus { outline: none; border-color: var(--series-cp); }
+  .notes-editor ul, .notes-editor ol { margin: 4px 0; padding-left: 20px; }
   .notes-empty { color: var(--muted); font-size: 13px; font-style: italic; }
+  .rt-toolbar { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+  .rt-toolbar .rt-btn, .rt-toolbar .rt-btn-clear {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 6px;
+    cursor: pointer; color: var(--text-primary); font-size: 12px;
+  }
+  .rt-toolbar .rt-btn { width: 28px; height: 26px; }
+  .rt-toolbar .rt-btn.bold { font-weight: 700; }
+  .rt-toolbar .rt-btn-clear { padding: 0 8px; height: 26px; }
+  .rt-toolbar .rt-btn:hover, .rt-toolbar .rt-btn-clear:hover { border-color: var(--series-cp); }
+  .rt-sep { width: 1px; height: 18px; background: var(--border); margin: 0 2px; }
+  .rt-swatch { width: 20px; height: 20px; border-radius: 50%; cursor: pointer; border: 2px solid var(--border); padding: 0; }
+  .rt-swatch:hover { border-color: var(--text-primary); }
   .btn {
     background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
     padding: 6px 14px; cursor: pointer; color: var(--text-primary); font-size: 13px;
@@ -497,6 +511,13 @@ const STRINGS = {
   assignee_breakdown_col_facet: { zh: 'CP (Facet)', en: 'CP (Facet)' },
   assignee_breakdown_col_subtotal: { zh: '小計', en: 'Subtotal' },
   assignee_breakdown_total_row: { zh: '小計', en: 'Subtotal' },
+  rt_bold_title: { zh: '粗體 (Ctrl+B)', en: 'Bold (Ctrl+B)' },
+  rt_clear_format: { zh: '清除格式', en: 'Clear formatting' },
+  rt_color_red: { zh: '紅色', en: 'Red' },
+  rt_color_orange: { zh: '橘色', en: 'Orange' },
+  rt_color_green: { zh: '綠色', en: 'Green' },
+  rt_color_blue: { zh: '藍色', en: 'Blue' },
+  rt_color_black: { zh: '黑色', en: 'Black' },
   bug_missing_caption: { zh: n => `共 ${n} 張票 (Bug 總數 ${BUGS.length} 張)`, en: n => `${n} tickets shown (out of ${BUGS.length} Bugs total)` },
 
   audio_not_done_count: { zh: '未完成數量', en: 'Not-done count' },
@@ -782,31 +803,78 @@ function renderIndentedList(raw) {
   return tree.children.length ? renderNoteTree(tree) : null;
 }
 
-// Lets Tab / Shift+Tab indent and outdent the current line inside a notes
-// textarea (by default Tab just moves focus out of the field).
-function attachTabIndent(textarea) {
-  textarea.addEventListener('keydown', (e) => {
-    if (e.key !== 'Tab') return;
-    e.preventDefault();
-    const start = textarea.selectionStart;
-    const value = textarea.value;
-    const lineStart = value.lastIndexOf('\n', start - 1) + 1;
-    if (e.shiftKey) {
-      const lineText = value.slice(lineStart, start);
-      let removeLen = 0;
-      if (lineText.startsWith('\t')) removeLen = 1;
-      else if (lineText.startsWith('  ')) removeLen = 2;
-      else if (lineText.startsWith(' ')) removeLen = 1;
-      if (removeLen) {
-        textarea.value = value.slice(0, lineStart) + value.slice(lineStart + removeLen);
-        textarea.selectionStart = textarea.selectionEnd = start - removeLen;
-      }
-    } else {
-      textarea.value = value.slice(0, start) + '\t' + value.slice(start);
-      textarea.selectionStart = textarea.selectionEnd = start + 1;
+// Lets Tab / Shift+Tab indent and outdent the current line/list-item inside a
+// notes rich-text editor (by default Tab just moves focus out of the field),
+// and Ctrl/Cmd+B toggles bold.
+function attachTabIndent(editor) {
+  editor.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      document.execCommand(e.shiftKey ? 'outdent' : 'indent');
+    } else if ((e.key === 'b' || e.key === 'B') && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      document.execCommand('styleWithCSS', false, true);
+      document.execCommand('bold');
     }
   });
 }
+
+// Detects whether a stored notes value is already rich-text HTML (new format)
+// vs. legacy plain text (old format, indentation via tabs/spaces).
+function isHtmlContent(raw) {
+  return /<[a-z][\s\S]*>/i.test(raw || '');
+}
+
+// Very small allowlist-based sanitizer for the notes rich-text editor output.
+// Only a handful of formatting tags/style properties survive; everything
+// else (scripts, links, images, event handlers, ...) is stripped or unwrapped.
+function sanitizeNotesHtml(html) {
+  const allowedTags = new Set(['B', 'STRONG', 'I', 'EM', 'U', 'SPAN', 'FONT', 'UL', 'OL', 'LI', 'BR', 'DIV', 'P']);
+  const allowedStyleProps = ['color', 'font-weight', 'font-style', 'text-decoration'];
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html || '';
+  function clean(node) {
+    Array.from(node.childNodes).forEach(child => {
+      if (child.nodeType === 1) {
+        let el = child;
+        let tag = el.tagName;
+        if (tag === 'FONT') {
+          const color = el.style.color || el.getAttribute('color') || '';
+          const span = document.createElement('span');
+          if (color) span.style.color = color;
+          while (el.firstChild) span.appendChild(el.firstChild);
+          el.replaceWith(span);
+          el = span; tag = 'SPAN';
+        }
+        if (!allowedTags.has(tag)) {
+          while (el.firstChild) node.insertBefore(el.firstChild, el);
+          node.removeChild(el);
+          return;
+        }
+        const keepStyle = {};
+        allowedStyleProps.forEach(p => {
+          const v = el.style && el.style.getPropertyValue(p);
+          if (v) keepStyle[p] = v;
+        });
+        Array.from(el.attributes).forEach(attr => el.removeAttribute(attr.name));
+        Object.keys(keepStyle).forEach(p => el.style.setProperty(p, keepStyle[p]));
+        clean(el);
+      } else if (child.nodeType !== 3) {
+        node.removeChild(child);
+      }
+    });
+  }
+  clean(tmp);
+  return tmp.innerHTML;
+}
+
+const NOTES_COLORS = [
+  { color: '#d03b3b', labelKey: 'rt_color_red' },
+  { color: '#eb6834', labelKey: 'rt_color_orange' },
+  { color: '#0ca30c', labelKey: 'rt_color_green' },
+  { color: '#2a78d6', labelKey: 'rt_color_blue' },
+  { color: '#0b0b0b', labelKey: 'rt_color_black' },
+];
 
 function renderOverviewNotesBlock() {
   const metaEl = document.getElementById('overviewNotesMeta');
@@ -820,20 +888,51 @@ function renderOverviewNotesBlock() {
     : t('notes_meta_never');
 
   if (overviewNotesEditing) {
-    gridEl.innerHTML = cols.map(c => `
-      <div class="notes-col">
-        <h3>${esc(c.label)}</h3>
-        <textarea data-key="${c.key}">${esc(OVERVIEW_NOTES[c.key] || '')}</textarea>
-      </div>
-    `).join('') + `<p class="caption" style="grid-column:1/-1; margin:8px 0 0;">${esc(t('notes_indent_hint'))}</p>`;
-    gridEl.querySelectorAll('textarea[data-key]').forEach(attachTabIndent);
+    gridEl.innerHTML = cols.map(c => {
+      const raw = OVERVIEW_NOTES[c.key] || '';
+      const initialHtml = !raw ? '' : (isHtmlContent(raw) ? sanitizeNotesHtml(raw) : (renderIndentedList(raw) || ''));
+      const swatches = NOTES_COLORS.map(sw => `<button type="button" class="rt-swatch" data-color="${sw.color}" title="${esc(t(sw.labelKey))}" style="background:${sw.color};"></button>`).join('');
+      return `
+        <div class="notes-col">
+          <h3>${esc(c.label)}</h3>
+          <div class="rt-toolbar">
+            <button type="button" class="rt-btn bold" data-cmd="bold" title="${esc(t('rt_bold_title'))}">B</button>
+            <div class="rt-sep"></div>
+            ${swatches}
+            <div class="rt-sep"></div>
+            <button type="button" class="rt-btn-clear" data-cmd="removeFormat">${esc(t('rt_clear_format'))}</button>
+          </div>
+          <div class="notes-editor" contenteditable="true" data-key="${c.key}">${initialHtml}</div>
+        </div>
+      `;
+    }).join('') + `<p class="caption" style="grid-column:1/-1; margin:8px 0 0;">${esc(t('notes_indent_hint'))}</p>`;
+
+    gridEl.querySelectorAll('.notes-editor').forEach(attachTabIndent);
+    gridEl.querySelectorAll('.rt-btn, .rt-swatch, .rt-btn-clear').forEach(btn => {
+      btn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        const col = btn.closest('.notes-col');
+        const editor = col.querySelector('.notes-editor');
+        editor.focus();
+        document.execCommand('styleWithCSS', false, true);
+        if (btn.classList.contains('rt-swatch')) {
+          document.execCommand('foreColor', false, btn.dataset.color);
+        } else if (btn.dataset.cmd === 'removeFormat') {
+          document.execCommand('removeFormat');
+        } else if (btn.dataset.cmd === 'bold') {
+          document.execCommand('bold');
+        }
+      });
+    });
+
     editBtn.textContent = t('cancel_button');
     saveBtn.textContent = t('save_button');
     saveBtn.hidden = false;
   } else {
     gridEl.innerHTML = cols.map(c => {
-      const body = renderIndentedList(OVERVIEW_NOTES[c.key]) || `<div class="notes-empty">${esc(t('notes_empty'))}</div>`;
-      return `<div class="notes-col"><h3>${esc(c.label)}</h3>${body}</div>`;
+      const raw = OVERVIEW_NOTES[c.key] || '';
+      const body = !raw ? '' : (isHtmlContent(raw) ? sanitizeNotesHtml(raw) : renderIndentedList(raw));
+      return `<div class="notes-col"><h3>${esc(c.label)}</h3>${body || `<div class="notes-empty">${esc(t('notes_empty'))}</div>`}</div>`;
     }).join('');
     editBtn.textContent = t('edit_button');
     saveBtn.hidden = true;
@@ -876,7 +975,7 @@ async function saveOverviewNotes() {
   if (!token) return;
 
   const draft = {};
-  document.querySelectorAll('#overviewNotesGrid textarea[data-key]').forEach(ta => { draft[ta.dataset.key] = ta.value; });
+  document.querySelectorAll('#overviewNotesGrid .notes-editor[data-key]').forEach(ed => { draft[ed.dataset.key] = sanitizeNotesHtml(ed.innerHTML); });
   const who = (prompt(t('notes_name_prompt'), OVERVIEW_NOTES.updated_by || '') || OVERVIEW_NOTES.updated_by || '').trim();
 
   const payload = {
