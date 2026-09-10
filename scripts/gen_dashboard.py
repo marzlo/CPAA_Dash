@@ -275,6 +275,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 </head>
 <body>
 <div class="toggle-row">
+  <button type="button" class="btn small" id="refreshDataBtn"></button>
   <button class="lang-toggle" id="langToggle">中文 / EN</button>
   <button class="theme-toggle" id="themeToggle">🌓 Theme</button>
 </div>
@@ -578,6 +579,7 @@ function applyStaticI18n() {
   document.title = t('headerTitle');
   document.getElementById('headerSubtitle').textContent = t('headerSubtitle', DATA.length, BUGS.length);
   document.getElementById('headerUpdatedAt').textContent = t('headerUpdatedAt', UPDATED_AT);
+  document.getElementById('refreshDataBtn').textContent = t('refresh_data_button');
   document.querySelectorAll('[data-i18n-tab]').forEach(el => { el.textContent = t('tab_' + el.dataset.i18nTab); });
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.dataset.i18nPlaceholder); });
@@ -1079,7 +1081,6 @@ function renderStatsPanel() {
           <p class="caption" id="overviewNotesMeta" style="margin:4px 0 0;"></p>
         </div>
         <div style="display:flex; gap:8px; flex-shrink:0; flex-wrap:wrap;">
-          <button type="button" class="btn small" id="refreshDataBtn">${esc(t('refresh_data_button'))}</button>
           <button type="button" class="btn small" id="overviewNotesTokenBtn" title="${esc(t('notes_change_token'))}">🔑</button>
           <button type="button" class="btn" id="overviewNotesEditBtn"></button>
           <button type="button" class="btn primary" id="overviewNotesSaveBtn" hidden></button>
@@ -1150,7 +1151,6 @@ function renderStatsPanel() {
   });
   document.getElementById('overviewNotesSaveBtn').addEventListener('click', saveOverviewNotes);
   document.getElementById('overviewNotesTokenBtn').addEventListener('click', () => getGithubToken(true));
-  document.getElementById('refreshDataBtn').addEventListener('click', refreshLatestData);
   refreshOverviewNotesFromGithub();
 
   // --- Trend / burndown chart ------------------------------------------------
@@ -2384,6 +2384,8 @@ function initTabs() {
     });
   });
 }
+
+document.getElementById('refreshDataBtn').addEventListener('click', refreshLatestData);
 
 document.getElementById('themeToggle').addEventListener('click', () => {
   const root = document.documentElement;
