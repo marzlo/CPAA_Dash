@@ -235,6 +235,18 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .rt-sep { width: 1px; height: 18px; background: var(--border); margin: 0 2px; }
   .rt-swatch { width: 20px; height: 20px; border-radius: 50%; cursor: pointer; border: 2px solid var(--border); padding: 0; }
   .rt-swatch:hover { border-color: var(--text-primary); }
+  #panel-Stats .stats-card { position: relative; padding-left: 44px; }
+  #panel-Stats .card-drag-handle {
+    position: absolute; top: 16px; left: 12px; width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted); font-size: 16px; cursor: grab; border-radius: 6px; user-select: none;
+  }
+  #panel-Stats .card-drag-handle:hover { background: var(--page); color: var(--text-primary); }
+  #panel-Stats .stats-card.dragging { opacity: 0.4; }
+  @media (max-width: 640px) {
+    #panel-Stats .stats-card { padding-left: 20px; }
+    #panel-Stats .card-drag-handle { position: static; margin-bottom: 8px; }
+  }
   .btn {
     background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
     padding: 6px 14px; cursor: pointer; color: var(--text-primary); font-size: 13px;
@@ -518,6 +530,8 @@ const STRINGS = {
   rt_color_green: { zh: '綠色', en: 'Green' },
   rt_color_blue: { zh: '藍色', en: 'Blue' },
   rt_color_black: { zh: '黑色', en: 'Black' },
+  drag_handle_title: { zh: '拖曳調整卡片順序', en: 'Drag to reorder cards' },
+  audio_swe2_list_heading: { zh: 'Audio SWE2 票清單(僅未完成)', en: 'Audio SWE2 ticket list (not-done only)' },
   bug_missing_caption: { zh: n => `共 ${n} 張票 (Bug 總數 ${BUGS.length} 張)`, en: n => `${n} tickets shown (out of ${BUGS.length} Bugs total)` },
 
   audio_not_done_count: { zh: '未完成數量', en: 'Not-done count' },
@@ -1057,7 +1071,8 @@ async function refreshLatestData() {
 function renderStatsPanel() {
   const panel = document.getElementById('panel-Stats');
   panel.innerHTML = `
-    <section class="card" id="overviewNotesCard">
+    <section class="card stats-card" id="overviewNotesCard" data-card-id="overview">
+      <div class="card-drag-handle" title="${esc(t('drag_handle_title'))}">⠿</div>
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
         <div>
           <h2 style="margin:0;">${esc(t('overview_notes_heading'))}</h2>
@@ -1072,27 +1087,32 @@ function renderStatsPanel() {
       </div>
       <div class="notes-grid" id="overviewNotesGrid"></div>
     </section>
-    <section class="card">
+    <section class="card stats-card" data-card-id="trend">
+      <div class="card-drag-handle" title="${esc(t('drag_handle_title'))}">⠿</div>
       <h2>${esc(t('ov_trend_heading'))}</h2>
       <p class="caption" id="trendCaption"></p>
       <div id="trendChartWrap"></div>
     </section>
-    <section class="card">
+    <section class="card stats-card" data-card-id="aging">
+      <div class="card-drag-handle" title="${esc(t('drag_handle_title'))}">⠿</div>
       <h2>${esc(t('ov_aging_heading'))}</h2>
       <p class="caption" id="agingCaption"></p>
       <div id="agingBars"></div>
     </section>
-    <section class="card">
+    <section class="card stats-card" data-card-id="buginflow">
+      <div class="card-drag-handle" title="${esc(t('drag_handle_title'))}">⠿</div>
       <h2>${esc(t('ov_buginflow_heading'))}</h2>
       <p class="caption" id="bugInflowCaption"></p>
       <div id="bugInflowChartWrap"></div>
     </section>
-    <section class="card">
+    <section class="card stats-card" data-card-id="topassignee">
+      <div class="card-drag-handle" title="${esc(t('drag_handle_title'))}">⠿</div>
       <h2>${esc(t('top_assignee_heading'))}</h2>
       <p class="caption" id="topAssigneeCaption"></p>
       <div id="topAssigneesWrap"></div>
     </section>
-    <section class="card">
+    <section class="card stats-card" data-card-id="assigneebreakdown">
+      <div class="card-drag-handle" title="${esc(t('drag_handle_title'))}">⠿</div>
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:4px;">
         <h2 style="margin:0;">${esc(t('assignee_breakdown_heading'))}</h2>
         <select id="assigneeBreakdownSelect"></select>
@@ -1100,7 +1120,27 @@ function renderStatsPanel() {
       <p class="caption" id="assigneeBreakdownCaption"></p>
       <div id="assigneeBreakdownWrap"></div>
     </section>
+    <section class="card stats-card" data-card-id="audioswe2">
+      <div class="card-drag-handle" title="${esc(t('drag_handle_title'))}">⠿</div>
+      <h2>${esc(t('audio_swe2_list_heading'))}</h2>
+      <p class="caption" id="audioSwe2Caption"></p>
+      <div class="chip-row" id="audioSwe2AssigneeChips"></div>
+      <div class="filters">
+        <input type="text" id="audioSwe2Search" placeholder="${esc(t('search_placeholder'))}">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th data-sort="key">Key</th><th data-sort="group">${esc(t('th_group'))}</th><th data-sort="issueType">${esc(t('th_issue_type'))}</th>
+            <th data-sort="status">${esc(t('th_status'))}</th><th data-sort="assignee">${esc(t('th_assignee'))}</th><th data-sort="summary">${esc(t('th_summary'))}</th>
+          </tr></thead>
+          <tbody id="audioSwe2Tbody"></tbody>
+        </table>
+      </div>
+    </section>
   `;
+
+  restoreStatsCardOrder(panel);
 
   overviewNotesEditing = false;
   renderOverviewNotesBlock();
@@ -1354,6 +1394,135 @@ function renderStatsPanel() {
       renderFor(sel.value);
     });
   })();
+
+  // --- Audio SWE2 ticket list (not-done only) ---------------------------------
+  (function renderStatsAudioSwe2List() {
+    const caption = document.getElementById('audioSwe2Caption');
+    const chipRow = document.getElementById('audioSwe2AssigneeChips');
+    const search = document.getElementById('audioSwe2Search');
+    const tbody = document.getElementById('audioSwe2Tbody');
+
+    const SWE2_NOT_DONE = AUDIO.filter(r => !r.done && r.group === 'SWE2');
+    let selectedAssignee = '';
+
+    const assigneeCounts = {};
+    SWE2_NOT_DONE.forEach(r => { assigneeCounts[r.assignee] = (assigneeCounts[r.assignee] || 0) + 1; });
+    const assignees = Object.keys(assigneeCounts).sort((a, b) => assigneeCounts[b] - assigneeCounts[a]);
+
+    function renderChips() {
+      const all = [{ name: '', label: t('audio_chip_all', SWE2_NOT_DONE.length) }, ...assignees.map(a => ({ name: a, label: `${a} (${assigneeCounts[a]})` }))];
+      chipRow.innerHTML = all.map(c => `<button type="button" class="chip${c.name === selectedAssignee ? ' active' : ''}" data-assignee="${esc(c.name)}">${esc(c.label)}</button>`).join('');
+      chipRow.querySelectorAll('.chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+          selectedAssignee = btn.dataset.assignee;
+          renderChips();
+          renderTable();
+        });
+      });
+    }
+
+    function rowHtml(r) {
+      return `
+        <tr>
+          <td class="key"><a href="${ticketUrl(r.key)}" target="_blank">${r.key}</a></td>
+          <td>${esc(r.group)}</td>
+          <td>${esc(r.issueType)}</td>
+          <td>${statusBadge(r)}</td>
+          <td>${esc(r.assignee)}</td>
+          <td>${esc(r.summary)}</td>
+        </tr>
+      `;
+    }
+
+    function renderTable() {
+      let rows = SWE2_NOT_DONE;
+      if (selectedAssignee) rows = rows.filter(r => r.assignee === selectedAssignee);
+      const q = search.value.toLowerCase();
+      if (q) rows = rows.filter(r => r.key.toLowerCase().includes(q) || r.summary.toLowerCase().includes(q));
+      caption.textContent = t('audio_caption', rows.length, SWE2_NOT_DONE.length);
+
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="empty-state">${esc(t('empty_state'))}</td></tr>`;
+        return;
+      }
+
+      if (selectedAssignee) {
+        tbody.innerHTML = rows.map(rowHtml).join('');
+        return;
+      }
+
+      const byAssignee = {};
+      rows.forEach(r => { (byAssignee[r.assignee] = byAssignee[r.assignee] || []).push(r); });
+      const orderedAssignees = Object.keys(byAssignee).sort((a, b) => byAssignee[b].length - byAssignee[a].length);
+      tbody.innerHTML = orderedAssignees.map(a => {
+        const grp = byAssignee[a];
+        return `<tr><td colspan="6" class="group-header">${esc(t('audio_group_header_row', a, grp.length))}</td></tr>` + grp.map(rowHtml).join('');
+      }).join('');
+    }
+
+    renderChips();
+    renderTable();
+    search.addEventListener('input', renderTable);
+  })();
+
+  makeStatsCardsDraggable(panel);
+}
+
+// --- Drag-to-reorder for the Stats tab cards --------------------------------
+// Order is remembered per-browser (localStorage) so it survives a refresh,
+// but is local to this device/browser only (not shared with other viewers).
+const STATS_CARD_ORDER_KEY = 'cpaaStatsCardOrder';
+
+function restoreStatsCardOrder(panel) {
+  let order;
+  try { order = JSON.parse(localStorage.getItem(STATS_CARD_ORDER_KEY) || 'null'); } catch (e) { order = null; }
+  if (!Array.isArray(order) || !order.length) return;
+  order.forEach(id => {
+    const card = panel.querySelector(`.stats-card[data-card-id="${id}"]`);
+    if (card) panel.appendChild(card);
+  });
+}
+
+function saveStatsCardOrder(panel) {
+  const order = Array.from(panel.querySelectorAll('.stats-card')).map(c => c.dataset.cardId);
+  try { localStorage.setItem(STATS_CARD_ORDER_KEY, JSON.stringify(order)); } catch (e) { /* localStorage unavailable */ }
+}
+
+function getDragAfterCard(panel, y) {
+  const cards = Array.from(panel.querySelectorAll('.stats-card:not(.dragging)'));
+  return cards.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if (offset < 0 && offset > closest.offset) return { offset, element: child };
+    return closest;
+  }, { offset: -Infinity, element: null }).element;
+}
+
+function makeStatsCardsDraggable(panel) {
+  let dragged = null;
+  panel.querySelectorAll('.stats-card').forEach(card => {
+    const handle = card.querySelector('.card-drag-handle');
+    if (!handle) return;
+    handle.addEventListener('mousedown', () => { card.setAttribute('draggable', 'true'); });
+    card.addEventListener('dragstart', (e) => {
+      dragged = card;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging');
+      card.removeAttribute('draggable');
+      dragged = null;
+      saveStatsCardOrder(panel);
+    });
+  });
+  panel.addEventListener('dragover', (e) => {
+    if (!dragged) return;
+    e.preventDefault();
+    const after = getDragAfterCard(panel, e.clientY);
+    if (after == null) panel.appendChild(dragged);
+    else panel.insertBefore(dragged, after);
+  });
 }
 
 const LABEL_BUCKETS = ['ASW-R2', 'ASW-R3 (不含CPAA 0830)', 'CPAA0830', '三者皆無'];
