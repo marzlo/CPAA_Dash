@@ -191,6 +191,23 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   }
   .table-wrap { max-height: 480px; overflow: auto; }
   .empty-state { color: var(--muted); font-size: 13px; padding: 20px; text-align: center; }
+  .refresh-status {
+    margin: 0 28px 12px; padding: 12px 16px; background: var(--surface-1);
+    border: 1px solid var(--border); border-radius: 10px; font-size: 13px;
+  }
+  .refresh-status-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .refresh-status-head .elapsed { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .refresh-progress { height: 6px; background: var(--grid); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+  .refresh-progress > div {
+    height: 100%; width: 0; background: var(--series-cp); border-radius: 3px;
+    transition: width .4s ease;
+  }
+  .refresh-progress.indeterminate > div { width: 35% !important; animation: refresh-slide 1.4s ease-in-out infinite; }
+  @keyframes refresh-slide { 0% { margin-left: -35%; } 100% { margin-left: 100%; } }
+  .refresh-status.done .refresh-progress > div { background: var(--good); }
+  .refresh-status.failed .refresh-progress > div { background: var(--critical); }
+  .refresh-status-actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .refresh-status-actions a { color: var(--series-cp); font-size: 12px; align-self: center; }
   .matrix-wrap { overflow-x: auto; }
   .matrix-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .matrix-table th, .matrix-table td {
@@ -237,6 +254,26 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .notes-html li { margin-bottom: 4px; }
   .notes-html p { margin: 0 0 6px; }
   .notes-html a { color: var(--series-cp); }
+  .notes-editor {
+    min-height: 150px; max-height: 320px; overflow-y: auto; background: var(--surface-1);
+    border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 13px;
+    color: var(--text-primary); line-height: 1.6; outline: none; overflow-wrap: anywhere;
+  }
+  .notes-editor:focus { border-color: var(--series-cp); }
+  .notes-editor ul, .notes-editor ol { margin: 0; padding-left: 18px; }
+  .notes-editor li { margin-bottom: 4px; }
+  .notes-editor a { color: var(--series-cp); }
+  .notes-toolbar {
+    grid-column: 1/-1; display: flex; gap: 4px; flex-wrap: wrap; align-items: center;
+    padding: 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--page);
+  }
+  .notes-toolbar button {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 6px;
+    min-width: 30px; height: 28px; padding: 0 8px; cursor: pointer; color: var(--text-primary); font-size: 12px;
+  }
+  .notes-toolbar button:hover { border-color: var(--series-cp); }
+  .notes-toolbar button.swatch { width: 26px; min-width: 26px; padding: 0; }
+  .notes-toolbar .sep { width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
   .notes-col textarea {
     width: 100%; min-height: 140px; resize: vertical; background: var(--surface-1);
     border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-size: 13px;
@@ -263,6 +300,14 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <p id="headerSubtitle"></p>
   <p style="margin-top:4px; font-weight:600;" id="headerUpdatedAt"></p>
 </header>
+<div class="refresh-status" id="refreshStatus" hidden>
+  <div class="refresh-status-head">
+    <span id="refreshStatusText"></span>
+    <span class="elapsed" id="refreshStatusElapsed"></span>
+  </div>
+  <div class="refresh-progress" id="refreshProgress"><div id="refreshProgressBar"></div></div>
+  <div class="refresh-status-actions" id="refreshStatusActions"></div>
+</div>
 <nav class="tabs" id="tabs">
   <button data-tab="Stats" data-i18n-tab="stats" class="active">Stats</button>
   <button data-tab="overview" data-i18n-tab="overview">Overview</button>
@@ -488,7 +533,21 @@ const STRINGS = {
   notes_token_prompt: { zh: '請貼上具備此 repo 寫入權限的 GitHub Personal Access Token(僅會存在你自己瀏覽器裡,不會傳給任何第三方):', en: 'Paste a GitHub Personal Access Token with write access to this repo (stored only in your own browser, never sent anywhere else):' },
   notes_name_prompt: { zh: '你的名字(會顯示在「最後更新」旁):', en: 'Your name (shown next to "last updated"):' },
   notes_saved_msg: { zh: '已儲存!其他人重新整理頁面後,大約 1 分鐘內就會看到最新內容。', en: 'Saved! Others will see the update within about a minute after refreshing the page.' },
-  notes_indent_hint: { zh: '提示:在文字框裡按 Tab 可以縮排(建立子項目),Shift+Tab 可以取消縮排', en: 'Tip: press Tab to indent (make a sub-item), Shift+Tab to outdent' },
+  notes_indent_hint: { zh: '提示:Tab 縮排(建立子項目)、Shift+Tab 取消縮排;貼上的格式會自動保留,連結存檔後可直接點擊', en: 'Tip: Tab indents (makes a sub-item), Shift+Tab outdents. Pasted formatting is kept, and links become clickable once saved' },
+  notes_tb_bold: { zh: '粗體', en: 'Bold' },
+  notes_tb_italic: { zh: '斜體', en: 'Italic' },
+  notes_tb_underline: { zh: '底線', en: 'Underline' },
+  notes_tb_color_green: { zh: '綠色(進度/日期)', en: 'Green (on track / dates)' },
+  notes_tb_color_red: { zh: '紅色(風險)', en: 'Red (risk)' },
+  notes_tb_color_orange: { zh: '橘色(注意)', en: 'Orange (watch)' },
+  notes_tb_color_none: { zh: '取消顏色', en: 'Clear colour' },
+  notes_tb_bullet: { zh: '項目符號', en: 'Bullet list' },
+  notes_tb_outdent: { zh: '減少縮排', en: 'Outdent' },
+  notes_tb_indent: { zh: '增加縮排', en: 'Indent' },
+  notes_tb_link: { zh: '插入連結', en: 'Insert link' },
+  notes_tb_unlink: { zh: '移除連結', en: 'Remove link' },
+  notes_tb_clear: { zh: '清除格式', en: 'Clear formatting' },
+  notes_link_prompt: { zh: '請輸入網址(http:// 或 https:// 開頭)', en: 'Enter a URL (must start with http:// or https://)' },
   notes_save_error: { zh: msg => `儲存失敗:${msg}`, en: msg => `Save failed: ${msg}` },
   notes_change_token: { zh: '更換 Token', en: 'Change token' },
   refresh_data_button: { zh: '🔄 更新最新資料', en: '🔄 Refresh latest data' },
@@ -496,6 +555,18 @@ const STRINGS = {
   refresh_data_confirm: { zh: '這會觸發 GitHub Actions 重新抓取 Jira 最新資料並重建整個網站,通常需要 1-2 分鐘完成。確定要繼續嗎?', en: 'This will trigger GitHub Actions to fetch the latest Jira data and rebuild the whole site, usually taking 1-2 minutes. Continue?' },
   refresh_data_success: { zh: '已觸發更新!請等待約 1-2 分鐘後重新整理頁面查看最新資料。', en: 'Update triggered! Please wait about 1-2 minutes, then refresh the page to see the latest data.' },
   refresh_data_error: { zh: msg => `觸發失敗:${msg}`, en: msg => `Trigger failed: ${msg}` },
+  refresh_step_dispatching: { zh: '正在觸發 GitHub Actions…', en: 'Triggering GitHub Actions…' },
+  refresh_step_waiting: { zh: '已觸發,等待 GitHub 建立執行紀錄…', en: 'Triggered — waiting for the run to appear…' },
+  refresh_step_queued: { zh: '排隊中,等待 GitHub 配置執行機器…', en: 'Queued — waiting for a runner…' },
+  refresh_step_running: { zh: (job, done, total) => `執行中:${job}(${done}/${total} 個步驟)`, en: (job, done, total) => `Running: ${job} (${done}/${total} steps)` },
+  refresh_step_done: { zh: '✅ 更新完成,重新整理頁面就會看到最新資料', en: '✅ Update finished — reload the page to see the latest data' },
+  refresh_step_failed: { zh: c => `❌ 更新失敗(${c})`, en: c => `❌ Update failed (${c})` },
+  refresh_step_timeout: { zh: '已經超過 10 分鐘還沒跑完,請到 GitHub 看執行紀錄', en: 'Still running after 10 minutes — check the run log on GitHub' },
+  refresh_step_poll_error: { zh: msg => `已觸發,但查不到進度(${msg})`, en: msg => `Triggered, but progress can't be read (${msg})` },
+  refresh_elapsed: { zh: s => `已經過 ${s}`, en: s => `${s} elapsed` },
+  refresh_reload_button: { zh: '重新整理頁面', en: 'Reload page' },
+  refresh_view_run: { zh: '在 GitHub 查看執行紀錄', en: 'View the run on GitHub' },
+  refresh_hide_button: { zh: '關閉', en: 'Dismiss' },
   bug_missing_caption: { zh: n => `共 ${n} 張票 (Bug 總數 ${BUGS.length} 張)`, en: n => `${n} tickets shown (out of ${BUGS.length} Bugs total)` },
 
   audio_not_done_count: { zh: '未完成數量', en: 'Not-done count' },
@@ -759,7 +830,7 @@ function overviewNotesColumns() {
 }
 
 // Parses newline-separated text into a nested bullet tree using indentation
-// (Tab or 2 spaces per level — see attachTabIndent()), so notes can express
+// (Tab or 2 spaces per level), so legacy notes can express
 // sub-points instead of only a single flat list.
 function parseIndentedLines(raw) {
   const rows = (raw || '').split('\n')
@@ -786,7 +857,7 @@ function renderNoteTree(node) {
   return `<ul>${node.children.map(c => `<li>${esc(c.text)}${renderNoteTree(c)}</li>`).join('')}</ul>`;
 }
 
-// Notes are normally plain text indented with Tab (see attachTabIndent), but people
+// Older notes are plain text indented with Tab, but people
 // also paste formatted blocks straight out of a mail/wiki editor, which arrive as a
 // single line of HTML. Escaping that shows raw <ul><li> tags on the page, so anything
 // that looks like markup is rendered instead — through a strict allowlist, because the
@@ -812,6 +883,16 @@ function sanitizeNotesHtml(raw) {
       if (child.nodeType === Node.TEXT_NODE) return;
       if (child.nodeType !== Node.ELEMENT_NODE) { child.remove(); return; }
       if (NOTES_DROPPED_TAGS[child.tagName]) { child.remove(); return; }
+      // Some browsers still emit <font color> for execCommand('foreColor'); keep the
+      // colour by rewriting it as a span before the allowlist drops the tag.
+      if (child.tagName === 'FONT') {
+        const span = doc.createElement('span');
+        const colour = child.getAttribute('color');
+        if (colour) span.setAttribute('style', 'color: ' + colour);
+        while (child.firstChild) span.appendChild(child.firstChild);
+        child.replaceWith(span);
+        child = span;
+      }
       if (!NOTES_ALLOWED_TAGS[child.tagName]) {
         child.replaceWith(doc.createTextNode(child.textContent || ''));
         return;
@@ -838,38 +919,158 @@ function sanitizeNotesHtml(raw) {
   return root.innerHTML;
 }
 
+// Turns bare http(s) URLs sitting in text into real links, without touching text that
+// is already inside an <a> (or inside code).
+function linkifyNotes(html) {
+  const doc = new DOMParser().parseFromString('<div id="linkify-root">' + html + '</div>', 'text/html');
+  const root = doc.getElementById('linkify-root');
+  const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const targets = [];
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    if (node.parentElement.closest('a, code')) continue;
+    if (/https?:\/\/[^\s<]+/.test(node.nodeValue)) targets.push(node);
+  }
+  targets.forEach(node => {
+    const frag = doc.createDocumentFragment();
+    let last = 0;
+    const re = /https?:\/\/[^\s<]+/g;
+    let m;
+    while ((m = re.exec(node.nodeValue))) {
+      if (m.index > last) frag.appendChild(doc.createTextNode(node.nodeValue.slice(last, m.index)));
+      // Trailing punctuation usually belongs to the sentence, not the URL.
+      const trimmed = m[0].replace(/[),.;:]+$/, '');
+      const a = doc.createElement('a');
+      a.href = trimmed; a.target = '_blank'; a.rel = 'noopener noreferrer';
+      a.textContent = trimmed;
+      frag.appendChild(a);
+      if (m[0].length > trimmed.length) frag.appendChild(doc.createTextNode(m[0].slice(trimmed.length)));
+      last = m.index + m[0].length;
+    }
+    if (last < node.nodeValue.length) frag.appendChild(doc.createTextNode(node.nodeValue.slice(last)));
+    node.replaceWith(frag);
+  });
+  return root.innerHTML;
+}
+
 function renderIndentedList(raw) {
   if (looksLikeNotesHtml(raw)) {
-    const html = sanitizeNotesHtml(raw);
+    const html = linkifyNotes(sanitizeNotesHtml(raw));
     return html.trim() ? `<div class="notes-html">${html}</div>` : null;
   }
   const tree = parseIndentedLines(raw);
-  return tree.children.length ? renderNoteTree(tree) : null;
+  if (!tree.children.length) return null;
+  return `<div class="notes-html">${linkifyNotes(renderNoteTree(tree))}</div>`;
 }
 
-// Lets Tab / Shift+Tab indent and outdent the current line inside a notes
-// textarea (by default Tab just moves focus out of the field).
-function attachTabIndent(textarea) {
-  textarea.addEventListener('keydown', (e) => {
+// Legacy notes are plain text with Tab indentation; the editor is HTML, so convert on
+// the way in rather than making people retype anything.
+function notesValueToHtml(raw) {
+  if (!raw) return '';
+  if (looksLikeNotesHtml(raw)) return sanitizeNotesHtml(raw);
+  const tree = parseIndentedLines(raw);
+  return tree.children.length ? renderNoteTree(tree) : '';
+}
+
+// --- Rich-text editing for the notes ------------------------------------------
+// The notes are stored as HTML, so they are edited as HTML too: a contenteditable
+// box plus a small toolbar, rather than making people type tags. execCommand is
+// deprecated but is still the only cross-browser way to do this without pulling in
+// an editor library (the page must stay a single self-contained file).
+const NOTES_COLORS = [
+  { key: 'green', value: 'rgb(12, 163, 12)', labelKey: 'notes_tb_color_green' },
+  { key: 'red', value: 'rgb(208, 59, 59)', labelKey: 'notes_tb_color_red' },
+  { key: 'orange', value: 'rgb(235, 104, 52)', labelKey: 'notes_tb_color_orange' },
+];
+
+function notesToolbarHtml() {
+  const b = (cmd, label, titleKey) =>
+    `<button type="button" data-cmd="${cmd}" title="${esc(t(titleKey))}">${label}</button>`;
+  const swatches = NOTES_COLORS.map(c =>
+    `<button type="button" class="swatch" data-color="${c.value}" style="background:${c.value}" title="${esc(t(c.labelKey))}"></button>`).join('');
+  return `<div class="notes-toolbar" id="notesToolbar">
+    ${b('bold', '<b>B</b>', 'notes_tb_bold')}
+    ${b('italic', '<i>I</i>', 'notes_tb_italic')}
+    ${b('underline', '<u>U</u>', 'notes_tb_underline')}
+    <span class="sep"></span>
+    ${swatches}
+    <button type="button" data-color="none" title="${esc(t('notes_tb_color_none'))}">A̶</button>
+    <span class="sep"></span>
+    ${b('insertUnorderedList', '&#8226;&#8195;', 'notes_tb_bullet')}
+    ${b('outdent', '&#8676;', 'notes_tb_outdent')}
+    ${b('indent', '&#8677;', 'notes_tb_indent')}
+    <span class="sep"></span>
+    <button type="button" data-action="link" title="${esc(t('notes_tb_link'))}">&#128279;</button>
+    <button type="button" data-action="unlink" title="${esc(t('notes_tb_unlink'))}">${esc(t('notes_tb_unlink'))}</button>
+    ${b('removeFormat', esc(t('notes_tb_clear')), 'notes_tb_clear')}
+  </div>`;
+}
+
+let notesActiveEditor = null;
+
+// execCommand acts on the current selection, and clicking a toolbar button moves
+// focus away from the editor — so the button is applied to the editor that was last
+// focused, and focus is handed back afterwards.
+function withNotesEditor(fn) {
+  const ed = notesActiveEditor || document.querySelector('.notes-editor');
+  if (!ed) return;
+  ed.focus();
+  try { document.execCommand('styleWithCSS', false, true); } catch (e) { /* not supported */ }
+  fn(ed);
+}
+
+// "Clear colour" has to remove the colour rather than paint a fixed one, or the text
+// would stop following the light/dark theme. Paint a sentinel, then strip it.
+function clearNotesColor(ed) {
+  const SENTINEL = 'rgb(1, 2, 3)';
+  document.execCommand('foreColor', false, SENTINEL);
+  ed.querySelectorAll('[style*="rgb(1, 2, 3)"]').forEach(el => {
+    el.style.removeProperty('color');
+    if (!el.getAttribute('style')) el.removeAttribute('style');
+    if (el.tagName === 'SPAN' && !el.attributes.length) el.replaceWith(...el.childNodes);
+  });
+}
+
+function attachNotesEditor(ed) {
+  ed.addEventListener('focus', () => { notesActiveEditor = ed; });
+  // Tab indents inside lists instead of leaving the field.
+  ed.addEventListener('keydown', e => {
     if (e.key !== 'Tab') return;
     e.preventDefault();
-    const start = textarea.selectionStart;
-    const value = textarea.value;
-    const lineStart = value.lastIndexOf('\n', start - 1) + 1;
-    if (e.shiftKey) {
-      const lineText = value.slice(lineStart, start);
-      let removeLen = 0;
-      if (lineText.startsWith('\t')) removeLen = 1;
-      else if (lineText.startsWith('  ')) removeLen = 2;
-      else if (lineText.startsWith(' ')) removeLen = 1;
-      if (removeLen) {
-        textarea.value = value.slice(0, lineStart) + value.slice(lineStart + removeLen);
-        textarea.selectionStart = textarea.selectionEnd = start - removeLen;
-      }
-    } else {
-      textarea.value = value.slice(0, start) + '\t' + value.slice(start);
-      textarea.selectionStart = textarea.selectionEnd = start + 1;
+    document.execCommand(e.shiftKey ? 'outdent' : 'indent');
+  });
+  // Paste through the same allowlist the renderer uses, so Word/Outlook/Confluence
+  // markup arrives as plain bullets, colours and links — not a wall of mso styles.
+  ed.addEventListener('paste', e => {
+    const html = e.clipboardData.getData('text/html');
+    const text = e.clipboardData.getData('text/plain');
+    if (!html && !text) return;
+    e.preventDefault();
+    const clean = html ? sanitizeNotesHtml(html) : esc(text).replace(/\n/g, '<br>');
+    document.execCommand('insertHTML', false, clean);
+  });
+}
+
+function wireNotesToolbar() {
+  const bar = document.getElementById('notesToolbar');
+  if (!bar) return;
+  bar.addEventListener('mousedown', e => e.preventDefault()); // keep the caret in the editor
+  bar.addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    if (btn.dataset.cmd) { withNotesEditor(() => document.execCommand(btn.dataset.cmd)); return; }
+    if (btn.dataset.color) {
+      withNotesEditor(ed => btn.dataset.color === 'none'
+        ? clearNotesColor(ed)
+        : document.execCommand('foreColor', false, btn.dataset.color));
+      return;
     }
+    if (btn.dataset.action === 'link') {
+      const url = (prompt(t('notes_link_prompt'), 'https://') || '').trim();
+      if (/^https?:\/\//i.test(url)) withNotesEditor(() => document.execCommand('createLink', false, url));
+      return;
+    }
+    if (btn.dataset.action === 'unlink') withNotesEditor(() => document.execCommand('unlink'));
   });
 }
 
@@ -885,13 +1086,15 @@ function renderOverviewNotesBlock() {
     : t('notes_meta_never');
 
   if (overviewNotesEditing) {
-    gridEl.innerHTML = cols.map(c => `
+    gridEl.innerHTML = notesToolbarHtml() + cols.map(c => `
       <div class="notes-col">
         <h3>${esc(c.label)}</h3>
-        <textarea data-key="${c.key}">${esc(OVERVIEW_NOTES[c.key] || '')}</textarea>
+        <div class="notes-editor" contenteditable="true" data-key="${c.key}">${notesValueToHtml(OVERVIEW_NOTES[c.key])}</div>
       </div>
     `).join('') + `<p class="caption" style="grid-column:1/-1; margin:8px 0 0;">${esc(t('notes_indent_hint'))}</p>`;
-    gridEl.querySelectorAll('textarea[data-key]').forEach(attachTabIndent);
+    notesActiveEditor = null;
+    gridEl.querySelectorAll('.notes-editor[data-key]').forEach(attachNotesEditor);
+    wireNotesToolbar();
     editBtn.textContent = t('cancel_button');
     saveBtn.textContent = t('save_button');
     saveBtn.hidden = false;
@@ -941,7 +1144,10 @@ async function saveOverviewNotes() {
   if (!token) return;
 
   const draft = {};
-  document.querySelectorAll('#overviewNotesGrid textarea[data-key]').forEach(ta => { draft[ta.dataset.key] = ta.value; });
+  document.querySelectorAll('#overviewNotesGrid .notes-editor[data-key]').forEach(ed => {
+    const html = sanitizeNotesHtml(ed.innerHTML).trim();
+    draft[ed.dataset.key] = html === '<br>' ? '' : html;
+  });
   const who = (prompt(t('notes_name_prompt'), OVERVIEW_NOTES.updated_by || '') || OVERVIEW_NOTES.updated_by || '').trim();
 
   const payload = {
@@ -995,6 +1201,137 @@ async function saveOverviewNotes() {
   }
 }
 
+// --- "Refresh latest data": dispatch the workflow, then follow it ---------------
+// GitHub gives no push notification, so progress is polled: first the workflow's run
+// list (to find the run this click created), then that run's jobs, whose steps are the
+// only real progress signal available. Everything is best-effort — if polling is
+// blocked (token without Actions read, rate limit), the dispatch itself still stands
+// and the strip says so rather than pretending the update failed.
+const REFRESH_WORKFLOW = 'refresh-dashboard.yml';
+const REFRESH_POLL_MS = 5000;
+const REFRESH_MAX_MS = 10 * 60 * 1000;
+let refreshElapsedTimer = null;
+
+function ghHeaders(token) {
+  return { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' };
+}
+
+function formatElapsed(ms) {
+  const total = Math.max(0, Math.round(ms / 1000));
+  const m = Math.floor(total / 60), sec = total % 60;
+  return m ? `${m}:${String(sec).padStart(2, '0')}` : `${sec}s`;
+}
+
+function showRefreshStatus(text, { percent = null, state = '', actions = [] } = {}) {
+  const box = document.getElementById('refreshStatus');
+  const bar = document.getElementById('refreshProgressBar');
+  const track = document.getElementById('refreshProgress');
+  const actionsEl = document.getElementById('refreshStatusActions');
+  box.hidden = false;
+  box.className = 'refresh-status' + (state ? ' ' + state : '');
+  document.getElementById('refreshStatusText').textContent = text;
+  // A null percent means "we know it's working but not how far along" — the bar
+  // animates instead of sitting at a fake number.
+  track.classList.toggle('indeterminate', percent === null);
+  bar.style.width = percent === null ? '35%' : Math.round(percent) + '%';
+  actionsEl.innerHTML = '';
+  actions.forEach(a => {
+    const el = document.createElement(a.href ? 'a' : 'button');
+    if (a.href) { el.href = a.href; el.target = '_blank'; el.rel = 'noopener noreferrer'; }
+    else { el.type = 'button'; el.className = 'btn small'; el.addEventListener('click', a.onClick); }
+    el.textContent = a.label;
+    actionsEl.appendChild(el);
+  });
+}
+
+function startRefreshElapsed(startedAt) {
+  stopRefreshElapsed();
+  const tick = () => {
+    document.getElementById('refreshStatusElapsed').textContent =
+      t('refresh_elapsed', formatElapsed(Date.now() - startedAt));
+  };
+  tick();
+  refreshElapsedTimer = setInterval(tick, 1000);
+}
+
+function stopRefreshElapsed() {
+  if (refreshElapsedTimer) { clearInterval(refreshElapsedTimer); refreshElapsedTimer = null; }
+}
+
+// Finds the run this click produced: the newest workflow_dispatch run created at or
+// after the moment we dispatched (minus a few seconds of clock skew).
+async function findRefreshRun(token, dispatchedAt) {
+  const url = `https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/${REFRESH_WORKFLOW}/runs?event=workflow_dispatch&per_page=5`;
+  const resp = await fetch(url, { headers: ghHeaders(token), cache: 'no-store' });
+  if (!resp.ok) throw new Error('runs ' + resp.status);
+  const data = await resp.json();
+  return (data.workflow_runs || []).find(r => new Date(r.created_at).getTime() >= dispatchedAt - 15000) || null;
+}
+
+// Step counts across the run's jobs. The deploy job only appears once build finishes,
+// so the totals grow mid-run; the bar is capped at 95% until the run really completes
+// to avoid showing 100% while work is still queued.
+async function readRunProgress(token, runId) {
+  const resp = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/actions/runs/${runId}/jobs`, { headers: ghHeaders(token), cache: 'no-store' });
+  if (!resp.ok) throw new Error('jobs ' + resp.status);
+  const data = await resp.json();
+  const jobs = data.jobs || [];
+  let done = 0, total = 0, current = null;
+  jobs.forEach(job => {
+    const steps = job.steps || [];
+    total += steps.length;
+    steps.forEach(st => {
+      if (st.status === 'completed') done++;
+      else if (st.status === 'in_progress' && !current) current = { job: job.name, step: st.name };
+    });
+    if (!current && job.status === 'in_progress') current = { job: job.name, step: '' };
+  });
+  return { done, total, current };
+}
+
+async function trackRefreshRun(token, dispatchedAt) {
+  const deadline = dispatchedAt + REFRESH_MAX_MS;
+  let run = null;
+  while (Date.now() < deadline) {
+    await new Promise(r => setTimeout(r, REFRESH_POLL_MS));
+    if (!run) {
+      run = await findRefreshRun(token, dispatchedAt);
+      if (!run) { showRefreshStatus(t('refresh_step_waiting'), { percent: null }); continue; }
+    } else {
+      const resp = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/actions/runs/${run.id}`, { headers: ghHeaders(token), cache: 'no-store' });
+      if (!resp.ok) throw new Error('run ' + resp.status);
+      run = await resp.json();
+    }
+    const viewAction = { label: t('refresh_view_run'), href: run.html_url };
+
+    if (run.status === 'completed') {
+      stopRefreshElapsed();
+      if (run.conclusion === 'success') {
+        showRefreshStatus(t('refresh_step_done'), { percent: 100, state: 'done', actions: [
+          { label: t('refresh_reload_button'), onClick: () => location.reload() }, viewAction,
+        ] });
+      } else {
+        showRefreshStatus(t('refresh_step_failed', run.conclusion || '?'), { percent: 100, state: 'failed', actions: [viewAction] });
+      }
+      return;
+    }
+
+    if (run.status === 'queued' || run.status === 'pending' || run.status === 'waiting') {
+      showRefreshStatus(t('refresh_step_queued'), { percent: null, actions: [viewAction] });
+      continue;
+    }
+
+    const progress = await readRunProgress(token, run.id);
+    const pct = progress.total ? Math.min(95, progress.done / progress.total * 100) : null;
+    const label = progress.current ? (progress.current.step || progress.current.job) : '';
+    showRefreshStatus(t('refresh_step_running', label, progress.done, progress.total), { percent: pct, actions: [viewAction] });
+  }
+  stopRefreshElapsed();
+  showRefreshStatus(t('refresh_step_timeout'), { percent: null, state: 'failed', actions: [
+    { label: t('refresh_view_run'), href: `https://github.com/${GITHUB_REPO}/actions/workflows/${REFRESH_WORKFLOW}` },
+  ] });
+}
+
 async function refreshLatestData() {
   const token = getGithubToken(false);
   if (!token) return;
@@ -1002,19 +1339,32 @@ async function refreshLatestData() {
 
   const btn = document.getElementById('refreshDataBtn');
   if (btn) { btn.disabled = true; btn.textContent = t('refreshing_data_button'); }
+  const startedAt = Date.now();
+  startRefreshElapsed(startedAt);
+  showRefreshStatus(t('refresh_step_dispatching'), { percent: null });
   try {
-    const resp = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/refresh-dashboard.yml/dispatches`, {
+    const resp = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/${REFRESH_WORKFLOW}/dispatches`, {
       method: 'POST',
-      headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      headers: { ...ghHeaders(token), 'Content-Type': 'application/json' },
       body: JSON.stringify({ ref: 'main' }),
     });
     if (!resp.ok) {
       const errBody = await resp.text();
       throw new Error(resp.status + ': ' + errBody.slice(0, 200));
     }
-    alert(t('refresh_data_success'));
+    showRefreshStatus(t('refresh_step_waiting'), { percent: null });
+    try {
+      await trackRefreshRun(token, startedAt);
+    } catch (pollErr) {
+      // The update itself is running; only the progress read failed.
+      stopRefreshElapsed();
+      showRefreshStatus(t('refresh_step_poll_error', String((pollErr && pollErr.message) || pollErr)), {
+        percent: null, actions: [{ label: t('refresh_view_run'), href: `https://github.com/${GITHUB_REPO}/actions/workflows/${REFRESH_WORKFLOW}` }],
+      });
+    }
   } catch (err) {
-    alert(t('refresh_data_error', String((err && err.message) || err)));
+    stopRefreshElapsed();
+    showRefreshStatus(t('refresh_data_error', String((err && err.message) || err)), { percent: 100, state: 'failed' });
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = t('refresh_data_button'); }
   }
