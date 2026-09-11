@@ -113,9 +113,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   header p { margin: 0; color: var(--text-secondary); font-size: 13px; }
   .toggle-row {
     position: absolute; top: 20px; right: 28px;
-    display: flex; gap: 8px;
+    display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;
   }
-  .theme-toggle, .lang-toggle {
+  .theme-toggle, .lang-toggle, .refresh-toggle {
     background: var(--surface-1); border: 1px solid var(--border);
     border-radius: 8px; padding: 6px 12px; cursor: pointer; color: var(--text-primary);
     font-size: 13px;
@@ -189,6 +189,21 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   }
   .table-wrap { max-height: 480px; overflow: auto; }
   .empty-state { color: var(--muted); font-size: 13px; padding: 20px; text-align: center; }
+  .matrix-wrap { overflow-x: auto; }
+  .matrix-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .matrix-table th, .matrix-table td {
+    padding: 7px 10px; border-bottom: 1px solid var(--grid);
+    text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums;
+  }
+  .matrix-table th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; }
+  .matrix-table th:first-child, .matrix-table td:first-child { text-align: left; color: var(--text-secondary); }
+  .matrix-table td.matrix-total, .matrix-table tr.matrix-total-row td { font-weight: 700; }
+  .matrix-table tr.matrix-total-row td { border-top: 1px solid var(--border); border-bottom: none; }
+  .matrix-cell-clickable { cursor: pointer; }
+  .matrix-cell-clickable:hover { background: var(--page); text-decoration: underline; }
+  .matrix-zero { color: var(--muted); }
+  .matrix-pct { color: var(--muted); font-size: 11px; }
+  .matrix-dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 7px; vertical-align: middle; }
   .trend-table-details { margin-top: 10px; }
   .trend-table-details summary { cursor: pointer; font-size: 13px; color: var(--text-secondary); }
   .trend-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; }
@@ -215,38 +230,12 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .notes-col h3 { margin: 0 0 10px; font-size: 14px; color: var(--text-primary); }
   .notes-col ul { margin: 0; padding-left: 18px; font-size: 13px; color: var(--text-primary); line-height: 1.6; }
   .notes-col ul li { margin-bottom: 4px; }
-  .notes-editor {
-    width: 100%; min-height: 140px; background: var(--surface-1);
+  .notes-col textarea {
+    width: 100%; min-height: 140px; resize: vertical; background: var(--surface-1);
     border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-size: 13px;
-    color: var(--text-primary); font-family: inherit; box-sizing: border-box; line-height: 1.6;
+    color: var(--text-primary); font-family: inherit; box-sizing: border-box;
   }
-  .notes-editor:focus { outline: none; border-color: var(--series-cp); }
-  .notes-editor ul, .notes-editor ol { margin: 4px 0; padding-left: 20px; }
   .notes-empty { color: var(--muted); font-size: 13px; font-style: italic; }
-  .rt-toolbar { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
-  .rt-toolbar .rt-btn, .rt-toolbar .rt-btn-clear {
-    background: var(--surface-1); border: 1px solid var(--border); border-radius: 6px;
-    cursor: pointer; color: var(--text-primary); font-size: 12px;
-  }
-  .rt-toolbar .rt-btn { width: 28px; height: 26px; }
-  .rt-toolbar .rt-btn.bold { font-weight: 700; }
-  .rt-toolbar .rt-btn-clear { padding: 0 8px; height: 26px; }
-  .rt-toolbar .rt-btn:hover, .rt-toolbar .rt-btn-clear:hover { border-color: var(--series-cp); }
-  .rt-sep { width: 1px; height: 18px; background: var(--border); margin: 0 2px; }
-  .rt-swatch { width: 20px; height: 20px; border-radius: 50%; cursor: pointer; border: 2px solid var(--border); padding: 0; }
-  .rt-swatch:hover { border-color: var(--text-primary); }
-  #panel-Stats .stats-card { position: relative; padding-left: 44px; }
-  #panel-Stats .card-drag-handle {
-    position: absolute; top: 16px; left: 12px; width: 22px; height: 22px;
-    display: flex; align-items: center; justify-content: center;
-    color: var(--muted); font-size: 16px; cursor: grab; border-radius: 6px; user-select: none;
-  }
-  #panel-Stats .card-drag-handle:hover { background: var(--page); color: var(--text-primary); }
-  #panel-Stats .stats-card.dragging { opacity: 0.4; }
-  @media (max-width: 640px) {
-    #panel-Stats .stats-card { padding-left: 20px; }
-    #panel-Stats .card-drag-handle { position: static; margin-bottom: 8px; }
-  }
   .btn {
     background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
     padding: 6px 14px; cursor: pointer; color: var(--text-primary); font-size: 13px;
@@ -254,28 +243,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .btn:hover { border-color: var(--series-cp); }
   .btn.primary { background: var(--series-cp); border-color: var(--series-cp); color: #fff; }
   .btn.small { padding: 6px 9px; font-size: 13px; }
-  #assigneeBreakdownSelect {
-    background: var(--page); border: 1px solid var(--border); border-radius: 6px;
-    padding: 6px 10px; font-size: 13px; color: var(--text-primary);
-  }
-  .assignee-breakdown-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px; }
-  .assignee-breakdown-table th, .assignee-breakdown-table td { text-align: right; padding: 8px 10px; border-bottom: 1px solid var(--border); }
-  .assignee-breakdown-table th:first-child, .assignee-breakdown-table td:first-child { text-align: left; }
-  .assignee-breakdown-table thead th { color: var(--text-secondary); font-weight: 600; font-size: 12px; }
-  .assignee-breakdown-table tfoot td { font-weight: 700; border-top: 2px solid var(--border); border-bottom: none; }
-  .abd-stackbar-row { display:flex; align-items:center; gap:10px; margin: 8px 0; }
-  .abd-stackbar-row .name { width: 74px; font-size: 13px; color: var(--text-secondary); flex-shrink:0; }
-  .abd-stackbar-track { flex:1; height: 18px; border-radius: 5px; overflow:hidden; display:flex; background: var(--grid); }
-  .abd-stackbar-seg { height:100%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:600; }
-  .abd-stackbar-total { width: 30px; text-align:right; font-size:13px; font-variant-numeric: tabular-nums; }
-  .abd-legend { display:flex; gap:16px; margin-top:6px; flex-wrap:wrap; }
-  .abd-legend span { display:inline-flex; align-items:center; gap:6px; font-size:12px; color: var(--text-secondary); }
-  .abd-legend i { width:10px; height:10px; border-radius:2px; display:inline-block; }
 </style>
 </head>
 <body>
 <div class="toggle-row">
-  <button type="button" class="btn small" id="refreshDataBtn"></button>
+  <button class="refresh-toggle" id="refreshDataBtn" data-i18n="refresh_data_button"></button>
   <button class="lang-toggle" id="langToggle">中文 / EN</button>
   <button class="theme-toggle" id="themeToggle">🌓 Theme</button>
 </div>
@@ -425,8 +397,9 @@ const STRINGS = {
   trend_table_toggle: { zh: '顯示資料表格', en: 'Show data table' },
   trend_th_date: { zh: '日期', en: 'Date' },
 
-  ov_aging_heading: { zh: '未完成 Bug 的卡住天數分佈(點擊可跳到 Bug 清單)', en: 'Age distribution of not-done Bugs (click a bar to jump to the Bug list)' },
-  aging_caption: { zh: (total, unknown) => `共 ${total} 張未完成 Bug,依建立日期至今的天數分佈${unknown ? `(其中 ${unknown} 張沒有建立日期資料,未計入)` : ''}`, en: (total, unknown) => `${total} not-done Bugs, bucketed by days since creation${unknown ? ` (${unknown} without a creation date, excluded)` : ''}` },
+  ov_aging_heading: { zh: '未完成 Bug 的卡住天數 × Priority(點數字可跳到 Bug 清單)', en: 'Not-done Bugs by age × priority (click a number to jump to the Bug list)' },
+  aging_matrix_total: { zh: '合計', en: 'Total' },
+  aging_caption: { zh: (total, unknown) => `共 ${total} 張未完成 Bug,依建立日期至今的天數 × Priority 交叉統計${unknown ? `(其中 ${unknown} 張沒有建立日期資料,不列入天數各列,但仍計入合計列)` : ''}`, en: (total, unknown) => `${total} not-done Bugs, cross-tabulated by days since creation and priority${unknown ? ` (${unknown} without a creation date are left out of the age rows but still counted in the Total row)` : ''}` },
   aging_0_7: { zh: '0-7 天', en: '0-7 days' },
   aging_8_14: { zh: '8-14 天', en: '8-14 days' },
   aging_15_30: { zh: '15-30 天', en: '15-30 days' },
@@ -516,23 +489,6 @@ const STRINGS = {
   refresh_data_confirm: { zh: '這會觸發 GitHub Actions 重新抓取 Jira 最新資料並重建整個網站,通常需要 1-2 分鐘完成。確定要繼續嗎?', en: 'This will trigger GitHub Actions to fetch the latest Jira data and rebuild the whole site, usually taking 1-2 minutes. Continue?' },
   refresh_data_success: { zh: '已觸發更新!請等待約 1-2 分鐘後重新整理頁面查看最新資料。', en: 'Update triggered! Please wait about 1-2 minutes, then refresh the page to see the latest data.' },
   refresh_data_error: { zh: msg => `觸發失敗:${msg}`, en: msg => `Trigger failed: ${msg}` },
-  assignee_breakdown_heading: { zh: 'Assignee Bug 統計(依 Priority × Pretest)', en: 'Assignee Bug Breakdown (Priority × Pretest)' },
-  assignee_breakdown_caption: { zh: (name, n) => `${name}目前有 ${n} 張未完成的 Bug 票(不含已關閉)`, en: (name, n) => `${name} has ${n} open (not-done) Bug tickets` },
-  assignee_breakdown_col_priority: { zh: 'Priority', en: 'Priority' },
-  assignee_breakdown_col_nonpretest: { zh: 'Non-Pretest', en: 'Non-Pretest' },
-  assignee_breakdown_col_pcts: { zh: 'AA (PCTS)', en: 'AA (PCTS)' },
-  assignee_breakdown_col_facet: { zh: 'CP (Facet)', en: 'CP (Facet)' },
-  assignee_breakdown_col_subtotal: { zh: '小計', en: 'Subtotal' },
-  assignee_breakdown_total_row: { zh: '小計', en: 'Subtotal' },
-  rt_bold_title: { zh: '粗體 (Ctrl+B)', en: 'Bold (Ctrl+B)' },
-  rt_clear_format: { zh: '清除格式', en: 'Clear formatting' },
-  rt_color_red: { zh: '紅色', en: 'Red' },
-  rt_color_orange: { zh: '橘色', en: 'Orange' },
-  rt_color_green: { zh: '綠色', en: 'Green' },
-  rt_color_blue: { zh: '藍色', en: 'Blue' },
-  rt_color_black: { zh: '黑色', en: 'Black' },
-  drag_handle_title: { zh: '拖曳調整卡片順序', en: 'Drag to reorder cards' },
-  audio_swe2_list_heading: { zh: 'Audio SWE2 票清單(僅未完成)', en: 'Audio SWE2 ticket list (not-done only)' },
   bug_missing_caption: { zh: n => `共 ${n} 張票 (Bug 總數 ${BUGS.length} 張)`, en: n => `${n} tickets shown (out of ${BUGS.length} Bugs total)` },
 
   audio_not_done_count: { zh: '未完成數量', en: 'Not-done count' },
@@ -579,7 +535,6 @@ function applyStaticI18n() {
   document.title = t('headerTitle');
   document.getElementById('headerSubtitle').textContent = t('headerSubtitle', DATA.length, BUGS.length);
   document.getElementById('headerUpdatedAt').textContent = t('headerUpdatedAt', UPDATED_AT);
-  document.getElementById('refreshDataBtn').textContent = t('refresh_data_button');
   document.querySelectorAll('[data-i18n-tab]').forEach(el => { el.textContent = t('tab_' + el.dataset.i18nTab); });
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.dataset.i18nPlaceholder); });
@@ -736,16 +691,26 @@ function isNewThisWeek(created) {
   return isoWeekLabel(d) === isoWeekLabel(new Date());
 }
 
-// Switches to the Bug tab and applies the given age-bucket filter (plus "not done"),
+// Switches to the Bug tab and filters by age bucket and/or priority (plus "not done"),
 // by driving the Bug panel's own filter <select>s and firing 'change' — the Bug panel's
 // own listeners (already attached, since renderBugPanel() runs once at load) do the rest.
-function jumpToBugFromStats(ageBucketKey) {
+// Every other Bug filter is cleared, so the list length matches the number that was
+// clicked in the Stats matrix; an empty ageBucketKey / priority means "don't filter on
+// that dimension" (the matrix's Total row and column).
+function jumpToBugFromStats(ageBucketKey, priority) {
   const bugTabBtn = document.querySelector('nav.tabs button[data-tab="Bug"]');
   if (bugTabBtn) bugTabBtn.click();
-  const ageSel = document.getElementById('bugAgeFilter');
+  const set = (id, value) => { const el = document.getElementById(id); if (el) el.value = value; };
+  set('bugFeatureFilter', '');
+  set('bugSubFeatureFilter', '');
+  set('bugAssigneeFilter', '');
+  set('bugSeverityFilter', '');
+  set('bugSearch', '');
+  set('bugPriorityFilter', priority || '');
+  set('bugAgeFilter', ageBucketKey || '');
+  set('bugStatusFilter', 'not-done');
   const statusSel = document.getElementById('bugStatusFilter');
-  if (ageSel) { ageSel.value = ageBucketKey || ''; ageSel.dispatchEvent(new Event('change')); }
-  if (statusSel) { statusSel.value = 'not-done'; statusSel.dispatchEvent(new Event('change')); }
+  if (statusSel) statusSel.dispatchEvent(new Event('change'));
   document.getElementById('bugTbody').closest('section.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -819,78 +784,31 @@ function renderIndentedList(raw) {
   return tree.children.length ? renderNoteTree(tree) : null;
 }
 
-// Lets Tab / Shift+Tab indent and outdent the current line/list-item inside a
-// notes rich-text editor (by default Tab just moves focus out of the field),
-// and Ctrl/Cmd+B toggles bold.
-function attachTabIndent(editor) {
-  editor.addEventListener('keydown', (e) => {
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      document.execCommand(e.shiftKey ? 'outdent' : 'indent');
-    } else if ((e.key === 'b' || e.key === 'B') && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      document.execCommand('styleWithCSS', false, true);
-      document.execCommand('bold');
+// Lets Tab / Shift+Tab indent and outdent the current line inside a notes
+// textarea (by default Tab just moves focus out of the field).
+function attachTabIndent(textarea) {
+  textarea.addEventListener('keydown', (e) => {
+    if (e.key !== 'Tab') return;
+    e.preventDefault();
+    const start = textarea.selectionStart;
+    const value = textarea.value;
+    const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+    if (e.shiftKey) {
+      const lineText = value.slice(lineStart, start);
+      let removeLen = 0;
+      if (lineText.startsWith('\t')) removeLen = 1;
+      else if (lineText.startsWith('  ')) removeLen = 2;
+      else if (lineText.startsWith(' ')) removeLen = 1;
+      if (removeLen) {
+        textarea.value = value.slice(0, lineStart) + value.slice(lineStart + removeLen);
+        textarea.selectionStart = textarea.selectionEnd = start - removeLen;
+      }
+    } else {
+      textarea.value = value.slice(0, start) + '\t' + value.slice(start);
+      textarea.selectionStart = textarea.selectionEnd = start + 1;
     }
   });
 }
-
-// Detects whether a stored notes value is already rich-text HTML (new format)
-// vs. legacy plain text (old format, indentation via tabs/spaces).
-function isHtmlContent(raw) {
-  return /<[a-z][\s\S]*>/i.test(raw || '');
-}
-
-// Very small allowlist-based sanitizer for the notes rich-text editor output.
-// Only a handful of formatting tags/style properties survive; everything
-// else (scripts, links, images, event handlers, ...) is stripped or unwrapped.
-function sanitizeNotesHtml(html) {
-  const allowedTags = new Set(['B', 'STRONG', 'I', 'EM', 'U', 'SPAN', 'FONT', 'UL', 'OL', 'LI', 'BR', 'DIV', 'P']);
-  const allowedStyleProps = ['color', 'font-weight', 'font-style', 'text-decoration'];
-  const tmp = document.createElement('div');
-  tmp.innerHTML = html || '';
-  function clean(node) {
-    Array.from(node.childNodes).forEach(child => {
-      if (child.nodeType === 1) {
-        let el = child;
-        let tag = el.tagName;
-        if (tag === 'FONT') {
-          const color = el.style.color || el.getAttribute('color') || '';
-          const span = document.createElement('span');
-          if (color) span.style.color = color;
-          while (el.firstChild) span.appendChild(el.firstChild);
-          el.replaceWith(span);
-          el = span; tag = 'SPAN';
-        }
-        if (!allowedTags.has(tag)) {
-          while (el.firstChild) node.insertBefore(el.firstChild, el);
-          node.removeChild(el);
-          return;
-        }
-        const keepStyle = {};
-        allowedStyleProps.forEach(p => {
-          const v = el.style && el.style.getPropertyValue(p);
-          if (v) keepStyle[p] = v;
-        });
-        Array.from(el.attributes).forEach(attr => el.removeAttribute(attr.name));
-        Object.keys(keepStyle).forEach(p => el.style.setProperty(p, keepStyle[p]));
-        clean(el);
-      } else if (child.nodeType !== 3) {
-        node.removeChild(child);
-      }
-    });
-  }
-  clean(tmp);
-  return tmp.innerHTML;
-}
-
-const NOTES_COLORS = [
-  { color: '#d03b3b', labelKey: 'rt_color_red' },
-  { color: '#eb6834', labelKey: 'rt_color_orange' },
-  { color: '#0ca30c', labelKey: 'rt_color_green' },
-  { color: '#2a78d6', labelKey: 'rt_color_blue' },
-  { color: '#0b0b0b', labelKey: 'rt_color_black' },
-];
 
 function renderOverviewNotesBlock() {
   const metaEl = document.getElementById('overviewNotesMeta');
@@ -904,51 +822,20 @@ function renderOverviewNotesBlock() {
     : t('notes_meta_never');
 
   if (overviewNotesEditing) {
-    gridEl.innerHTML = cols.map(c => {
-      const raw = OVERVIEW_NOTES[c.key] || '';
-      const initialHtml = !raw ? '' : (isHtmlContent(raw) ? sanitizeNotesHtml(raw) : (renderIndentedList(raw) || ''));
-      const swatches = NOTES_COLORS.map(sw => `<button type="button" class="rt-swatch" data-color="${sw.color}" title="${esc(t(sw.labelKey))}" style="background:${sw.color};"></button>`).join('');
-      return `
-        <div class="notes-col">
-          <h3>${esc(c.label)}</h3>
-          <div class="rt-toolbar">
-            <button type="button" class="rt-btn bold" data-cmd="bold" title="${esc(t('rt_bold_title'))}">B</button>
-            <div class="rt-sep"></div>
-            ${swatches}
-            <div class="rt-sep"></div>
-            <button type="button" class="rt-btn-clear" data-cmd="removeFormat">${esc(t('rt_clear_format'))}</button>
-          </div>
-          <div class="notes-editor" contenteditable="true" data-key="${c.key}">${initialHtml}</div>
-        </div>
-      `;
-    }).join('') + `<p class="caption" style="grid-column:1/-1; margin:8px 0 0;">${esc(t('notes_indent_hint'))}</p>`;
-
-    gridEl.querySelectorAll('.notes-editor').forEach(attachTabIndent);
-    gridEl.querySelectorAll('.rt-btn, .rt-swatch, .rt-btn-clear').forEach(btn => {
-      btn.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        const col = btn.closest('.notes-col');
-        const editor = col.querySelector('.notes-editor');
-        editor.focus();
-        document.execCommand('styleWithCSS', false, true);
-        if (btn.classList.contains('rt-swatch')) {
-          document.execCommand('foreColor', false, btn.dataset.color);
-        } else if (btn.dataset.cmd === 'removeFormat') {
-          document.execCommand('removeFormat');
-        } else if (btn.dataset.cmd === 'bold') {
-          document.execCommand('bold');
-        }
-      });
-    });
-
+    gridEl.innerHTML = cols.map(c => `
+      <div class="notes-col">
+        <h3>${esc(c.label)}</h3>
+        <textarea data-key="${c.key}">${esc(OVERVIEW_NOTES[c.key] || '')}</textarea>
+      </div>
+    `).join('') + `<p class="caption" style="grid-column:1/-1; margin:8px 0 0;">${esc(t('notes_indent_hint'))}</p>`;
+    gridEl.querySelectorAll('textarea[data-key]').forEach(attachTabIndent);
     editBtn.textContent = t('cancel_button');
     saveBtn.textContent = t('save_button');
     saveBtn.hidden = false;
   } else {
     gridEl.innerHTML = cols.map(c => {
-      const raw = OVERVIEW_NOTES[c.key] || '';
-      const body = !raw ? '' : (isHtmlContent(raw) ? sanitizeNotesHtml(raw) : renderIndentedList(raw));
-      return `<div class="notes-col"><h3>${esc(c.label)}</h3>${body || `<div class="notes-empty">${esc(t('notes_empty'))}</div>`}</div>`;
+      const body = renderIndentedList(OVERVIEW_NOTES[c.key]) || `<div class="notes-empty">${esc(t('notes_empty'))}</div>`;
+      return `<div class="notes-col"><h3>${esc(c.label)}</h3>${body}</div>`;
     }).join('');
     editBtn.textContent = t('edit_button');
     saveBtn.hidden = true;
@@ -991,7 +878,7 @@ async function saveOverviewNotes() {
   if (!token) return;
 
   const draft = {};
-  document.querySelectorAll('#overviewNotesGrid .notes-editor[data-key]').forEach(ed => { draft[ed.dataset.key] = sanitizeNotesHtml(ed.innerHTML); });
+  document.querySelectorAll('#overviewNotesGrid textarea[data-key]').forEach(ta => { draft[ta.dataset.key] = ta.value; });
   const who = (prompt(t('notes_name_prompt'), OVERVIEW_NOTES.updated_by || '') || OVERVIEW_NOTES.updated_by || '').trim();
 
   const payload = {
@@ -1073,8 +960,7 @@ async function refreshLatestData() {
 function renderStatsPanel() {
   const panel = document.getElementById('panel-Stats');
   panel.innerHTML = `
-    <section class="card stats-card" id="overviewNotesCard" data-card-id="overview">
-      <div class="card-drag-handle" title="${esc(t('drag_handle_title'))}">⠿</div>
+    <section class="card" id="overviewNotesCard">
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
         <div>
           <h2 style="margin:0;">${esc(t('overview_notes_heading'))}</h2>
@@ -1088,60 +974,27 @@ function renderStatsPanel() {
       </div>
       <div class="notes-grid" id="overviewNotesGrid"></div>
     </section>
-    <section class="card stats-card" data-card-id="trend">
-      <div class="card-drag-handle" title="${esc(t('drag_handle_title'))}">⠿</div>
+    <section class="card">
       <h2>${esc(t('ov_trend_heading'))}</h2>
       <p class="caption" id="trendCaption"></p>
       <div id="trendChartWrap"></div>
     </section>
-    <section class="card stats-card" data-card-id="aging">
-      <div class="card-drag-handle" title="${esc(t('drag_handle_title'))}">⠿</div>
+    <section class="card">
       <h2>${esc(t('ov_aging_heading'))}</h2>
       <p class="caption" id="agingCaption"></p>
       <div id="agingBars"></div>
     </section>
-    <section class="card stats-card" data-card-id="buginflow">
-      <div class="card-drag-handle" title="${esc(t('drag_handle_title'))}">⠿</div>
+    <section class="card">
       <h2>${esc(t('ov_buginflow_heading'))}</h2>
       <p class="caption" id="bugInflowCaption"></p>
       <div id="bugInflowChartWrap"></div>
     </section>
-    <section class="card stats-card" data-card-id="topassignee">
-      <div class="card-drag-handle" title="${esc(t('drag_handle_title'))}">⠿</div>
+    <section class="card">
       <h2>${esc(t('top_assignee_heading'))}</h2>
       <p class="caption" id="topAssigneeCaption"></p>
       <div id="topAssigneesWrap"></div>
     </section>
-    <section class="card stats-card" data-card-id="assigneebreakdown">
-      <div class="card-drag-handle" title="${esc(t('drag_handle_title'))}">⠿</div>
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:4px;">
-        <h2 style="margin:0;">${esc(t('assignee_breakdown_heading'))}</h2>
-        <select id="assigneeBreakdownSelect"></select>
-      </div>
-      <p class="caption" id="assigneeBreakdownCaption"></p>
-      <div id="assigneeBreakdownWrap"></div>
-    </section>
-    <section class="card stats-card" data-card-id="audioswe2">
-      <div class="card-drag-handle" title="${esc(t('drag_handle_title'))}">⠿</div>
-      <h2>${esc(t('audio_swe2_list_heading'))}</h2>
-      <p class="caption" id="audioSwe2Caption"></p>
-      <div class="chip-row" id="audioSwe2AssigneeChips"></div>
-      <div class="filters">
-        <input type="text" id="audioSwe2Search" placeholder="${esc(t('search_placeholder'))}">
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th data-sort="key">Key</th><th data-sort="group">${esc(t('th_group'))}</th><th data-sort="issueType">${esc(t('th_issue_type'))}</th>
-            <th data-sort="status">${esc(t('th_status'))}</th><th data-sort="assignee">${esc(t('th_assignee'))}</th><th data-sort="summary">${esc(t('th_summary'))}</th>
-          </tr></thead>
-          <tbody id="audioSwe2Tbody"></tbody>
-        </table>
-      </div>
-    </section>
   `;
-
-  restoreStatsCardOrder(panel);
 
   overviewNotesEditing = false;
   renderOverviewNotesBlock();
@@ -1195,34 +1048,72 @@ function renderStatsPanel() {
     wrap.appendChild(details);
   })();
 
-  // --- Bug aging chart (Bug tickets only; bars jump to the Bug tab) -----------
-  (function renderAgingBars() {
+  // --- Bug aging x priority matrix (not-done Bugs; every number jumps to the
+  // Bug tab with the matching filters applied). Rows are the same age buckets the
+  // Bug tab's own age filter uses, so the two always agree.
+  (function renderAgingMatrix() {
     const el = document.getElementById('agingBars');
     const caption = document.getElementById('agingCaption');
     const notDone = BUGS.filter(r => !r.done);
-    const counts = { '0-7': 0, '8-14': 0, '15-30': 0, '30+': 0 };
+    const rowsData = [];
     let unknown = 0;
     notDone.forEach(r => {
       const bucket = ageBucketOf(r.created);
       if (!bucket) { unknown++; return; }
-      counts[bucket]++;
+      rowsData.push({ bucket, priority: r.priority || '未標示' });
     });
     const total = notDone.length;
     caption.textContent = t('aging_caption', total, unknown);
-    el.innerHTML = '';
-    AGE_BUCKETS.forEach(b => {
-      const count = counts[b.key];
-      const pct = total ? Math.round(count / total * 100) : 0;
-      const div = document.createElement('div');
-      div.className = 'bar-row bar-row-pct bar-row-clickable';
-      div.title = t('jump_tooltip_plain', t(b.labelKey));
-      div.innerHTML = `
-        <div class="name">${esc(t(b.labelKey))}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.max(pct, 3)}%; background:${b.color}"><span>${pct}%</span></div></div>
-        <div class="bar-count">${count}</div>
-      `;
-      div.addEventListener('click', () => jumpToBugFromStats(b.key));
-      el.appendChild(div);
+
+    // Columns follow PRIORITY_ORDER, keeping only priorities that actually occur;
+    // anything unexpected in the data is appended rather than silently dropped.
+    const present = new Set(notDone.map(r => r.priority || '未標示'));
+    const cols = PRIORITY_ORDER.filter(p => present.has(p))
+      .concat([...present].filter(p => !PRIORITY_ORDER.includes(p)).sort());
+
+    const countOf = (bucketKey, pri) => rowsData.filter(r =>
+      (!bucketKey || r.bucket === bucketKey) && (!pri || r.priority === pri)).length;
+    // The Total row drops the age dimension, so — like the Bug list it jumps to — it
+    // also counts the bugs that have no creation date; the age rows above can't.
+    const countAll = pri => notDone.filter(r => !pri || (r.priority || '未標示') === pri).length;
+
+    const cell = (n, ageKey, pri, isTotal) => {
+      const cls = isTotal ? 'matrix-total' : '';
+      if (!n) return `<td class="${cls} matrix-zero">0</td>`;
+      const ageLabel = ageKey ? t(AGE_BUCKETS.find(b => b.key === ageKey).labelKey) : '';
+      const label = [ageLabel, pri].filter(Boolean).join(' · ') || t('status_not_done');
+      return `<td class="${cls} matrix-cell-clickable" data-age="${esc(ageKey || '')}" ` +
+             `data-pri="${esc(pri || '')}" title="${esc(t('jump_tooltip_plain', label))}">${n}</td>`;
+    };
+
+    const bodyRows = AGE_BUCKETS.map(b => {
+      const rowTotal = countOf(b.key, null);
+      const pct = total ? Math.round(rowTotal / total * 100) : 0;
+      return `<tr>
+        <td><span class="matrix-dot" style="background:${b.color}"></span>${esc(t(b.labelKey))}</td>
+        ${cols.map(p => cell(countOf(b.key, p), b.key, p, false)).join('')}
+        ${cell(rowTotal, b.key, null, true)}
+        <td class="matrix-pct">${pct}%</td>
+      </tr>`;
+    }).join('');
+
+    const totalRow = `<tr class="matrix-total-row">
+      <td>${esc(t('aging_matrix_total'))}</td>
+      ${cols.map(p => cell(countAll(p), null, p, true)).join('')}
+      ${cell(total, null, null, true)}
+      <td class="matrix-pct">100%</td>
+    </tr>`;
+
+    el.innerHTML = `<div class="matrix-wrap"><table class="matrix-table">
+      <thead><tr>
+        <th></th>${cols.map(p => `<th>${esc(p)}</th>`).join('')}
+        <th>${esc(t('aging_matrix_total'))}</th><th></th>
+      </tr></thead>
+      <tbody>${bodyRows}${totalRow}</tbody>
+    </table></div>`;
+
+    el.querySelectorAll('.matrix-cell-clickable').forEach(td => {
+      td.addEventListener('click', () => jumpToBugFromStats(td.dataset.age, td.dataset.pri));
     });
   })();
 
@@ -1296,233 +1187,6 @@ function renderStatsPanel() {
       el.addEventListener('click', () => jumpToBugAssigneeFromStats(el.dataset.assignee));
     });
   })();
-
-  // --- Assignee Bug breakdown by Priority x Pretest ---------------------------
-  (function renderAssigneeBreakdown() {
-    const sel = document.getElementById('assigneeBreakdownSelect');
-    const caption = document.getElementById('assigneeBreakdownCaption');
-    const wrap = document.getElementById('assigneeBreakdownWrap');
-    const notDoneBugs = BUGS.filter(r => !r.done);
-
-    function pretestGroupOf(bug) {
-      const s = (bug.summary || '').toLowerCase();
-      if (s.includes('facet')) return 'facet';
-      if (s.includes('pcts')) return 'pcts';
-      return 'none';
-    }
-
-    const counts = {};
-    notDoneBugs.forEach(r => { counts[r.assignee] = (counts[r.assignee] || 0) + 1; });
-    const assignees = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
-
-    if (!assignees.length) {
-      sel.innerHTML = '';
-      caption.textContent = '';
-      wrap.innerHTML = `<div class="empty-state">${esc(t('empty_state'))}</div>`;
-      return;
-    }
-
-    sel.innerHTML = assignees.map(name => `<option value="${esc(name)}">${esc(name)} (${counts[name]})</option>`).join('');
-    if (!sel.dataset.userPicked) sel.value = assignees[0];
-
-    function renderFor(name) {
-      const rows = notDoneBugs.filter(r => r.assignee === name);
-      caption.textContent = t('assignee_breakdown_caption', name, rows.length);
-
-      const groupKeys = ['none', 'pcts', 'facet'];
-      const groupLabels = { none: t('assignee_breakdown_col_nonpretest'), pcts: t('assignee_breakdown_col_pcts'), facet: t('assignee_breakdown_col_facet') };
-      const groupColors = { none: '#898781', pcts: 'var(--series-aa)', facet: 'var(--series-cp)' };
-
-      const table = {};
-      rows.forEach(r => {
-        const pri = r.priority || '未標示';
-        const grp = pretestGroupOf(r);
-        if (!table[pri]) table[pri] = { none: 0, pcts: 0, facet: 0 };
-        table[pri][grp] += 1;
-      });
-      const priorities = PRIORITY_ORDER.filter(p => table[p]);
-
-      if (!priorities.length) {
-        wrap.innerHTML = `<div class="empty-state">${esc(t('empty_state'))}</div>`;
-        return;
-      }
-
-      const colTotals = { none: 0, pcts: 0, facet: 0 };
-      priorities.forEach(p => groupKeys.forEach(g => { colTotals[g] += table[p][g]; }));
-      const grandTotal = groupKeys.reduce((sum, g) => sum + colTotals[g], 0);
-
-      let html = `<table class="assignee-breakdown-table"><thead><tr>
-        <th>${esc(t('assignee_breakdown_col_priority'))}</th>
-        <th>${esc(groupLabels.none)}</th><th>${esc(groupLabels.pcts)}</th><th>${esc(groupLabels.facet)}</th>
-        <th>${esc(t('assignee_breakdown_col_subtotal'))}</th>
-      </tr></thead><tbody>`;
-      priorities.forEach(p => {
-        const row = table[p];
-        const subtotal = groupKeys.reduce((sum, g) => sum + row[g], 0);
-        html += `<tr><td>${esc(p)}</td><td>${row.none}</td><td>${row.pcts}</td><td>${row.facet}</td><td>${subtotal}</td></tr>`;
-      });
-      html += `</tbody><tfoot><tr><td>${esc(t('assignee_breakdown_total_row'))}</td><td>${colTotals.none}</td><td>${colTotals.pcts}</td><td>${colTotals.facet}</td><td>${grandTotal}</td></tr></tfoot></table>`;
-
-      html += priorities.map(p => {
-        const row = table[p];
-        const subtotal = groupKeys.reduce((sum, g) => sum + row[g], 0) || 1;
-        const segs = groupKeys.filter(g => row[g] > 0).map(g => {
-          const pct = (row[g] / subtotal * 100).toFixed(1);
-          return `<div class="abd-stackbar-seg" style="width:${pct}%; background:${groupColors[g]};">${row[g]}</div>`;
-        }).join('');
-        return `
-          <div class="abd-stackbar-row">
-            <div class="name">${esc(p)}</div>
-            <div class="abd-stackbar-track">${segs}</div>
-            <div class="abd-stackbar-total">${subtotal === 1 && row.none + row.pcts + row.facet === 0 ? 0 : (row.none + row.pcts + row.facet)}</div>
-          </div>
-        `;
-      }).join('') + `
-        <div class="abd-legend">
-          <span><i style="background:#898781;"></i>${esc(groupLabels.none)}</span>
-          <span><i style="background:var(--series-aa);"></i>${esc(groupLabels.pcts)}</span>
-          <span><i style="background:var(--series-cp);"></i>${esc(groupLabels.facet)}</span>
-        </div>
-      `;
-
-      wrap.innerHTML = html;
-    }
-
-    renderFor(sel.value);
-    sel.addEventListener('change', () => {
-      sel.dataset.userPicked = '1';
-      renderFor(sel.value);
-    });
-  })();
-
-  // --- Audio SWE2 ticket list (not-done only) ---------------------------------
-  (function renderStatsAudioSwe2List() {
-    const caption = document.getElementById('audioSwe2Caption');
-    const chipRow = document.getElementById('audioSwe2AssigneeChips');
-    const search = document.getElementById('audioSwe2Search');
-    const tbody = document.getElementById('audioSwe2Tbody');
-
-    const SWE2_NOT_DONE = AUDIO.filter(r => !r.done && r.group === 'SWE2');
-    let selectedAssignee = '';
-
-    const assigneeCounts = {};
-    SWE2_NOT_DONE.forEach(r => { assigneeCounts[r.assignee] = (assigneeCounts[r.assignee] || 0) + 1; });
-    const assignees = Object.keys(assigneeCounts).sort((a, b) => assigneeCounts[b] - assigneeCounts[a]);
-
-    function renderChips() {
-      const all = [{ name: '', label: t('audio_chip_all', SWE2_NOT_DONE.length) }, ...assignees.map(a => ({ name: a, label: `${a} (${assigneeCounts[a]})` }))];
-      chipRow.innerHTML = all.map(c => `<button type="button" class="chip${c.name === selectedAssignee ? ' active' : ''}" data-assignee="${esc(c.name)}">${esc(c.label)}</button>`).join('');
-      chipRow.querySelectorAll('.chip').forEach(btn => {
-        btn.addEventListener('click', () => {
-          selectedAssignee = btn.dataset.assignee;
-          renderChips();
-          renderTable();
-        });
-      });
-    }
-
-    function rowHtml(r) {
-      return `
-        <tr>
-          <td class="key"><a href="${ticketUrl(r.key)}" target="_blank">${r.key}</a></td>
-          <td>${esc(r.group)}</td>
-          <td>${esc(r.issueType)}</td>
-          <td>${statusBadge(r)}</td>
-          <td>${esc(r.assignee)}</td>
-          <td>${esc(r.summary)}</td>
-        </tr>
-      `;
-    }
-
-    function renderTable() {
-      let rows = SWE2_NOT_DONE;
-      if (selectedAssignee) rows = rows.filter(r => r.assignee === selectedAssignee);
-      const q = search.value.toLowerCase();
-      if (q) rows = rows.filter(r => r.key.toLowerCase().includes(q) || r.summary.toLowerCase().includes(q));
-      caption.textContent = t('audio_caption', rows.length, SWE2_NOT_DONE.length);
-
-      if (!rows.length) {
-        tbody.innerHTML = `<tr><td colspan="6" class="empty-state">${esc(t('empty_state'))}</td></tr>`;
-        return;
-      }
-
-      if (selectedAssignee) {
-        tbody.innerHTML = rows.map(rowHtml).join('');
-        return;
-      }
-
-      const byAssignee = {};
-      rows.forEach(r => { (byAssignee[r.assignee] = byAssignee[r.assignee] || []).push(r); });
-      const orderedAssignees = Object.keys(byAssignee).sort((a, b) => byAssignee[b].length - byAssignee[a].length);
-      tbody.innerHTML = orderedAssignees.map(a => {
-        const grp = byAssignee[a];
-        return `<tr><td colspan="6" class="group-header">${esc(t('audio_group_header_row', a, grp.length))}</td></tr>` + grp.map(rowHtml).join('');
-      }).join('');
-    }
-
-    renderChips();
-    renderTable();
-    search.addEventListener('input', renderTable);
-  })();
-
-  makeStatsCardsDraggable(panel);
-}
-
-// --- Drag-to-reorder for the Stats tab cards --------------------------------
-// Order is remembered per-browser (localStorage) so it survives a refresh,
-// but is local to this device/browser only (not shared with other viewers).
-const STATS_CARD_ORDER_KEY = 'cpaaStatsCardOrder';
-
-function restoreStatsCardOrder(panel) {
-  let order;
-  try { order = JSON.parse(localStorage.getItem(STATS_CARD_ORDER_KEY) || 'null'); } catch (e) { order = null; }
-  if (!Array.isArray(order) || !order.length) return;
-  order.forEach(id => {
-    const card = panel.querySelector(`.stats-card[data-card-id="${id}"]`);
-    if (card) panel.appendChild(card);
-  });
-}
-
-function saveStatsCardOrder(panel) {
-  const order = Array.from(panel.querySelectorAll('.stats-card')).map(c => c.dataset.cardId);
-  try { localStorage.setItem(STATS_CARD_ORDER_KEY, JSON.stringify(order)); } catch (e) { /* localStorage unavailable */ }
-}
-
-function getDragAfterCard(panel, y) {
-  const cards = Array.from(panel.querySelectorAll('.stats-card:not(.dragging)'));
-  return cards.reduce((closest, child) => {
-    const box = child.getBoundingClientRect();
-    const offset = y - box.top - box.height / 2;
-    if (offset < 0 && offset > closest.offset) return { offset, element: child };
-    return closest;
-  }, { offset: -Infinity, element: null }).element;
-}
-
-function makeStatsCardsDraggable(panel) {
-  let dragged = null;
-  panel.querySelectorAll('.stats-card').forEach(card => {
-    const handle = card.querySelector('.card-drag-handle');
-    if (!handle) return;
-    handle.addEventListener('mousedown', () => { card.setAttribute('draggable', 'true'); });
-    card.addEventListener('dragstart', (e) => {
-      dragged = card;
-      card.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-    });
-    card.addEventListener('dragend', () => {
-      card.classList.remove('dragging');
-      card.removeAttribute('draggable');
-      dragged = null;
-      saveStatsCardOrder(panel);
-    });
-  });
-  panel.addEventListener('dragover', (e) => {
-    if (!dragged) return;
-    e.preventDefault();
-    const after = getDragAfterCard(panel, e.clientY);
-    if (after == null) panel.appendChild(dragged);
-    else panel.insertBefore(dragged, after);
-  });
 }
 
 const LABEL_BUCKETS = ['ASW-R2', 'ASW-R3 (不含CPAA 0830)', 'CPAA0830', '三者皆無'];
