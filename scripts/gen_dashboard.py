@@ -191,6 +191,20 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   }
   .table-wrap { max-height: 480px; overflow: auto; }
   .empty-state { color: var(--muted); font-size: 13px; padding: 20px; text-align: center; }
+  #panel-Stats section.card { position: relative; }
+  #panel-Stats section.card > h2, #panel-Stats section.card h2.drag-title {
+    cursor: grab; user-select: none;
+  }
+  #panel-Stats section.card > h2::before, #panel-Stats section.card h2.drag-title::before {
+    content: '⠿'; color: var(--muted); font-size: 15px; margin-right: 8px; vertical-align: 1px;
+  }
+  #panel-Stats section.card.dragging { opacity: .45; }
+  #panel-Stats section.card.drag-over-before { box-shadow: 0 -3px 0 0 var(--series-cp); }
+  #panel-Stats section.card.drag-over-after { box-shadow: 0 3px 0 0 var(--series-cp); }
+  .cards-hint {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    color: var(--muted); font-size: 12px; margin: 0 0 12px;
+  }
   .refresh-status {
     margin: 0 28px 12px; padding: 12px 16px; background: var(--surface-1);
     border: 1px solid var(--border); border-radius: 10px; font-size: 13px;
@@ -565,6 +579,8 @@ const STRINGS = {
   refresh_step_poll_error: { zh: msg => `已觸發,但查不到進度(${msg})`, en: msg => `Triggered, but progress can't be read (${msg})` },
   refresh_elapsed: { zh: s => `已經過 ${s}`, en: s => `${s} elapsed` },
   refresh_reload_button: { zh: '重新整理頁面', en: 'Reload page' },
+  cards_reorder_hint: { zh: '拖曳卡片標題可調整這一頁的排列順序(只影響你自己的瀏覽器,重新整理後仍會記得)', en: 'Drag a card title to reorder this page (saved in your own browser only)' },
+  cards_reset_order: { zh: '恢復預設順序', en: 'Reset order' },
   refresh_view_run: { zh: '在 GitHub 查看執行紀錄', en: 'View the run on GitHub' },
   refresh_hide_button: { zh: '關閉', en: 'Dismiss' },
   bug_missing_caption: { zh: n => `共 ${n} 張票 (Bug 總數 ${BUGS.length} 張)`, en: n => `${n} tickets shown (out of ${BUGS.length} Bugs total)` },
@@ -1370,13 +1386,110 @@ async function refreshLatestData() {
   }
 }
 
+// --- Drag-to-reorder for the Stats cards ---------------------------------------
+// The order is a personal preference, so it lives in this viewer's own browser
+// rather than in the repo: no token needed, and one person rearranging their view
+// doesn't move everyone else's cards. Cards are identified by a stable data-card
+// key, so a card added in a later release still appears (at its default position)
+// instead of vanishing for people with a saved order.
+const STATS_ORDER_KEY = 'cpaaStatsCardOrder';
+
+function loadStatsOrder() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STATS_ORDER_KEY));
+    return Array.isArray(raw) ? raw.filter(k => typeof k === 'string') : [];
+  } catch (e) { return []; }
+}
+
+function saveStatsOrder(order) {
+  try { localStorage.setItem(STATS_ORDER_KEY, JSON.stringify(order)); } catch (e) { /* private mode */ }
+}
+
+function currentStatsOrder() {
+  return [...document.querySelectorAll('#panel-Stats section.card[data-card]')].map(c => c.dataset.card);
+}
+
+function applyStatsOrder() {
+  const panel = document.getElementById('panel-Stats');
+  const saved = loadStatsOrder();
+  if (!saved.length) return;
+  const cards = [...panel.querySelectorAll('section.card[data-card]')];
+  const rank = key => { const i = saved.indexOf(key); return i === -1 ? Infinity : i; };
+  cards
+    .map((card, i) => ({ card, i }))
+    .sort((a, b) => (rank(a.card.dataset.card) - rank(b.card.dataset.card)) || (a.i - b.i))
+    .forEach(({ card }) => panel.appendChild(card));
+}
+
+function clearCardDropMarkers() {
+  document.querySelectorAll('#panel-Stats section.card').forEach(c => {
+    c.classList.remove('drag-over-before', 'drag-over-after');
+  });
+}
+
+// HTML5 drag and drop, started from the card title only — dragging the whole card
+// would swallow clicks on the charts and text selection inside it.
+function attachStatsReorder() {
+  const panel = document.getElementById('panel-Stats');
+  const cards = [...panel.querySelectorAll('section.card[data-card]')];
+  let dragged = null;
+
+  cards.forEach(card => {
+    const handle = card.querySelector(':scope > h2, :scope h2.drag-title');
+    if (!handle) return;
+    handle.title = t('cards_reorder_hint');
+    handle.addEventListener('mousedown', () => { card.draggable = true; });
+    card.addEventListener('dragstart', e => {
+      dragged = card;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', card.dataset.card); } catch (err) { /* Safari */ }
+    });
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging');
+      card.draggable = false;
+      clearCardDropMarkers();
+      dragged = null;
+      saveStatsOrder(currentStatsOrder());
+    });
+    card.addEventListener('dragover', e => {
+      if (!dragged || dragged === card) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const rect = card.getBoundingClientRect();
+      const before = e.clientY < rect.top + rect.height / 2;
+      clearCardDropMarkers();
+      card.classList.add(before ? 'drag-over-before' : 'drag-over-after');
+    });
+    card.addEventListener('drop', e => {
+      if (!dragged || dragged === card) return;
+      e.preventDefault();
+      const rect = card.getBoundingClientRect();
+      const before = e.clientY < rect.top + rect.height / 2;
+      card.parentNode.insertBefore(dragged, before ? card : card.nextSibling);
+      clearCardDropMarkers();
+      saveStatsOrder(currentStatsOrder());
+    });
+  });
+
+  const resetBtn = document.getElementById('statsOrderReset');
+  if (resetBtn) resetBtn.addEventListener('click', () => {
+    saveStatsOrder([]);
+    renderStatsPanel();
+  });
+}
+
 function renderStatsPanel() {
   const panel = document.getElementById('panel-Stats');
   panel.innerHTML = `
-    <section class="card" id="overviewNotesCard">
+    <p class="cards-hint">
+      <span>${esc(t('cards_reorder_hint'))}</span>
+      <button type="button" class="btn small" id="statsOrderReset">${esc(t('cards_reset_order'))}</button>
+    </p>
+    <section class="card" data-card="notes" id="overviewNotesCard">
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
         <div>
-          <h2 style="margin:0;">${esc(t('overview_notes_heading'))}</h2>
+          <h2 class="drag-title" style="margin:0;">${esc(t('overview_notes_heading'))}</h2>
           <p class="caption" id="overviewNotesMeta" style="margin:4px 0 0;"></p>
         </div>
         <div style="display:flex; gap:8px; flex-shrink:0; flex-wrap:wrap;">
@@ -1387,22 +1500,22 @@ function renderStatsPanel() {
       </div>
       <div class="notes-grid" id="overviewNotesGrid"></div>
     </section>
-    <section class="card">
+    <section class="card" data-card="trend">
       <h2>${esc(t('ov_trend_heading'))}</h2>
       <p class="caption" id="trendCaption"></p>
       <div id="trendChartWrap"></div>
     </section>
-    <section class="card">
+    <section class="card" data-card="aging">
       <h2>${esc(t('ov_aging_heading'))}</h2>
       <p class="caption" id="agingCaption"></p>
       <div id="agingBars"></div>
     </section>
-    <section class="card">
+    <section class="card" data-card="inflow">
       <h2>${esc(t('ov_buginflow_heading'))}</h2>
       <p class="caption" id="bugInflowCaption"></p>
       <div id="bugInflowChartWrap"></div>
     </section>
-    <section class="card">
+    <section class="card" data-card="topAssignees">
       <h2>${esc(t('top_assignee_heading'))}</h2>
       <p class="caption" id="topAssigneeCaption"></p>
       <div id="topAssigneesWrap"></div>
@@ -1600,6 +1713,11 @@ function renderStatsPanel() {
       el.addEventListener('click', () => jumpToBugAssigneeFromStats(el.dataset.assignee));
     });
   })();
+
+  // Restore this viewer's card order (if any) and re-arm dragging — renderStatsPanel
+  // rebuilds the panel on every language switch, so both have to run again here.
+  applyStatsOrder();
+  attachStatsReorder();
 }
 
 const LABEL_BUCKETS = ['ASW-R2', 'ASW-R3 (不含CPAA 0830)', 'CPAA0830', '三者皆無'];
