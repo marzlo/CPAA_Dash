@@ -438,7 +438,7 @@
    },
    "MDT_System": {
     "done": 0,
-    "total": 17
+    "total": 16
    },
    "TS_CPAA": {
     "done": 125,
@@ -446,7 +446,7 @@
    },
    "TS_FW": {
     "done": 17,
-    "total": 19
+    "total": 20
    },
    "Unassigned": {
     "done": 1,
