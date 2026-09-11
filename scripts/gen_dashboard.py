@@ -26,7 +26,9 @@ except FileNotFoundError:
 
 DATA["overview_notes"] = OVERVIEW_NOTES
 
-DATA_JSON = json.dumps(DATA, ensure_ascii=False)
+# "</" is escaped as "<\\/" (a valid JSON escape for "/") so that a "</script>" inside
+# any ticket summary or overview note can't close the inline <script> block early.
+DATA_JSON = json.dumps(DATA, ensure_ascii=False).replace("</", "<\\/")
 UPDATED_AT = datetime.now().strftime("%Y-%m-%d")
 
 HTML_TEMPLATE = r"""<!DOCTYPE html>
@@ -230,6 +232,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .notes-col h3 { margin: 0 0 10px; font-size: 14px; color: var(--text-primary); }
   .notes-col ul { margin: 0; padding-left: 18px; font-size: 13px; color: var(--text-primary); line-height: 1.6; }
   .notes-col ul li { margin-bottom: 4px; }
+  .notes-html { font-size: 13px; color: var(--text-primary); line-height: 1.6; overflow-wrap: anywhere; }
+  .notes-html ul, .notes-html ol { margin: 0; padding-left: 18px; }
+  .notes-html li { margin-bottom: 4px; }
+  .notes-html p { margin: 0 0 6px; }
+  .notes-html a { color: var(--series-cp); }
   .notes-col textarea {
     width: 100%; min-height: 140px; resize: vertical; background: var(--surface-1);
     border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-size: 13px;
@@ -779,7 +786,63 @@ function renderNoteTree(node) {
   return `<ul>${node.children.map(c => `<li>${esc(c.text)}${renderNoteTree(c)}</li>`).join('')}</ul>`;
 }
 
+// Notes are normally plain text indented with Tab (see attachTabIndent), but people
+// also paste formatted blocks straight out of a mail/wiki editor, which arrive as a
+// single line of HTML. Escaping that shows raw <ul><li> tags on the page, so anything
+// that looks like markup is rendered instead — through a strict allowlist, because the
+// dashboard is public and notes are written by whoever holds the edit token.
+const NOTES_ALLOWED_TAGS = { UL: 1, OL: 1, LI: 1, BR: 1, P: 1, DIV: 1, SPAN: 1, B: 1, STRONG: 1,
+                             I: 1, EM: 1, U: 1, S: 1, A: 1, CODE: 1, SMALL: 1 };
+// These are removed outright — keeping their text would dump code onto the page.
+const NOTES_DROPPED_TAGS = { SCRIPT: 1, STYLE: 1, IFRAME: 1, OBJECT: 1, EMBED: 1, NOSCRIPT: 1, TEMPLATE: 1, LINK: 1, META: 1 };
+const NOTES_ALLOWED_STYLE = /^(color|background-color|font-weight|font-style|text-decoration)$/;
+
+function looksLikeNotesHtml(raw) {
+  return /<(ul|ol|li|br|p|div|span|b|strong|i|em|u|a)\b[^>]*>/i.test(raw || '');
+}
+
+// Keeps the allowed tags, drops every other tag but keeps its text, and strips all
+// attributes except a short style allowlist and http(s) hrefs — so no scripts, no
+// event handlers, no javascript: links, no remote content.
+function sanitizeNotesHtml(raw) {
+  const doc = new DOMParser().parseFromString('<div id="notes-root">' + raw + '</div>', 'text/html');
+  const root = doc.getElementById('notes-root');
+  const walk = node => {
+    [...node.childNodes].forEach(child => {
+      if (child.nodeType === Node.TEXT_NODE) return;
+      if (child.nodeType !== Node.ELEMENT_NODE) { child.remove(); return; }
+      if (NOTES_DROPPED_TAGS[child.tagName]) { child.remove(); return; }
+      if (!NOTES_ALLOWED_TAGS[child.tagName]) {
+        child.replaceWith(doc.createTextNode(child.textContent || ''));
+        return;
+      }
+      [...child.attributes].forEach(attr => {
+        const name = attr.name.toLowerCase();
+        if (name === 'style') {
+          const safe = attr.value.split(';').map(d => d.trim()).filter(d => {
+            const prop = (d.split(':')[0] || '').trim().toLowerCase();
+            return NOTES_ALLOWED_STYLE.test(prop) && !/url\s*\(|expression/i.test(d);
+          }).join('; ');
+          if (safe) child.setAttribute('style', safe); else child.removeAttribute('style');
+        } else if (name === 'href' && child.tagName === 'A' && /^https?:\/\//i.test(attr.value)) {
+          child.setAttribute('target', '_blank');
+          child.setAttribute('rel', 'noopener noreferrer');
+        } else {
+          child.removeAttribute(attr.name);
+        }
+      });
+      walk(child);
+    });
+  };
+  walk(root);
+  return root.innerHTML;
+}
+
 function renderIndentedList(raw) {
+  if (looksLikeNotesHtml(raw)) {
+    const html = sanitizeNotesHtml(raw);
+    return html.trim() ? `<div class="notes-html">${html}</div>` : null;
+  }
   const tree = parseIndentedLines(raw);
   return tree.children.length ? renderNoteTree(tree) : null;
 }
