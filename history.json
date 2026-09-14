@@ -579,7 +579,7 @@
  },
  "2026-09-14": {
   "bugs": {
-   "done": 173,
+   "done": 172,
    "total": 256
   },
   "bugs_by_team": {
@@ -604,7 +604,7 @@
     "total": 145
    },
    "TS_FW": {
-    "done": 17,
+    "done": 16,
     "total": 19
    },
    "Unassigned": {
