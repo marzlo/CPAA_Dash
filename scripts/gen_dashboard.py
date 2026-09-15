@@ -297,6 +297,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
                             background: color-mix(in srgb, var(--warning) 18%, transparent);
                             border-radius: 999px; padding: 1px 7px; }
   .trace-line { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 12.5px; padding: 2px 0; }
+  /* A ticket of this requirement that now sits under another owner: kept in place,
+     dimmed, so the block explains why it looks thinner than its twin. */
+  .trace-line.away { opacity: .55; }
+  .trace-line.away .moved-to { font-size: 11.5px; color: var(--muted); }
   .trace-line .lane {
     font-size: 10.5px; letter-spacing: .04em; color: var(--muted); width: 42px; flex-shrink: 0;
   }
@@ -796,6 +800,7 @@ const STRINGS = {
   trace_owner_ok: { zh: '確定', en: 'OK' },
   trace_owner_clear: { zh: '清除', en: 'Clear' },
   trace_moved_from: { zh: who => `← 原 owner:${who}`, en: who => `← originally ${who}` },
+  trace_moved_to: { zh: who => `→ 已改由 ${who} 負責`, en: who => `→ moved to ${who}` },
   trace_owner_meta: { zh: (n, diff) => `owner 覆寫 ${n} 筆,其中 ${diff} 筆與 Jira 不同`, en: (n, diff) => `${n} owner overrides, ${diff} differ from Jira` },
   trace_name_prompt: { zh: '請輸入你的名字(會記錄在確認與留言上)', en: 'Your name (recorded on confirmations and comments)' },
   trace_collapse_hint: { zh: '點標題可收合', en: 'click to collapse' },
@@ -3468,6 +3473,17 @@ function renderTraceabilityPanel() {
             const rid = s.rid;
             const conf = TRACE_NOTES.confirmed[rid];
             const vis2 = visibleSwe2(s);
+            // Tickets of this requirement that now belong to someone else. Shown
+            // muted so a block never looks like an empty duplicate of the one above
+            // it — the SWRA report splits one requirement into several rows (one per
+            // SWE2), so two rows can reach the same owner and differ only in the
+            // ticket that moved away.
+            const ownKeys = new Set([...s.swe1, ...s.swe2].map(x => x.k));
+            const away = [
+              ...(r.swe1 || []).map(x => ({ lane: 'SWE1', x })),
+              ...(r.swe2 || []).map(x => ({ lane: 'SWE2', x })),
+            ].filter(o => !ownKeys.has(o.x.k))
+             .map(o => ({ lane: o.lane, x: o.x, to: traceEffOwner(o.x, r.owner) }));
             return `
             <div class="trace-req${conf ? ' confirmed' : ''}" data-row="${rid}">
               <div class="trace-req-head">
@@ -3496,6 +3512,11 @@ function renderTraceabilityPanel() {
                 // "no SWE2" means the requirement has none at all — not that its SWE2
                 // tickets were moved to another owner's group.
                 ((r.swe2 || []).length ? '' : `<div class="trace-line"><span class="lane"></span><span class="trace-title">${esc(t('trace_no_swe2'))}</span></div>`)}
+              ${away.map(o => `
+                <div class="trace-line away">
+                  <span class="lane">${o.lane}</span>${traceTicket(o.x)}<span class="trace-title">${esc(o.x.t)}</span>
+                  <span class="moved-to">${esc(t('trace_moved_to', o.to))}</span>
+                </div>`).join('')}
             </div>`; }).join('')}</div>
         </details>`;
     }).join('');
