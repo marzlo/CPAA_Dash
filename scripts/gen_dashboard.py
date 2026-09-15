@@ -44,7 +44,8 @@ try:
     with open("traceability_notes.json", encoding="utf-8") as f:
         TRACEABILITY_NOTES = json.load(f)
 except FileNotFoundError:
-    TRACEABILITY_NOTES = {"updated_at": None, "updated_by": None, "confirmed": {}, "comments": {}}
+    TRACEABILITY_NOTES = {"updated_at": None, "updated_by": None,
+                          "confirmed": {}, "comments": {}, "owners": {}}
 
 DATA["traceability_notes"] = TRACEABILITY_NOTES
 
@@ -221,6 +222,24 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .trace-confirm.on { color: var(--good); font-weight: 600; }
   .trace-confirm-meta { font-size: 11px; color: var(--muted); font-weight: 400; }
   .trace-req.confirmed { background: color-mix(in srgb, var(--good) 5%, transparent); border-radius: 6px; }
+  .owner-chip {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; white-space: nowrap;
+  }
+  .owner-chip .jira { color: var(--muted); }
+  .owner-chip .set {
+    color: var(--good); font-weight: 600;
+    background: color-mix(in srgb, var(--good) 12%, transparent); border-radius: 9px; padding: 1px 7px;
+  }
+  .owner-chip .set.diff { color: var(--warning); background: color-mix(in srgb, var(--warning) 18%, transparent); }
+  .owner-edit {
+    background: none; border: none; cursor: pointer; color: var(--muted); font-size: 11.5px; padding: 0 2px;
+  }
+  .owner-edit:hover { color: var(--series-cp); }
+  .owner-form { display: inline-flex; gap: 4px; align-items: center; }
+  .owner-form input {
+    font-size: 12px; padding: 1px 6px; width: 140px; border-radius: 5px;
+    border: 1px solid var(--series-cp); background: var(--surface-1); color: var(--text-primary);
+  }
   .cmt-btn {
     background: none; border: 1px solid var(--border); border-radius: 999px; cursor: pointer;
     font-size: 11px; color: var(--text-secondary); padding: 0 7px; line-height: 17px;
@@ -564,7 +583,7 @@ const AUDIO = RAW.audio;
 const PRETEST = RAW.pretest;
 const HISTORY = RAW.history || {};
 const TRACE = RAW.traceability || null;
-const TRACE_NOTES = Object.assign({ updated_at: null, updated_by: null, confirmed: {}, comments: {} },
+const TRACE_NOTES = Object.assign({ updated_at: null, updated_by: null, confirmed: {}, comments: {}, owners: {} },
                                   RAW.traceability_notes || {});
 const OVERVIEW_NOTES = RAW.overview_notes || { updated_at: null, updated_by: null, development_status: '', certification_status: '', risk: '' };
 const FEATURE_COLORS = { "CarPlay": "var(--series-cp)", "Android Auto": "var(--series-aa)", "iPod": "var(--series-ipod)" };
@@ -766,6 +785,12 @@ const STRINGS = {
   trace_save_error: { zh: msg => `儲存失敗:${msg}`, en: msg => `Save failed: ${msg}` },
   trace_notes_meta: { zh: (at, who) => `確認與留言最後更新:${at} by ${who}`, en: (at, who) => `Confirmations and comments last updated ${at} by ${who}` },
   trace_notes_meta_never: { zh: '目前還沒有任何確認或留言', en: 'No confirmations or comments yet' },
+  trace_owner_set: { zh: '設定確認後的 owner', en: 'Set the confirmed owner' },
+  trace_owner_jira: { zh: n => `Jira:${n}`, en: n => `Jira: ${n}` },
+  trace_owner_unassigned: { zh: 'Jira:未指派', en: 'Jira: unassigned' },
+  trace_owner_ok: { zh: '確定', en: 'OK' },
+  trace_owner_clear: { zh: '清除', en: 'Clear' },
+  trace_owner_meta: { zh: (n, diff) => `owner 覆寫 ${n} 筆,其中 ${diff} 筆與 Jira 不同`, en: (n, diff) => `${n} owner overrides, ${diff} differ from Jira` },
   trace_name_prompt: { zh: '請輸入你的名字(會記錄在確認與留言上)', en: 'Your name (recorded on confirmations and comments)' },
   trace_collapse_hint: { zh: '點標題可收合', en: 'click to collapse' },
   trace_detail_heading: { zh: '明細清單(依 Owner 分組)', en: 'Detail by owner' },
@@ -2974,10 +2999,11 @@ function traceTotals(rows) {
 // working at once merge instead of clobbering each other.
 const GITHUB_TRACE_NOTES_PATH = 'traceability_notes.json';
 const GITHUB_TRACE_NOTES_RAW = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/${GITHUB_TRACE_NOTES_PATH}`;
-const tracePending = { confirmed: {}, comments: {} };
+const tracePending = { confirmed: {}, comments: {}, owners: {} };
 
 function tracePendingCount() {
   return Object.keys(tracePending.confirmed).length +
+         Object.keys(tracePending.owners).length +
          Object.values(tracePending.comments).reduce((n, list) => n + list.length, 0);
 }
 
@@ -3022,6 +3048,10 @@ async function refreshTraceNotesFromGithub(onLoaded) {
       Object.entries(tracePending.comments).forEach(([k, list]) => {
         TRACE_NOTES.comments[k] = (TRACE_NOTES.comments[k] || []).concat(list);
       });
+      TRACE_NOTES.owners = Object.assign({}, fresh.owners || {}, tracePending.owners);
+      Object.keys(TRACE_NOTES.owners).forEach(k => {
+        if (TRACE_NOTES.owners[k] === null) delete TRACE_NOTES.owners[k];
+      });
       TRACE_NOTES.updated_at = fresh.updated_at;
       TRACE_NOTES.updated_by = fresh.updated_by;
       if (onLoaded) onLoaded();
@@ -3034,7 +3064,12 @@ function mergeTraceNotes(remote) {
   const out = {
     confirmed: Object.assign({}, remote.confirmed || {}),
     comments: Object.assign({}, remote.comments || {}),
+    owners: Object.assign({}, remote.owners || {}),
   };
+  Object.entries(tracePending.owners).forEach(([key, value]) => {
+    if (value === null) delete out.owners[key];
+    else out.owners[key] = value;
+  });
   Object.entries(tracePending.confirmed).forEach(([id, value]) => {
     if (value === null) delete out.confirmed[id];
     else out.confirmed[id] = value;
@@ -3077,8 +3112,10 @@ async function saveTraceNotes(btn) {
     }
     tracePending.confirmed = {};
     tracePending.comments = {};
+    tracePending.owners = {};
     TRACE_NOTES.confirmed = payload.confirmed;
     TRACE_NOTES.comments = payload.comments;
+    TRACE_NOTES.owners = payload.owners;
     TRACE_NOTES.updated_at = payload.updated_at;
     TRACE_NOTES.updated_by = payload.updated_by;
     btn.textContent = t('trace_saved');
@@ -3096,6 +3133,22 @@ function traceTicket(x, withComments) {
   if (!withComments) return html;
   const n = (TRACE_NOTES.comments[x.k] || []).length;
   return html + ` <button type="button" class="cmt-btn${n ? ' has' : ''}" data-cmt="${esc(x.k)}">💬${n || ''}</button>`;
+}
+
+// The Jira assignee and the owner you confirmed are different facts, so the line
+// shows both: the assignee stays visible (muted) and the confirmed owner sits next to
+// it, highlighted amber when the two disagree — that mismatch is the thing worth
+// spotting on this page.
+function traceOwnerChip(x) {
+  const set = TRACE_NOTES.owners[x.k];
+  const jira = x.a || '';
+  const jiraLabel = jira ? t('trace_owner_jira', jira) : t('trace_owner_unassigned');
+  const setHtml = set
+    ? `<span class="set${set.name !== jira ? ' diff' : ''}" title="${esc(t('trace_confirm_meta', set.by || '?', (set.at || '').slice(0, 10)))}">${esc(set.name)}</span>`
+    : '';
+  return `<span class="owner-chip" data-owner-cell="${esc(x.k)}">` +
+         `<span class="jira">${esc(jiraLabel)}</span>${setHtml}` +
+         `<button type="button" class="owner-edit" data-owner-edit="${esc(x.k)}" title="${esc(t('trace_owner_set'))}">✎</button></span>`;
 }
 
 function traceCommentPanel(key) {
@@ -3227,6 +3280,10 @@ function renderTraceabilityPanel() {
         <button type="button" class="btn small" id="traceTokenBtn" title="${esc(t('notes_change_token'))}">🔑</button>
         <span class="meta" id="traceNotesMeta"></span>
       </div>
+      <datalist id="traceOwnerNames">${
+        [...new Set([...owners.map(o => o.owner), ...assignees.map(a => a.name)])]
+          .filter(n => n && n !== '(未指定)')
+          .map(n => `<option value="${esc(n)}"></option>`).join('')}</datalist>
       <div class="filters">
         <select id="traceOwnerFilter"><option value="">${esc(t('trace_filter_all_owner'))}</option>${
           owners.map(o => `<option value="${esc(o.owner)}">${esc(o.owner)}</option>`).join('')}</select>
@@ -3260,9 +3317,14 @@ function renderTraceabilityPanel() {
     saveBtn.hidden = n === 0;
     saveBtn.disabled = false;
     saveBtn.textContent = t('trace_save_button', n);
-    metaEl.textContent = TRACE_NOTES.updated_at
+    const overrides = Object.entries(TRACE_NOTES.owners || {});
+    const jiraOf = new Map();
+    rows.forEach(r => [...(r.swe1 || []), ...(r.swe2 || [])].forEach(x => jiraOf.set(x.k, x.a || '')));
+    const diff = overrides.filter(([k, v]) => v && v.name !== (jiraOf.get(k) || '')).length;
+    metaEl.textContent = (TRACE_NOTES.updated_at
       ? t('trace_notes_meta', TRACE_NOTES.updated_at.slice(0, 10), TRACE_NOTES.updated_by || t('notes_meta_unknown'))
-      : t('trace_notes_meta_never');
+      : t('trace_notes_meta_never')) +
+      (overrides.length ? ' · ' + t('trace_owner_meta', overrides.length, diff) : '');
   }
   const search = document.getElementById('traceSearch');
   const groupsEl = document.getElementById('traceGroups');
@@ -3334,11 +3396,11 @@ function renderTraceabilityPanel() {
                 </label>
               </div>
               ${(r.swe1 || []).map(x => `
-                <div class="trace-line"><span class="lane">SWE1</span>${traceTicket(x, true)}<span class="trace-title">${esc(x.t)}</span></div>
+                <div class="trace-line"><span class="lane">SWE1</span>${traceTicket(x, true)}<span class="trace-title">${esc(x.t)}</span>${traceOwnerChip(x)}</div>
                 ${traceCommentPanel(x.k)}`).join('')}
               ${visibleSwe2(r).map(x => `
                 <div class="trace-line">
-                  <span class="lane">SWE2</span>${traceTicket(x, true)}<span class="trace-title">${esc(x.t)}</span>
+                  <span class="lane">SWE2</span>${traceTicket(x, true)}<span class="trace-title">${esc(x.t)}</span>${traceOwnerChip(x)}
                   <span class="trace-arrow">→</span>
                   ${x.swe3.length
                     ? x.swe3.map(y => `${traceTicket(y)}`).join('<span class="trace-arrow">,</span> ')
@@ -3383,6 +3445,11 @@ function renderTraceabilityPanel() {
   });
 
   groupsEl.addEventListener('click', e => {
+    const editBtn = e.target.closest('.owner-edit');
+    if (editBtn) {
+      openOwnerEditor(editBtn.closest('.owner-chip'), editBtn.dataset.ownerEdit);
+      return;
+    }
     const toggle = e.target.closest('.cmt-btn');
     if (toggle) {
       const box = toggle.closest('.trace-line').nextElementSibling;
@@ -3417,6 +3484,50 @@ function renderTraceabilityPanel() {
     });
     refreshSaveState();
   });
+
+  // Inline editor: one field, Enter or 確定 to store, 清除 to drop the override.
+  function openOwnerEditor(chip, key) {
+    if (!chip || chip.querySelector('.owner-form')) return;
+    const current = (TRACE_NOTES.owners[key] || {}).name || '';
+    const form = document.createElement('span');
+    form.className = 'owner-form';
+    form.innerHTML = `<input list="traceOwnerNames" value="${esc(current)}">` +
+      `<button type="button" class="btn small" data-owner-ok>${esc(t('trace_owner_ok'))}</button>` +
+      `<button type="button" class="btn small" data-owner-clear>${esc(t('trace_owner_clear'))}</button>`;
+    chip.appendChild(form);
+    const input = form.querySelector('input');
+    input.focus();
+    input.select();
+
+    const commit = value => {
+      if (value) {
+        const entry = { name: value, by: traceUserName(false) || t('notes_meta_unknown'), at: new Date().toISOString() };
+        TRACE_NOTES.owners[key] = entry;
+        tracePending.owners[key] = entry;
+      } else {
+        delete TRACE_NOTES.owners[key];
+        tracePending.owners[key] = null;
+      }
+      // Every line showing this ticket gets the new chip, not just the one clicked.
+      groupsEl.querySelectorAll(`[data-owner-cell="${CSS.escape(key)}"]`).forEach(cell => {
+        const line = cell.closest('.trace-line');
+        const lane = line.querySelector('.lane').textContent.trim();
+        const row = rows.find(r => (lane === 'SWE1' ? r.swe1 : r.swe2).some(y => y.k === key));
+        const item = row && (lane === 'SWE1' ? row.swe1 : row.swe2).find(y => y.k === key);
+        if (item) cell.outerHTML = traceOwnerChip(item);
+      });
+      refreshSaveState();
+    };
+
+    form.addEventListener('click', ev => {
+      if (ev.target.closest('[data-owner-ok]')) commit(input.value.trim());
+      else if (ev.target.closest('[data-owner-clear]')) commit('');
+    });
+    input.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter') { ev.preventDefault(); commit(input.value.trim()); }
+      if (ev.key === 'Escape') form.remove();
+    });
+  }
 
   function updateConfirmCells() {
     const counts = new Map();
