@@ -39,6 +39,19 @@ jobs:
       - name: Build dashboard_data.json
         run: python scripts/build_data.py
 
+      # Requirement -> SWE1/SWE2 -> SWE3 for the Traceability tab. Reads
+      # traceability_source.csv (generated from the STLA SWRA report by
+      # scripts/swra_to_csv.py) and resolves every ticket's live status and SWE3
+      # links. Skips itself with a message if the CSV isn't in the repo yet.
+      - name: Build traceability.json
+        env:
+          JIRA_SITE: mobiledrivetech.atlassian.net
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          TRACE_SOURCE_LABEL: 'STLA_SWRA_Report-CarPlay-R10.xlsx · CPAA Analysis Report'
+          TRACE_PROJECT: 'CarPlay R10'
+        run: python scripts/build_traceability.py
+
       - name: Record today's snapshot into history.json
         run: python scripts/update_history.py
 
