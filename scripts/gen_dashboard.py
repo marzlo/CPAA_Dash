@@ -291,6 +291,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .trace-req-head .rid { font-size: 11.5px; color: var(--muted); font-family: ui-monospace, Menlo, monospace; }
   .trace-req-head .rtitle { font-size: 13px; font-weight: 600; }
   .trace-req-head .rmeta { font-size: 11.5px; color: var(--muted); }
+  /* Marks a requirement showing under an owner it was moved to by hand, so the
+     report's original Owner is still one glance away. */
+  .trace-req-head .rmoved { font-size: 11px; color: var(--warning); white-space: nowrap;
+                            background: color-mix(in srgb, var(--warning) 18%, transparent);
+                            border-radius: 999px; padding: 1px 7px; }
   .trace-line { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 12.5px; padding: 2px 0; }
   .trace-line .lane {
     font-size: 10.5px; letter-spacing: .04em; color: var(--muted); width: 42px; flex-shrink: 0;
@@ -756,7 +761,7 @@ const STRINGS = {
   trace_tile_sub_done: { zh: (d, total, pct) => `完成 ${d} / ${total}(${pct}%)`, en: (d, total, pct) => `${d} / ${total} done (${pct}%)` },
   trace_tile_sub_owner: { zh: n => `分屬 ${n} 位 owner`, en: n => `across ${n} owners` },
   trace_owner_heading: { zh: 'Owner 統計(依 SWE2 票數排序)', en: 'Per-owner summary (sorted by SWE2 count)' },
-  trace_owner_caption: { zh: '點任一列可跳到下方該 owner 的明細;覆蓋率 = 有關聯 SWE3 的 SWE2 佔該 owner 全部 SWE2 的比例', en: 'Click a row to jump to that owner below. Coverage = share of the owner\'s SWE2 tickets that have a linked SWE3' },
+  trace_owner_caption: { zh: '已套用你改過的 owner(改一張票就會即時搬到新的 owner);同一筆需求的票若分屬不同 owner,會同時計入雙方。點任一列可跳到下方該 owner 的明細;覆蓋率 = 有關聯 SWE3 的 SWE2 佔該 owner 全部 SWE2 的比例', en: 'Reflects your owner edits (re-assigning a ticket moves its counts immediately). A requirement whose tickets belong to different owners is counted under each. Click a row to jump to that owner below. Coverage = share of the owner\'s SWE2 tickets that have a linked SWE3' },
   trace_th_owner: { zh: 'Owner', en: 'Owner' },
   trace_th_req: { zh: '需求', en: 'Reqs' },
   trace_th_swe1: { zh: 'SWE1', en: 'SWE1' },
@@ -790,6 +795,7 @@ const STRINGS = {
   trace_owner_unassigned: { zh: 'Jira:未指派', en: 'Jira: unassigned' },
   trace_owner_ok: { zh: '確定', en: 'OK' },
   trace_owner_clear: { zh: '清除', en: 'Clear' },
+  trace_moved_from: { zh: who => `← 原 owner:${who}`, en: who => `← originally ${who}` },
   trace_owner_meta: { zh: (n, diff) => `owner 覆寫 ${n} 筆,其中 ${diff} 筆與 Jira 不同`, en: (n, diff) => `${n} owner overrides, ${diff} differ from Jira` },
   trace_name_prompt: { zh: '請輸入你的名字(會記錄在確認與留言上)', en: 'Your name (recorded on confirmations and comments)' },
   trace_collapse_hint: { zh: '點標題可收合', en: 'click to collapse' },
@@ -2928,17 +2934,48 @@ function renderAudioPanel() {
 // the STLA SWRA analysis report; the SWE3 column comes from Jira issue links, so a
 // requirement counts as "covered" only when one of its SWE2 tickets actually links
 // to a ticket whose summary carries the 【SWE3】 tag.
-function traceOwnerStats(rows) {
-  const map = new Map();
+// The owner a ticket actually belongs to: the hand-set override when there is one,
+// otherwise the report's Owner column for the requirement it sits under.
+function traceEffOwner(x, fallback) {
+  const set = TRACE_NOTES.owners[x.k];
+  return (set && set.name) || fallback;
+}
+
+// Once individual tickets are re-assigned by hand, one requirement can straddle two
+// owners, so everything below the stats works on slices instead of raw rows: one
+// slice per owner that holds at least one of the requirement's tickets, carrying only
+// that owner's tickets. A requirement with no override at all yields exactly one
+// slice, under the report's Owner — i.e. the old behaviour.
+function traceSlices(rows) {
+  const out = [];
   rows.forEach(r => {
-    if (!map.has(r.owner)) {
-      map.set(r.owner, { owner: r.owner, reqs: 0, confirmed: 0, s1: new Set(), s2: new Set(), cov: new Set(), s3: new Map() });
+    const map = new Map();
+    const put = (owner, lane, x) => {
+      if (!map.has(owner)) map.set(owner, { r, owner, rid: traceRowId(r), swe1: [], swe2: [] });
+      map.get(owner)[lane].push(x);
+    };
+    (r.swe1 || []).forEach(x => put(traceEffOwner(x, r.owner), 'swe1', x));
+    (r.swe2 || []).forEach(x => put(traceEffOwner(x, r.owner), 'swe2', x));
+    if (!map.size) map.set(r.owner, { r, owner: r.owner, rid: traceRowId(r), swe1: [], swe2: [] });
+    map.forEach(s => out.push(s));
+  });
+  return out;
+}
+
+// Per-owner summary, built from the slices — so a ticket moved to another owner moves
+// its counts with it, and a requirement split across two owners is counted under each
+// (the requirement total in the tiles above stays the true, unduplicated count).
+function traceOwnerStats(slices) {
+  const map = new Map();
+  slices.forEach(s => {
+    if (!map.has(s.owner)) {
+      map.set(s.owner, { owner: s.owner, reqs: 0, confirmed: 0, s1: new Set(), s2: new Set(), cov: new Set(), s3: new Map() });
     }
-    const o = map.get(r.owner);
+    const o = map.get(s.owner);
     o.reqs++;
-    if (TRACE_NOTES.confirmed[traceRowId(r)]) o.confirmed++;
-    (r.swe1 || []).forEach(x => o.s1.add(x.k));
-    (r.swe2 || []).forEach(x => {
+    if (TRACE_NOTES.confirmed[s.rid]) o.confirmed++;
+    s.swe1.forEach(x => o.s1.add(x.k));
+    s.swe2.forEach(x => {
       o.s2.add(x.k);
       if (x.swe3 && x.swe3.length) {
         o.cov.add(x.k);
@@ -3178,6 +3215,33 @@ function traceOwnerChip(x) {
          `<button type="button" class="owner-edit" data-owner-edit="${esc(x.k)}" title="${esc(t('trace_owner_set'))}">✎</button></span>`;
 }
 
+// Kept out of renderTraceabilityPanel so the owner table can be redrawn on its own
+// after an owner edit, without rebuilding the whole tab.
+function traceOwnerNameOptions(owners, assignees) {
+  return [...new Set([...owners.map(o => o.owner), ...assignees.map(a => a.name)])]
+    .filter(n => n && n !== '(未指定)')
+    .map(n => `<option value="${esc(n)}"></option>`).join('');
+}
+
+function traceOwnerRowsHtml(owners) {
+  return owners.map(o => `
+    <tr class="trace-owner-row" data-owner="${esc(o.owner)}">
+      <td>${esc(o.owner)}</td>
+      <td>${o.reqs}</td>
+      <td>${o.s1}</td>
+      <td>${o.s2}</td>
+      <td>${o.cov}</td>
+      <td>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div class="trace-meter"><div style="width:${o.pct}%"></div></div>
+          <span style="font-variant-numeric:tabular-nums;">${o.pct}%</span>
+        </div>
+      </td>
+      <td>${o.s3 ? `${o.s3done} / ${o.s3}` : '—'}</td>
+      <td data-confirm-cell="${esc(o.owner)}">${o.confirmed} / ${o.reqs}</td>
+    </tr>`).join('');
+}
+
 function traceCommentPanel(key) {
   const list = TRACE_NOTES.comments[key] || [];
   const body = list.length
@@ -3201,7 +3265,11 @@ function renderTraceabilityPanel() {
   }
   const rows = TRACE.rows;
   const totals = traceTotals(rows);
-  const owners = traceOwnerStats(rows);
+  // Slices and the owner summary both depend on the current overrides, so they are
+  // recomputed (by refreshOwnerStats) every time an owner is edited or the notes file
+  // is re-read; `slices` and `owners` below always hold the latest.
+  let slices = traceSlices(rows);
+  let owners = traceOwnerStats(slices);
   const assignees = traceAssigneeStats(rows);
   const covPct = totals.s2 ? Math.round(totals.cov / totals.s2 * 100) : 0;
   const donePct = totals.s3 ? Math.round(totals.s3done / totals.s3 * 100) : 0;
@@ -3212,7 +3280,7 @@ function renderTraceabilityPanel() {
       <div class="stat-tile">
         <div class="label">${esc(t('trace_tile_req'))}</div>
         <div class="value">${totals.reqs}</div>
-        <div class="sub">${esc(t('trace_tile_sub_owner', owners.length))}</div>
+        <div class="sub" id="traceOwnerCount">${esc(t('trace_tile_sub_owner', owners.length))}</div>
       </div>
       <div class="stat-tile">
         <div class="label">${esc(t('trace_tile_swe1'))}</div>
@@ -3248,22 +3316,7 @@ function renderTraceabilityPanel() {
             <th>${esc(t('trace_th_covered'))}</th><th>${esc(t('trace_th_coverage'))}</th>
             <th>${esc(t('trace_th_swe3done'))}</th><th>${esc(t('trace_th_confirmed'))}</th>
           </tr></thead>
-          <tbody>${owners.map(o => `
-            <tr class="trace-owner-row" data-owner="${esc(o.owner)}">
-              <td>${esc(o.owner)}</td>
-              <td>${o.reqs}</td>
-              <td>${o.s1}</td>
-              <td>${o.s2}</td>
-              <td>${o.cov}</td>
-              <td>
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <div class="trace-meter"><div style="width:${o.pct}%"></div></div>
-                  <span style="font-variant-numeric:tabular-nums;">${o.pct}%</span>
-                </div>
-              </td>
-              <td>${o.s3 ? `${o.s3done} / ${o.s3}` : '—'}</td>
-              <td data-confirm-cell="${esc(o.owner)}">${o.confirmed} / ${o.reqs}</td>
-            </tr>`).join('')}</tbody>
+          <tbody id="traceOwnerStatsBody">${traceOwnerRowsHtml(owners)}</tbody>
         </table>
       </div>
       </details>
@@ -3307,10 +3360,7 @@ function renderTraceabilityPanel() {
         <button type="button" class="btn small" id="traceTokenBtn" title="${esc(t('notes_change_token'))}">🔑</button>
         <span class="meta" id="traceNotesMeta"></span>
       </div>
-      <datalist id="traceOwnerNames">${
-        [...new Set([...owners.map(o => o.owner), ...assignees.map(a => a.name)])]
-          .filter(n => n && n !== '(未指定)')
-          .map(n => `<option value="${esc(n)}"></option>`).join('')}</datalist>
+      <datalist id="traceOwnerNames">${traceOwnerNameOptions(owners, assignees)}</datalist>
       <div class="filters">
         <select id="traceOwnerFilter"><option value="">${esc(t('trace_filter_all_owner'))}</option>${
           owners.map(o => `<option value="${esc(o.owner)}">${esc(o.owner)}</option>`).join('')}</select>
@@ -3333,6 +3383,7 @@ function renderTraceabilityPanel() {
   `;
 
   const ownerSel = document.getElementById('traceOwnerFilter');
+  ownerSel.dataset.names = JSON.stringify(owners.map(o => o.owner));
   const assigneeSel = document.getElementById('traceAssigneeFilter');
   const gapSel = document.getElementById('traceGapFilter');
   const confirmSel = document.getElementById('traceConfirmFilter');
@@ -3358,26 +3409,27 @@ function renderTraceabilityPanel() {
 
   function assigneeOf(x) { return x.a || t('trace_unassigned'); }
 
-  function matches(r) {
-    if (ownerSel.value && r.owner !== ownerSel.value) return false;
-    if (assigneeSel.value && !(r.swe2 || []).some(x => assigneeOf(x) === assigneeSel.value)) return false;
-    if (confirmSel.value === 'yes' && !TRACE_NOTES.confirmed[traceRowId(r)]) return false;
-    if (confirmSel.value === 'no' && TRACE_NOTES.confirmed[traceRowId(r)]) return false;
+  function matches(s) {
+    const r = s.r;
+    if (ownerSel.value && s.owner !== ownerSel.value) return false;
+    if (assigneeSel.value && !s.swe2.some(x => assigneeOf(x) === assigneeSel.value)) return false;
+    if (confirmSel.value === 'yes' && !TRACE_NOTES.confirmed[s.rid]) return false;
+    if (confirmSel.value === 'no' && TRACE_NOTES.confirmed[s.rid]) return false;
     const q = search.value.trim().toLowerCase();
     if (q) {
-      const hay = [r.reqid, r.title, r.sub, ...(r.swe1 || []).map(x => x.k + ' ' + x.t),
-                   ...(r.swe2 || []).map(x => x.k + ' ' + x.t)].join(' ').toLowerCase();
+      const hay = [r.reqid, r.title, r.sub, ...s.swe1.map(x => x.k + ' ' + x.t),
+                   ...s.swe2.map(x => x.k + ' ' + x.t)].join(' ').toLowerCase();
       if (!hay.includes(q)) return false;
     }
-    if (gapSel.value === 'gap') return (r.swe2 || []).some(x => !x.swe3.length);
-    if (gapSel.value === 'has') return (r.swe2 || []).some(x => x.swe3.length);
+    if (gapSel.value === 'gap') return s.swe2.some(x => !x.swe3.length);
+    if (gapSel.value === 'has') return s.swe2.some(x => x.swe3.length);
     return true;
   }
 
   // A requirement's SWE2 list is filtered too, so "only SWE2 without SWE3" shows the
   // gap itself rather than the whole requirement around it.
-  function visibleSwe2(r) {
-    let list = r.swe2;
+  function visibleSwe2(s) {
+    let list = s.swe2;
     if (assigneeSel.value) list = list.filter(x => assigneeOf(x) === assigneeSel.value);
     if (gapSel.value === 'gap') return list.filter(x => !x.swe3.length);
     if (gapSel.value === 'has') return list.filter(x => x.swe3.length);
@@ -3385,21 +3437,25 @@ function renderTraceabilityPanel() {
   }
 
   function renderGroups(openOwner) {
-    const shown = rows.filter(matches);
+    // Groups the reader had open stay open across a re-render (filters, an owner
+    // edit, a save) — collapsing everything under them was the annoying part.
+    const wasOpen = new Set([...groupsEl.querySelectorAll('details.trace-group[open]')]
+      .map(d => d.dataset.owner));
+    const shown = slices.filter(matches);
     if (!shown.length) {
       groupsEl.innerHTML = `<div class="empty-state">${esc(t('trace_empty_filter'))}</div>`;
       return;
     }
     const byOwner = new Map();
-    shown.forEach(r => {
-      if (!byOwner.has(r.owner)) byOwner.set(r.owner, []);
-      byOwner.get(r.owner).push(r);
+    shown.forEach(s => {
+      if (!byOwner.has(s.owner)) byOwner.set(s.owner, []);
+      byOwner.get(s.owner).push(s);
     });
     const order = owners.map(o => o.owner).filter(o => byOwner.has(o));
     groupsEl.innerHTML = order.map(owner => {
       const stat = owners.find(o => o.owner === owner);
       const list = byOwner.get(owner);
-      const open = openOwner === owner || order.length === 1;
+      const open = openOwner === owner || order.length === 1 || wasOpen.has(owner);
       return `
         <details class="trace-group" data-owner="${esc(owner)}"${open ? ' open' : ''}>
           <summary>
@@ -3407,25 +3463,28 @@ function renderTraceabilityPanel() {
             <span class="meta">${esc(t('trace_owner_summary', stat.reqs, stat.s1, stat.s2, stat.pct))}</span>
             <div class="trace-meter"><div style="width:${stat.pct}%"></div></div>
           </summary>
-          <div class="trace-reqs">${list.map(r => {
-            const rid = traceRowId(r);
+          <div class="trace-reqs">${list.map(s => {
+            const r = s.r;
+            const rid = s.rid;
             const conf = TRACE_NOTES.confirmed[rid];
+            const vis2 = visibleSwe2(s);
             return `
             <div class="trace-req${conf ? ' confirmed' : ''}" data-row="${rid}">
               <div class="trace-req-head">
                 <span class="rid">${esc(r.reqid)}</span>
                 <span class="rtitle">${esc(r.title)}</span>
                 <span class="rmeta">${esc([r.prio, r.sub].filter(Boolean).join(' · '))}</span>
+                ${s.owner !== r.owner ? `<span class="rmoved">${esc(t('trace_moved_from', r.owner))}</span>` : ''}
                 <label class="trace-confirm${conf ? ' on' : ''}">
                   <input type="checkbox" data-confirm="${rid}"${conf ? ' checked' : ''}>
                   ${esc(t('trace_confirm_label'))}
                   <span class="trace-confirm-meta">${conf ? esc(t('trace_confirm_meta', conf.by || '?', (conf.at || '').slice(0, 10))) : ''}</span>
                 </label>
               </div>
-              ${(r.swe1 || []).map(x => `
+              ${s.swe1.map(x => `
                 <div class="trace-line"><span class="lane">SWE1</span>${traceTicket(x, true)}<span class="trace-title">${esc(x.t)}</span>${traceOwnerChip(x)}</div>
                 ${traceCommentPanel(x.k)}`).join('')}
-              ${visibleSwe2(r).map(x => `
+              ${vis2.map(x => `
                 <div class="trace-line">
                   <span class="lane">SWE2</span>${traceTicket(x, true)}<span class="trace-title">${esc(x.t)}</span>${traceOwnerChip(x)}
                   <span class="trace-arrow">→</span>
@@ -3433,10 +3492,35 @@ function renderTraceabilityPanel() {
                     ? x.swe3.map(y => `${traceTicket(y)}`).join('<span class="trace-arrow">,</span> ')
                     : `<span class="trace-gap">${esc(t('trace_no_swe3'))}</span>`}
                 </div>
-                ${traceCommentPanel(x.k)}`).join('') || `<div class="trace-line"><span class="lane"></span><span class="trace-title">${esc(t('trace_no_swe2'))}</span></div>`}
+                ${traceCommentPanel(x.k)}`).join('') ||
+                // "no SWE2" means the requirement has none at all — not that its SWE2
+                // tickets were moved to another owner's group.
+                ((r.swe2 || []).length ? '' : `<div class="trace-line"><span class="lane"></span><span class="trace-title">${esc(t('trace_no_swe2'))}</span></div>`)}
             </div>`; }).join('')}</div>
         </details>`;
     }).join('');
+  }
+
+  // Overrides changed: rebuild the slices, the owner summary table, the owner filter
+  // and the group list, so the numbers and the groups below always agree.
+  function refreshOwnerStats(openOwner) {
+    slices = traceSlices(rows);
+    owners = traceOwnerStats(slices);
+    const body = document.getElementById('traceOwnerStatsBody');
+    if (body) body.innerHTML = traceOwnerRowsHtml(owners);
+    const countEl = document.getElementById('traceOwnerCount');
+    if (countEl) countEl.textContent = t('trace_tile_sub_owner', owners.length);
+    const names = owners.map(o => o.owner);
+    if (JSON.stringify(names) !== ownerSel.dataset.names) {
+      const keep = ownerSel.value;
+      ownerSel.innerHTML = `<option value="">${esc(t('trace_filter_all_owner'))}</option>` +
+        names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+      ownerSel.dataset.names = JSON.stringify(names);
+      ownerSel.value = names.includes(keep) ? keep : '';
+    }
+    const dl = document.getElementById('traceOwnerNames');
+    if (dl) dl.innerHTML = traceOwnerNameOptions(owners, assignees);
+    renderGroups(openOwner);
   }
 
   [ownerSel, assigneeSel, gapSel, confirmSel].forEach(el => el.addEventListener('change', () => renderGroups()));
@@ -3450,23 +3534,28 @@ function renderTraceabilityPanel() {
     const box = e.target.closest('input[data-confirm]');
     if (!box) return;
     const rid = box.dataset.confirm;
-    const label = box.closest('.trace-confirm');
-    const block = box.closest('.trace-req');
+    let entry = null;
     if (box.checked) {
-      const who = traceUserName(false) || t('notes_meta_unknown');
-      const entry = { by: who, at: new Date().toISOString() };
+      entry = { by: traceUserName(false) || t('notes_meta_unknown'), at: new Date().toISOString() };
       TRACE_NOTES.confirmed[rid] = entry;
       tracePending.confirmed[rid] = entry;
-      label.classList.add('on');
-      block.classList.add('confirmed');
-      label.querySelector('.trace-confirm-meta').textContent = t('trace_confirm_meta', entry.by, entry.at.slice(0, 10));
     } else {
       delete TRACE_NOTES.confirmed[rid];
       tracePending.confirmed[rid] = null;
-      label.classList.remove('on');
-      block.classList.remove('confirmed');
-      label.querySelector('.trace-confirm-meta').textContent = '';
     }
+    // One requirement can now appear under two owners at once, so every copy of the
+    // row follows the tick rather than only the one that was clicked.
+    groupsEl.querySelectorAll(`.trace-req[data-row="${CSS.escape(rid)}"]`).forEach(block => {
+      const label = block.querySelector('.trace-confirm');
+      const input = block.querySelector('input[data-confirm]');
+      if (input) input.checked = !!entry;
+      block.classList.toggle('confirmed', !!entry);
+      if (label) {
+        label.classList.toggle('on', !!entry);
+        label.querySelector('.trace-confirm-meta').textContent =
+          entry ? t('trace_confirm_meta', entry.by, entry.at.slice(0, 10)) : '';
+      }
+    });
     updateConfirmCells();
     refreshSaveState();
   });
@@ -3535,15 +3624,11 @@ function renderTraceabilityPanel() {
         delete TRACE_NOTES.owners[key];
         tracePending.owners[key] = null;
       }
-      // Every line showing this ticket gets the new chip, not just the one clicked.
-      groupsEl.querySelectorAll(`[data-owner-cell="${CSS.escape(key)}"]`).forEach(cell => {
-        const line = cell.closest('.trace-line');
-        const lane = line.querySelector('.lane').textContent.trim();
-        const row = rows.find(r => (lane === 'SWE1' ? r.swe1 : r.swe2).some(y => y.k === key));
-        const item = row && (lane === 'SWE1' ? row.swe1 : row.swe2).find(y => y.k === key);
-        if (item) cell.outerHTML = traceOwnerChip(item);
-      });
       refreshSaveState();
+      // The ticket now belongs to someone else, so the summary table, the owner
+      // filter and the groups below are all rebuilt — and the group it landed in is
+      // opened, so the move is visible instead of silently happening off-screen.
+      refreshOwnerStats(value || null);
     };
 
     form.addEventListener('click', ev => {
@@ -3556,13 +3641,15 @@ function renderTraceabilityPanel() {
     });
   }
 
+  // Ticking a box only moves one number, so the table's 已確認 cells are patched in
+  // place rather than re-rendered — that keeps the checkbox you just clicked focused.
   function updateConfirmCells() {
     const counts = new Map();
-    rows.forEach(r => {
-      if (!counts.has(r.owner)) counts.set(r.owner, { n: 0, total: 0 });
-      const c = counts.get(r.owner);
+    slices.forEach(s => {
+      if (!counts.has(s.owner)) counts.set(s.owner, { n: 0, total: 0 });
+      const c = counts.get(s.owner);
       c.total++;
-      if (TRACE_NOTES.confirmed[traceRowId(r)]) c.n++;
+      if (TRACE_NOTES.confirmed[s.rid]) c.n++;
     });
     panel.querySelectorAll('[data-confirm-cell]').forEach(td => {
       const c = counts.get(td.dataset.confirmCell);
@@ -3572,16 +3659,19 @@ function renderTraceabilityPanel() {
 
   refreshSaveState();
   renderGroups();
-  // Pick up anything saved by someone else since this page was built.
-  refreshTraceNotesFromGithub(() => { updateConfirmCells(); refreshSaveState(); renderGroups(); });
+  // Pick up anything saved by someone else since this page was built — including
+  // their owner overrides, which reshuffle the table and the groups.
+  refreshTraceNotesFromGithub(() => { refreshSaveState(); refreshOwnerStats(); });
 
-  panel.querySelectorAll('.trace-owner-row').forEach(tr => {
-    tr.addEventListener('click', () => {
-      ownerSel.value = tr.dataset.owner;
-      assigneeSel.value = '';
-      renderGroups(tr.dataset.owner);
-      groupsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
+  // Delegated: the owner table body is redrawn whenever an override changes.
+  const ownerTbody = document.getElementById('traceOwnerStatsBody');
+  if (ownerTbody) ownerTbody.addEventListener('click', e => {
+    const tr = e.target.closest('.trace-owner-row');
+    if (!tr) return;
+    ownerSel.value = tr.dataset.owner;
+    assigneeSel.value = '';
+    renderGroups(tr.dataset.owner);
+    groupsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
   panel.querySelectorAll('.trace-assignee-row').forEach(tr => {
