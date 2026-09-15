@@ -26,6 +26,17 @@ except FileNotFoundError:
 
 DATA["overview_notes"] = OVERVIEW_NOTES
 
+# Requirement -> SWE1/SWE2 -> SWE3 traceability, built from the STLA SWRA analysis
+# report plus a Jira link lookup. Optional: without the file the Traceability tab
+# simply says the data hasn't been generated yet.
+try:
+    with open("traceability.json", encoding="utf-8") as f:
+        TRACEABILITY = json.load(f)
+except FileNotFoundError:
+    TRACEABILITY = None
+
+DATA["traceability"] = TRACEABILITY
+
 # "</" is escaped as "<\\/" (a valid JSON escape for "/") so that a "</script>" inside
 # any ticket summary or overview note can't close the inline <script> block early.
 DATA_JSON = json.dumps(DATA, ensure_ascii=False).replace("</", "<\\/")
@@ -191,6 +202,40 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   }
   .table-wrap { max-height: 480px; overflow: auto; }
   .empty-state { color: var(--muted); font-size: 13px; padding: 20px; text-align: center; }
+  .trace-meter { height: 6px; background: var(--grid); border-radius: 3px; overflow: hidden; min-width: 90px; }
+  .trace-meter > div { height: 100%; background: var(--series-cp); }
+  .trace-owner-row { cursor: pointer; }
+  .trace-owner-row:hover td { background: var(--page); }
+  .trace-group { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; background: var(--page); }
+  .trace-group[open] { background: var(--surface-1); }
+  .trace-group > summary {
+    cursor: pointer; padding: 11px 14px; font-size: 14px; font-weight: 600; list-style: none;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+  .trace-group > summary::-webkit-details-marker { display: none; }
+  .trace-group > summary::before { content: '▸'; color: var(--muted); font-weight: 400; }
+  .trace-group[open] > summary::before { content: '▾'; }
+  .trace-group > summary .meta { font-size: 12px; font-weight: 400; color: var(--text-secondary); }
+  .trace-group > summary .trace-meter { width: 110px; margin-left: auto; }
+  .trace-reqs { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+  .trace-req { border-top: 1px solid var(--grid); padding-top: 10px; }
+  .trace-req-head { display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline; margin-bottom: 6px; }
+  .trace-req-head .rid { font-size: 11.5px; color: var(--muted); font-family: ui-monospace, Menlo, monospace; }
+  .trace-req-head .rtitle { font-size: 13px; font-weight: 600; }
+  .trace-req-head .rmeta { font-size: 11.5px; color: var(--muted); }
+  .trace-line { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 12.5px; padding: 2px 0; }
+  .trace-line .lane {
+    font-size: 10.5px; letter-spacing: .04em; color: var(--muted); width: 42px; flex-shrink: 0;
+  }
+  .trace-key { text-decoration: none; color: var(--series-cp); font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+  .trace-key:hover { text-decoration: underline; }
+  .trace-title { color: var(--text-secondary); font-size: 12px; overflow-wrap: anywhere; }
+  .trace-arrow { color: var(--muted); }
+  .trace-gap { color: var(--critical); font-size: 11.5px; font-weight: 600; }
+  .st { display: inline-block; font-size: 10.5px; font-weight: 600; border-radius: 9px; padding: 1px 7px; white-space: nowrap; }
+  .st.done { background: color-mix(in srgb, var(--good) 18%, transparent); color: var(--good); }
+  .st.progress { background: color-mix(in srgb, var(--warning) 22%, transparent); color: #8a6200; }
+  .st.todo { background: color-mix(in srgb, var(--critical) 13%, transparent); color: var(--critical); }
   .issue-entry { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; background: var(--page); }
   .issue-entry[open] { background: var(--surface-1); }
   .issue-entry > summary {
@@ -370,6 +415,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <button data-tab="Bug" data-i18n-tab="bug">Bug</button>
   <button data-tab="Audio" data-i18n-tab="audio">Audio</button>
   <button data-tab="Pretest" data-i18n-tab="pretest">Pretest</button>
+  <button data-tab="Traceability" data-i18n-tab="traceability">Traceability</button>
 </nav>
 <main>
 
@@ -456,6 +502,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <div class="panel" id="panel-Bug"></div>
   <div class="panel" id="panel-Audio"></div>
   <div class="panel" id="panel-Pretest"></div>
+  <div class="panel" id="panel-Traceability"></div>
 
 </main>
 
@@ -467,6 +514,7 @@ const BUGS = RAW.bugs;
 const AUDIO = RAW.audio;
 const PRETEST = RAW.pretest;
 const HISTORY = RAW.history || {};
+const TRACE = RAW.traceability || null;
 const OVERVIEW_NOTES = RAW.overview_notes || { updated_at: null, updated_by: null, development_status: '', certification_status: '', risk: '' };
 const FEATURE_COLORS = { "CarPlay": "var(--series-cp)", "Android Auto": "var(--series-aa)", "iPod": "var(--series-ipod)" };
 
@@ -493,6 +541,7 @@ const STRINGS = {
   tab_bug: { zh: 'Bug', en: 'Bug' },
   tab_audio: { zh: 'Audio', en: 'Audio' },
   tab_pretest: { zh: 'Pretest', en: 'Pretest' },
+  tab_traceability: { zh: 'Traceability', en: 'Traceability' },
 
   ov_subfeature_heading: { zh: 'Sub-feature 分佈(僅未完成票,SWE2+SWE3+SWE5 合併計算,依 CarPlay/Android Auto/iPod 分欄)', en: 'Sub-feature breakdown (not-done tickets only, SWE2+SWE3+SWE5 combined, split by CarPlay/Android Auto/iPod)' },
   ov_assignee_heading: { zh: 'Assignee 分佈(僅未完成票,SWE2+SWE3+SWE5 合併計算,依組織分欄)', en: 'Assignee breakdown (not-done tickets only, SWE2+SWE3+SWE5 combined, split by team)' },
@@ -626,6 +675,36 @@ const STRINGS = {
   issue_notes_heading: { zh: '問題處理經驗', en: 'Issue post-mortems' },
   issue_notes_caption: { zh: '已經釐清根因的問題紀錄,點標題展開。留這些是為了下次遇到類似症狀時,不用再從 log 重新推一次', en: 'Write-ups of issues whose root cause is settled — click a title to expand. Kept so the next similar symptom does not have to be re-derived from logs' },
   issue_notes_empty: { zh: '目前沒有紀錄', en: 'No entries yet' },
+  trace_missing: { zh: '尚未產生 traceability.json,這個頁籤沒有資料可以顯示', en: 'traceability.json has not been generated — nothing to show on this tab' },
+  trace_source: { zh: (src, date) => `來源:${src} · 對照 Jira 連結關係產生於 ${date}`, en: (src, date) => `Source: ${src} · Jira links resolved on ${date}` },
+  trace_tile_req: { zh: '需求項目', en: 'Requirements' },
+  trace_tile_swe1: { zh: 'SWE1 票', en: 'SWE1 tickets' },
+  trace_tile_swe2: { zh: 'SWE2 票', en: 'SWE2 tickets' },
+  trace_tile_covered: { zh: '已關聯 SWE3 的 SWE2', en: 'SWE2 with a linked SWE3' },
+  trace_tile_swe3: { zh: 'SWE3 票', en: 'SWE3 tickets' },
+  trace_tile_sub_cover: { zh: (pct, gap) => `覆蓋率 ${pct}%,尚缺 ${gap} 張`, en: (pct, gap) => `${pct}% covered, ${gap} still missing` },
+  trace_tile_sub_done: { zh: (d, total, pct) => `完成 ${d} / ${total}(${pct}%)`, en: (d, total, pct) => `${d} / ${total} done (${pct}%)` },
+  trace_tile_sub_owner: { zh: n => `分屬 ${n} 位 owner`, en: n => `across ${n} owners` },
+  trace_owner_heading: { zh: 'Owner 統計(依 SWE2 票數排序)', en: 'Per-owner summary (sorted by SWE2 count)' },
+  trace_owner_caption: { zh: '點任一列可跳到下方該 owner 的明細;覆蓋率 = 有關聯 SWE3 的 SWE2 佔該 owner 全部 SWE2 的比例', en: 'Click a row to jump to that owner below. Coverage = share of the owner\'s SWE2 tickets that have a linked SWE3' },
+  trace_th_owner: { zh: 'Owner', en: 'Owner' },
+  trace_th_req: { zh: '需求', en: 'Reqs' },
+  trace_th_swe1: { zh: 'SWE1', en: 'SWE1' },
+  trace_th_swe2: { zh: 'SWE2', en: 'SWE2' },
+  trace_th_covered: { zh: '有 SWE3', en: 'With SWE3' },
+  trace_th_coverage: { zh: 'SWE3 覆蓋率', en: 'SWE3 coverage' },
+  trace_th_swe3done: { zh: 'SWE3 完成', en: 'SWE3 done' },
+  trace_detail_heading: { zh: '明細清單(依 Owner 分組)', en: 'Detail by owner' },
+  trace_detail_caption: { zh: '每個需求列出對應的 SWE1 與 SWE2 票,SWE2 後面接的是它關聯到的 SWE3 票與狀態', en: 'Each requirement lists its SWE1 and SWE2 tickets; each SWE2 is followed by the SWE3 it links to, with status' },
+  trace_filter_all_owner: { zh: '全部 Owner', en: 'All owners' },
+  trace_filter_gap: { zh: '只看缺 SWE3 的 SWE2', en: 'Only SWE2 without SWE3' },
+  trace_filter_has: { zh: '只看已有 SWE3 的 SWE2', en: 'Only SWE2 with SWE3' },
+  trace_filter_any: { zh: '全部 SWE2', en: 'All SWE2' },
+  trace_search: { zh: '搜尋票號、需求 ID 或標題…', en: 'Search key, requirement ID or title…' },
+  trace_no_swe3: { zh: '無 SWE3', en: 'no SWE3' },
+  trace_no_swe2: { zh: '此需求沒有對應的 SWE2 票', en: 'no SWE2 ticket for this requirement' },
+  trace_owner_summary: { zh: (req, s1, s2, cov) => `${req} 需求 · ${s1} SWE1 · ${s2} SWE2 · SWE3 覆蓋 ${cov}%`, en: (req, s1, s2, cov) => `${req} reqs · ${s1} SWE1 · ${s2} SWE2 · ${cov}% SWE3 coverage` },
+  trace_empty_filter: { zh: '沒有符合條件的資料', en: 'Nothing matches the current filters' },
   refresh_view_run: { zh: '在 GitHub 查看執行紀錄', en: 'View the run on GitHub' },
   refresh_hide_button: { zh: '關閉', en: 'Dismiss' },
   bug_missing_caption: { zh: n => `共 ${n} 張票 (Bug 總數 ${BUGS.length} 張)`, en: n => `${n} tickets shown (out of ${BUGS.length} Bugs total)` },
@@ -2745,6 +2824,226 @@ function renderAudioPanel() {
   });
 }
 
+// --- Traceability tab ----------------------------------------------------------
+// Requirement -> SWE1 / SWE2 -> SWE3. The requirement-to-ticket mapping comes from
+// the STLA SWRA analysis report; the SWE3 column comes from Jira issue links, so a
+// requirement counts as "covered" only when one of its SWE2 tickets actually links
+// to a ticket whose summary carries the 【SWE3】 tag.
+function traceOwnerStats(rows) {
+  const map = new Map();
+  rows.forEach(r => {
+    if (!map.has(r.owner)) {
+      map.set(r.owner, { owner: r.owner, reqs: 0, s1: new Set(), s2: new Set(), cov: new Set(), s3: new Map() });
+    }
+    const o = map.get(r.owner);
+    o.reqs++;
+    (r.swe1 || []).forEach(x => o.s1.add(x.k));
+    (r.swe2 || []).forEach(x => {
+      o.s2.add(x.k);
+      if (x.swe3 && x.swe3.length) {
+        o.cov.add(x.k);
+        x.swe3.forEach(y => o.s3.set(y.k, y.c));
+      }
+    });
+  });
+  return [...map.values()].map(o => ({
+    owner: o.owner, reqs: o.reqs, s1: o.s1.size, s2: o.s2.size, cov: o.cov.size,
+    s3: o.s3.size, s3done: [...o.s3.values()].filter(c => c === 'done').length,
+    pct: o.s2.size ? Math.round(o.cov.size / o.s2.size * 100) : 0,
+  })).sort((a, b) => b.s2 - a.s2 || b.reqs - a.reqs);
+}
+
+function traceTotals(rows) {
+  const s1 = new Set(), s2 = new Set(), cov = new Set(), s3 = new Map();
+  rows.forEach(r => {
+    (r.swe1 || []).forEach(x => s1.add(x.k));
+    (r.swe2 || []).forEach(x => {
+      s2.add(x.k);
+      if (x.swe3 && x.swe3.length) { cov.add(x.k); x.swe3.forEach(y => s3.set(y.k, y.c)); }
+    });
+  });
+  return { reqs: rows.length, s1: s1.size, s2: s2.size, cov: cov.size, s3: s3.size,
+           s3done: [...s3.values()].filter(c => c === 'done').length };
+}
+
+function traceTicket(x) {
+  return `<a class="trace-key" href="${ticketUrl(x.k)}" target="_blank" rel="noopener noreferrer">${esc(x.k)}</a>` +
+         `<span class="st ${x.c}">${esc(x.st)}</span>`;
+}
+
+function renderTraceabilityPanel() {
+  const panel = document.getElementById('panel-Traceability');
+  if (!TRACE || !TRACE.rows || !TRACE.rows.length) {
+    panel.innerHTML = `<section class="card"><div class="empty-state">${esc(t('trace_missing'))}</div></section>`;
+    return;
+  }
+  const rows = TRACE.rows;
+  const totals = traceTotals(rows);
+  const owners = traceOwnerStats(rows);
+  const covPct = totals.s2 ? Math.round(totals.cov / totals.s2 * 100) : 0;
+  const donePct = totals.s3 ? Math.round(totals.s3done / totals.s3 * 100) : 0;
+
+  panel.innerHTML = `
+    <p class="caption" style="margin:0 0 12px;">${esc(t('trace_source', TRACE.source || '', TRACE.generated_at || ''))}</p>
+    <div class="stat-row">
+      <div class="stat-tile">
+        <div class="label">${esc(t('trace_tile_req'))}</div>
+        <div class="value">${totals.reqs}</div>
+        <div class="sub">${esc(t('trace_tile_sub_owner', owners.length))}</div>
+      </div>
+      <div class="stat-tile">
+        <div class="label">${esc(t('trace_tile_swe1'))}</div>
+        <div class="value">${totals.s1}</div>
+      </div>
+      <div class="stat-tile">
+        <div class="label">${esc(t('trace_tile_swe2'))}</div>
+        <div class="value">${totals.s2}</div>
+      </div>
+      <div class="stat-tile">
+        <div class="label">${esc(t('trace_tile_covered'))}</div>
+        <div class="value">${totals.cov}</div>
+        <div class="sub">${esc(t('trace_tile_sub_cover', covPct, totals.s2 - totals.cov))}</div>
+        <div class="meter"><div style="width:${covPct}%"></div></div>
+      </div>
+      <div class="stat-tile">
+        <div class="label">${esc(t('trace_tile_swe3'))}</div>
+        <div class="value">${totals.s3}</div>
+        <div class="sub">${esc(t('trace_tile_sub_done', totals.s3done, totals.s3, donePct))}</div>
+        <div class="meter"><div style="width:${donePct}%"></div></div>
+      </div>
+    </div>
+
+    <section class="card">
+      <h2>${esc(t('trace_owner_heading'))}</h2>
+      <p class="caption">${esc(t('trace_owner_caption'))}</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>${esc(t('trace_th_owner'))}</th><th>${esc(t('trace_th_req'))}</th>
+            <th>${esc(t('trace_th_swe1'))}</th><th>${esc(t('trace_th_swe2'))}</th>
+            <th>${esc(t('trace_th_covered'))}</th><th>${esc(t('trace_th_coverage'))}</th>
+            <th>${esc(t('trace_th_swe3done'))}</th>
+          </tr></thead>
+          <tbody>${owners.map(o => `
+            <tr class="trace-owner-row" data-owner="${esc(o.owner)}">
+              <td>${esc(o.owner)}</td>
+              <td>${o.reqs}</td>
+              <td>${o.s1}</td>
+              <td>${o.s2}</td>
+              <td>${o.cov}</td>
+              <td>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <div class="trace-meter"><div style="width:${o.pct}%"></div></div>
+                  <span style="font-variant-numeric:tabular-nums;">${o.pct}%</span>
+                </div>
+              </td>
+              <td>${o.s3 ? `${o.s3done} / ${o.s3}` : '—'}</td>
+            </tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>${esc(t('trace_detail_heading'))}</h2>
+      <p class="caption">${esc(t('trace_detail_caption'))}</p>
+      <div class="filters">
+        <select id="traceOwnerFilter"><option value="">${esc(t('trace_filter_all_owner'))}</option>${
+          owners.map(o => `<option value="${esc(o.owner)}">${esc(o.owner)}</option>`).join('')}</select>
+        <select id="traceGapFilter">
+          <option value="">${esc(t('trace_filter_any'))}</option>
+          <option value="gap">${esc(t('trace_filter_gap'))}</option>
+          <option value="has">${esc(t('trace_filter_has'))}</option>
+        </select>
+        <input type="text" id="traceSearch" placeholder="${esc(t('trace_search'))}">
+      </div>
+      <div id="traceGroups"></div>
+    </section>
+  `;
+
+  const ownerSel = document.getElementById('traceOwnerFilter');
+  const gapSel = document.getElementById('traceGapFilter');
+  const search = document.getElementById('traceSearch');
+  const groupsEl = document.getElementById('traceGroups');
+
+  function matches(r) {
+    if (ownerSel.value && r.owner !== ownerSel.value) return false;
+    const q = search.value.trim().toLowerCase();
+    if (q) {
+      const hay = [r.reqid, r.title, r.sub, ...(r.swe1 || []).map(x => x.k + ' ' + x.t),
+                   ...(r.swe2 || []).map(x => x.k + ' ' + x.t)].join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    if (gapSel.value === 'gap') return (r.swe2 || []).some(x => !x.swe3.length);
+    if (gapSel.value === 'has') return (r.swe2 || []).some(x => x.swe3.length);
+    return true;
+  }
+
+  // A requirement's SWE2 list is filtered too, so "only SWE2 without SWE3" shows the
+  // gap itself rather than the whole requirement around it.
+  function visibleSwe2(r) {
+    if (gapSel.value === 'gap') return r.swe2.filter(x => !x.swe3.length);
+    if (gapSel.value === 'has') return r.swe2.filter(x => x.swe3.length);
+    return r.swe2;
+  }
+
+  function renderGroups(openOwner) {
+    const shown = rows.filter(matches);
+    if (!shown.length) {
+      groupsEl.innerHTML = `<div class="empty-state">${esc(t('trace_empty_filter'))}</div>`;
+      return;
+    }
+    const byOwner = new Map();
+    shown.forEach(r => {
+      if (!byOwner.has(r.owner)) byOwner.set(r.owner, []);
+      byOwner.get(r.owner).push(r);
+    });
+    const order = owners.map(o => o.owner).filter(o => byOwner.has(o));
+    groupsEl.innerHTML = order.map(owner => {
+      const stat = owners.find(o => o.owner === owner);
+      const list = byOwner.get(owner);
+      const open = openOwner === owner || order.length === 1;
+      return `
+        <details class="trace-group" data-owner="${esc(owner)}"${open ? ' open' : ''}>
+          <summary>
+            <span>${esc(owner)}</span>
+            <span class="meta">${esc(t('trace_owner_summary', stat.reqs, stat.s1, stat.s2, stat.pct))}</span>
+            <div class="trace-meter"><div style="width:${stat.pct}%"></div></div>
+          </summary>
+          <div class="trace-reqs">${list.map(r => `
+            <div class="trace-req">
+              <div class="trace-req-head">
+                <span class="rid">${esc(r.reqid)}</span>
+                <span class="rtitle">${esc(r.title)}</span>
+                <span class="rmeta">${esc([r.prio, r.sub].filter(Boolean).join(' · '))}</span>
+              </div>
+              ${(r.swe1 || []).map(x => `
+                <div class="trace-line"><span class="lane">SWE1</span>${traceTicket(x)}<span class="trace-title">${esc(x.t)}</span></div>`).join('')}
+              ${visibleSwe2(r).map(x => `
+                <div class="trace-line">
+                  <span class="lane">SWE2</span>${traceTicket(x)}<span class="trace-title">${esc(x.t)}</span>
+                  <span class="trace-arrow">→</span>
+                  ${x.swe3.length
+                    ? x.swe3.map(y => `${traceTicket(y)}`).join('<span class="trace-arrow">,</span> ')
+                    : `<span class="trace-gap">${esc(t('trace_no_swe3'))}</span>`}
+                </div>`).join('') || `<div class="trace-line"><span class="lane"></span><span class="trace-title">${esc(t('trace_no_swe2'))}</span></div>`}
+            </div>`).join('')}</div>
+        </details>`;
+    }).join('');
+  }
+
+  [ownerSel, gapSel].forEach(el => el.addEventListener('change', () => renderGroups()));
+  search.addEventListener('input', () => renderGroups());
+  renderGroups();
+
+  panel.querySelectorAll('.trace-owner-row').forEach(tr => {
+    tr.addEventListener('click', () => {
+      ownerSel.value = tr.dataset.owner;
+      renderGroups(tr.dataset.owner);
+      groupsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+}
+
 function renderPretestPanel() {
   const panel = document.getElementById('panel-Pretest');
   panel.innerHTML = `
@@ -2891,6 +3190,7 @@ document.getElementById('langToggle').addEventListener('click', () => {
   renderBugPanel();
   renderAudioPanel();
   renderPretestPanel();
+  renderTraceabilityPanel();
 });
 
 applyStaticI18n();
@@ -2912,6 +3212,7 @@ renderStatsPanel();
 renderBugPanel();
 renderAudioPanel();
 renderPretestPanel();
+renderTraceabilityPanel();
 initTabs();
 </script>
 </body>
