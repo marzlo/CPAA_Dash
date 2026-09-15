@@ -3034,12 +3034,39 @@ function traceUserName(forcePrompt) {
   return name || '';
 }
 
+// Reads the notes file back. raw.githubusercontent is served through a CDN that can
+// still hand out the pre-commit copy for a few minutes, which used to wipe an edit
+// that had just been saved — so a token holder reads through the Contents API (never
+// cached) and, either way, a copy older than what we already hold is ignored.
+async function fetchTraceNotes() {
+  let token = null;
+  try { token = localStorage.getItem('cpaaDashboardGhToken'); } catch (e) { /* unavailable */ }
+  if (token) {
+    const resp = await fetch(
+      `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_TRACE_NOTES_PATH}?ref=main&t=${Date.now()}`,
+      { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+    if (resp.status === 404) return null;
+    if (resp.ok) {
+      const meta = await resp.json();
+      try { return JSON.parse(decodeURIComponent(escape(atob((meta.content || '').replace(/\n/g, ''))))); } catch (e) { return null; }
+    }
+    // Fall through to the public copy if the token can't read it.
+  }
+  const resp = await fetch(GITHUB_TRACE_NOTES_RAW + '?t=' + Date.now(), { cache: 'no-store' });
+  if (!resp.ok) return null;
+  return resp.json();
+}
+
 async function refreshTraceNotesFromGithub(onLoaded) {
   try {
-    const resp = await fetch(GITHUB_TRACE_NOTES_RAW + '?t=' + Date.now(), { cache: 'no-store' });
-    if (!resp.ok) return;
-    const fresh = await resp.json();
+    const fresh = await fetchTraceNotes();
     if (fresh && typeof fresh === 'object') {
+      // A stale copy must never roll back what this browser just saved. A remote file
+      // with no timestamp at all counts as older than anything we already hold.
+      if (TRACE_NOTES.updated_at &&
+          (!fresh.updated_at || new Date(fresh.updated_at) < new Date(TRACE_NOTES.updated_at))) {
+        return;
+      }
       TRACE_NOTES.confirmed = Object.assign({}, fresh.confirmed || {}, tracePending.confirmed);
       Object.keys(TRACE_NOTES.confirmed).forEach(k => {
         if (TRACE_NOTES.confirmed[k] === null) delete TRACE_NOTES.confirmed[k];
