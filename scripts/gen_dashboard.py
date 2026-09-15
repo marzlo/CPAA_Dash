@@ -37,6 +37,17 @@ except FileNotFoundError:
 
 DATA["traceability"] = TRACEABILITY
 
+# Confirmation ticks and per-ticket comments live in their own small file so the
+# traceability rebuild can overwrite traceability.json every day without touching
+# anything a human wrote. Saved from the browser via the GitHub Contents API.
+try:
+    with open("traceability_notes.json", encoding="utf-8") as f:
+        TRACEABILITY_NOTES = json.load(f)
+except FileNotFoundError:
+    TRACEABILITY_NOTES = {"updated_at": None, "updated_by": None, "confirmed": {}, "comments": {}}
+
+DATA["traceability_notes"] = TRACEABILITY_NOTES
+
 # "</" is escaped as "<\\/" (a valid JSON escape for "/") so that a "</script>" inside
 # any ticket summary or overview note can't close the inline <script> block early.
 DATA_JSON = json.dumps(DATA, ensure_ascii=False).replace("</", "<\\/")
@@ -202,6 +213,36 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   }
   .table-wrap { max-height: 480px; overflow: auto; }
   .empty-state { color: var(--muted); font-size: 13px; padding: 20px; text-align: center; }
+  .trace-confirm {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 12px;
+    color: var(--text-secondary); cursor: pointer; user-select: none; margin-left: auto;
+  }
+  .trace-confirm input { accent-color: var(--good); width: 14px; height: 14px; cursor: pointer; }
+  .trace-confirm.on { color: var(--good); font-weight: 600; }
+  .trace-confirm-meta { font-size: 11px; color: var(--muted); font-weight: 400; }
+  .trace-req.confirmed { background: color-mix(in srgb, var(--good) 5%, transparent); border-radius: 6px; }
+  .cmt-btn {
+    background: none; border: 1px solid var(--border); border-radius: 999px; cursor: pointer;
+    font-size: 11px; color: var(--text-secondary); padding: 0 7px; line-height: 17px;
+  }
+  .cmt-btn:hover { border-color: var(--series-cp); color: var(--series-cp); }
+  .cmt-btn.has { border-color: var(--series-cp); color: var(--series-cp); font-weight: 600; }
+  .cmt-box {
+    margin: 4px 0 8px 50px; padding: 8px 10px; border: 1px solid var(--border);
+    border-radius: 6px; background: var(--page);
+  }
+  .cmt-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .cmt-item { font-size: 12px; }
+  .cmt-item .who { color: var(--muted); font-size: 11px; margin-left: 6px; }
+  .cmt-item .body { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .cmt-form { display: flex; gap: 6px; align-items: flex-start; }
+  .cmt-form textarea {
+    flex: 1; min-height: 46px; resize: vertical; font-family: inherit; font-size: 12px;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 8px; color: var(--text-primary);
+  }
+  .trace-save-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .trace-save-row .meta { font-size: 12px; color: var(--muted); }
   .trace-stats > summary {
     cursor: pointer; list-style: none; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
   }
@@ -523,6 +564,8 @@ const AUDIO = RAW.audio;
 const PRETEST = RAW.pretest;
 const HISTORY = RAW.history || {};
 const TRACE = RAW.traceability || null;
+const TRACE_NOTES = Object.assign({ updated_at: null, updated_by: null, confirmed: {}, comments: {} },
+                                  RAW.traceability_notes || {});
 const OVERVIEW_NOTES = RAW.overview_notes || { updated_at: null, updated_by: null, development_status: '', certification_status: '', risk: '' };
 const FEATURE_COLORS = { "CarPlay": "var(--series-cp)", "Android Auto": "var(--series-aa)", "iPod": "var(--series-ipod)" };
 
@@ -708,6 +751,22 @@ const STRINGS = {
   trace_th_swe2done: { zh: 'SWE2 完成', en: 'SWE2 done' },
   trace_filter_all_assignee: { zh: '全部 Assignee', en: 'All assignees' },
   trace_unassigned: { zh: '(未指派)', en: '(unassigned)' },
+  trace_th_confirmed: { zh: '已確認', en: 'Confirmed' },
+  trace_confirm_label: { zh: '已與 owner 確認', en: 'Confirmed with owner' },
+  trace_confirm_meta: { zh: (who, at) => `${who} · ${at}`, en: (who, at) => `${who} · ${at}` },
+  trace_filter_confirm_any: { zh: '全部確認狀態', en: 'Any confirmation state' },
+  trace_filter_confirm_no: { zh: '只看未確認', en: 'Only unconfirmed' },
+  trace_filter_confirm_yes: { zh: '只看已確認', en: 'Only confirmed' },
+  trace_comment_add: { zh: '送出', en: 'Post' },
+  trace_comment_placeholder: { zh: '對這張票留言…', en: 'Comment on this ticket…' },
+  trace_comment_empty: { zh: '還沒有留言', en: 'No comments yet' },
+  trace_save_button: { zh: n => `儲存變更(${n})`, en: n => `Save changes (${n})` },
+  trace_saving: { zh: '儲存中…', en: 'Saving…' },
+  trace_saved: { zh: '已儲存', en: 'Saved' },
+  trace_save_error: { zh: msg => `儲存失敗:${msg}`, en: msg => `Save failed: ${msg}` },
+  trace_notes_meta: { zh: (at, who) => `確認與留言最後更新:${at} by ${who}`, en: (at, who) => `Confirmations and comments last updated ${at} by ${who}` },
+  trace_notes_meta_never: { zh: '目前還沒有任何確認或留言', en: 'No confirmations or comments yet' },
+  trace_name_prompt: { zh: '請輸入你的名字(會記錄在確認與留言上)', en: 'Your name (recorded on confirmations and comments)' },
   trace_collapse_hint: { zh: '點標題可收合', en: 'click to collapse' },
   trace_detail_heading: { zh: '明細清單(依 Owner 分組)', en: 'Detail by owner' },
   trace_detail_caption: { zh: '每個需求列出對應的 SWE1 與 SWE2 票,SWE2 後面接的是它關聯到的 SWE3 票與狀態', en: 'Each requirement lists its SWE1 and SWE2 tickets; each SWE2 is followed by the SWE3 it links to, with status' },
@@ -2848,10 +2907,11 @@ function traceOwnerStats(rows) {
   const map = new Map();
   rows.forEach(r => {
     if (!map.has(r.owner)) {
-      map.set(r.owner, { owner: r.owner, reqs: 0, s1: new Set(), s2: new Set(), cov: new Set(), s3: new Map() });
+      map.set(r.owner, { owner: r.owner, reqs: 0, confirmed: 0, s1: new Set(), s2: new Set(), cov: new Set(), s3: new Map() });
     }
     const o = map.get(r.owner);
     o.reqs++;
+    if (TRACE_NOTES.confirmed[traceRowId(r)]) o.confirmed++;
     (r.swe1 || []).forEach(x => o.s1.add(x.k));
     (r.swe2 || []).forEach(x => {
       o.s2.add(x.k);
@@ -2863,6 +2923,7 @@ function traceOwnerStats(rows) {
   });
   return [...map.values()].map(o => ({
     owner: o.owner, reqs: o.reqs, s1: o.s1.size, s2: o.s2.size, cov: o.cov.size,
+    confirmed: o.confirmed,
     s3: o.s3.size, s3done: [...o.s3.values()].filter(c => c === 'done').length,
     pct: o.s2.size ? Math.round(o.cov.size / o.s2.size * 100) : 0,
   })).sort((a, b) => b.s2 - a.s2 || b.reqs - a.reqs);
@@ -2905,9 +2966,151 @@ function traceTotals(rows) {
            s3done: [...s3.values()].filter(c => c === 'done').length };
 }
 
-function traceTicket(x) {
-  return `<a class="trace-key" href="${ticketUrl(x.k)}" target="_blank" rel="noopener noreferrer">${esc(x.k)}</a>` +
-         `<span class="st ${x.c}">${esc(x.st)}</span>`;
+// --- Confirmation ticks + per-ticket comments -----------------------------------
+// Both live in traceability_notes.json in the repo (not in traceability.json, which
+// the daily job overwrites). Edits are collected locally and written in one commit
+// through the GitHub Contents API, using the same token the overview notes use; the
+// pending set is applied onto whatever the file says at save time, so two people
+// working at once merge instead of clobbering each other.
+const GITHUB_TRACE_NOTES_PATH = 'traceability_notes.json';
+const GITHUB_TRACE_NOTES_RAW = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/${GITHUB_TRACE_NOTES_PATH}`;
+const tracePending = { confirmed: {}, comments: {} };
+
+function tracePendingCount() {
+  return Object.keys(tracePending.confirmed).length +
+         Object.values(tracePending.comments).reduce((n, list) => n + list.length, 0);
+}
+
+// Short stable id for a requirement row: the same requirement keeps its tick across
+// rebuilds, and a row whose tickets changed gets a new id (so a stale tick can't
+// silently apply to different content).
+function traceRowId(r) {
+  const raw = [r.reqid, r.title, (r.swe1 || []).map(x => x.k).join(','),
+               (r.swe2 || []).map(x => x.k).join(',')].join('|');
+  let h = 0x811c9dc5;
+  for (let i = 0; i < raw.length; i++) {
+    h ^= raw.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(16).padStart(8, '0');
+}
+
+function traceUserName(forcePrompt) {
+  let name = null;
+  try { name = localStorage.getItem('cpaaDashboardUserName'); } catch (e) { /* unavailable */ }
+  if (!name || forcePrompt) {
+    const entered = prompt(t('trace_name_prompt'), name || '');
+    if (entered && entered.trim()) {
+      name = entered.trim();
+      try { localStorage.setItem('cpaaDashboardUserName', name); } catch (e) { /* unavailable */ }
+    }
+  }
+  return name || '';
+}
+
+async function refreshTraceNotesFromGithub(onLoaded) {
+  try {
+    const resp = await fetch(GITHUB_TRACE_NOTES_RAW + '?t=' + Date.now(), { cache: 'no-store' });
+    if (!resp.ok) return;
+    const fresh = await resp.json();
+    if (fresh && typeof fresh === 'object') {
+      TRACE_NOTES.confirmed = Object.assign({}, fresh.confirmed || {}, tracePending.confirmed);
+      Object.keys(TRACE_NOTES.confirmed).forEach(k => {
+        if (TRACE_NOTES.confirmed[k] === null) delete TRACE_NOTES.confirmed[k];
+      });
+      TRACE_NOTES.comments = fresh.comments || {};
+      Object.entries(tracePending.comments).forEach(([k, list]) => {
+        TRACE_NOTES.comments[k] = (TRACE_NOTES.comments[k] || []).concat(list);
+      });
+      TRACE_NOTES.updated_at = fresh.updated_at;
+      TRACE_NOTES.updated_by = fresh.updated_by;
+      if (onLoaded) onLoaded();
+    }
+  } catch (e) { /* offline or file not created yet — keep the baked-in copy */ }
+}
+
+// Applies the pending edits onto the file as it currently stands on GitHub.
+function mergeTraceNotes(remote) {
+  const out = {
+    confirmed: Object.assign({}, remote.confirmed || {}),
+    comments: Object.assign({}, remote.comments || {}),
+  };
+  Object.entries(tracePending.confirmed).forEach(([id, value]) => {
+    if (value === null) delete out.confirmed[id];
+    else out.confirmed[id] = value;
+  });
+  Object.entries(tracePending.comments).forEach(([key, list]) => {
+    out.comments[key] = (out.comments[key] || []).concat(list);
+  });
+  return out;
+}
+
+async function saveTraceNotes(btn) {
+  const token = getGithubToken(false);
+  if (!token) return;
+  const who = traceUserName(false) || t('notes_meta_unknown');
+  btn.disabled = true;
+  const label = btn.textContent;
+  btn.textContent = t('trace_saving');
+  try {
+    const apiBase = `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_TRACE_NOTES_PATH}`;
+    const getResp = await fetch(apiBase, { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' } });
+    let sha, remote = {};
+    if (getResp.ok) {
+      const meta = await getResp.json();
+      sha = meta.sha;
+      try { remote = JSON.parse(decodeURIComponent(escape(atob(meta.content.replace(/\n/g, ''))))); } catch (e) { remote = {}; }
+    } else if (getResp.status !== 404) {
+      throw new Error('GET ' + getResp.status);
+    }
+    const merged = mergeTraceNotes(remote);
+    const payload = Object.assign({ updated_at: new Date().toISOString(), updated_by: who }, merged);
+    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+    const putResp = await fetch(apiBase, {
+      method: 'PUT',
+      headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'Update traceability confirmations and comments', content: b64, sha, branch: 'main' }),
+    });
+    if (!putResp.ok) {
+      const errBody = await putResp.text();
+      throw new Error('PUT ' + putResp.status + ': ' + errBody.slice(0, 200));
+    }
+    tracePending.confirmed = {};
+    tracePending.comments = {};
+    TRACE_NOTES.confirmed = payload.confirmed;
+    TRACE_NOTES.comments = payload.comments;
+    TRACE_NOTES.updated_at = payload.updated_at;
+    TRACE_NOTES.updated_by = payload.updated_by;
+    btn.textContent = t('trace_saved');
+    setTimeout(() => renderTraceabilityPanel(), 900);
+  } catch (err) {
+    alert(t('trace_save_error', String((err && err.message) || err)));
+    btn.disabled = false;
+    btn.textContent = label;
+  }
+}
+
+function traceTicket(x, withComments) {
+  const html = `<a class="trace-key" href="${ticketUrl(x.k)}" target="_blank" rel="noopener noreferrer">${esc(x.k)}</a>` +
+               `<span class="st ${x.c}">${esc(x.st)}</span>`;
+  if (!withComments) return html;
+  const n = (TRACE_NOTES.comments[x.k] || []).length;
+  return html + ` <button type="button" class="cmt-btn${n ? ' has' : ''}" data-cmt="${esc(x.k)}">💬${n || ''}</button>`;
+}
+
+function traceCommentPanel(key) {
+  const list = TRACE_NOTES.comments[key] || [];
+  const body = list.length
+    ? list.map(c => `<div class="cmt-item"><span class="body">${esc(c.text)}</span>` +
+        `<span class="who">— ${esc(c.by || '?')} · ${esc((c.at || '').slice(0, 10))}</span></div>`).join('')
+    : `<div class="cmt-item" style="color:var(--muted)">${esc(t('trace_comment_empty'))}</div>`;
+  return `<div class="cmt-box" data-cmt-box="${esc(key)}" hidden>
+    <div class="cmt-list">${body}</div>
+    <div class="cmt-form">
+      <textarea data-cmt-input="${esc(key)}" placeholder="${esc(t('trace_comment_placeholder'))}"></textarea>
+      <button type="button" class="btn small cmt-post" data-cmt-post="${esc(key)}">${esc(t('trace_comment_add'))}</button>
+    </div>
+  </div>`;
 }
 
 function renderTraceabilityPanel() {
@@ -2963,7 +3166,7 @@ function renderTraceabilityPanel() {
             <th>${esc(t('trace_th_owner'))}</th><th>${esc(t('trace_th_req'))}</th>
             <th>${esc(t('trace_th_swe1'))}</th><th>${esc(t('trace_th_swe2'))}</th>
             <th>${esc(t('trace_th_covered'))}</th><th>${esc(t('trace_th_coverage'))}</th>
-            <th>${esc(t('trace_th_swe3done'))}</th>
+            <th>${esc(t('trace_th_swe3done'))}</th><th>${esc(t('trace_th_confirmed'))}</th>
           </tr></thead>
           <tbody>${owners.map(o => `
             <tr class="trace-owner-row" data-owner="${esc(o.owner)}">
@@ -2979,6 +3182,7 @@ function renderTraceabilityPanel() {
                 </div>
               </td>
               <td>${o.s3 ? `${o.s3done} / ${o.s3}` : '—'}</td>
+              <td data-confirm-cell="${esc(o.owner)}">${o.confirmed} / ${o.reqs}</td>
             </tr>`).join('')}</tbody>
         </table>
       </div>
@@ -3018,11 +3222,21 @@ function renderTraceabilityPanel() {
     <section class="card">
       <h2>${esc(t('trace_detail_heading'))}</h2>
       <p class="caption">${esc(t('trace_detail_caption'))}</p>
+      <div class="trace-save-row">
+        <button type="button" class="btn primary" id="traceSaveBtn" hidden></button>
+        <button type="button" class="btn small" id="traceTokenBtn" title="${esc(t('notes_change_token'))}">🔑</button>
+        <span class="meta" id="traceNotesMeta"></span>
+      </div>
       <div class="filters">
         <select id="traceOwnerFilter"><option value="">${esc(t('trace_filter_all_owner'))}</option>${
           owners.map(o => `<option value="${esc(o.owner)}">${esc(o.owner)}</option>`).join('')}</select>
         <select id="traceAssigneeFilter"><option value="">${esc(t('trace_filter_all_assignee'))}</option>${
           assignees.map(a => `<option value="${esc(a.name)}">${esc(a.name)}</option>`).join('')}</select>
+        <select id="traceConfirmFilter">
+          <option value="">${esc(t('trace_filter_confirm_any'))}</option>
+          <option value="no">${esc(t('trace_filter_confirm_no'))}</option>
+          <option value="yes">${esc(t('trace_filter_confirm_yes'))}</option>
+        </select>
         <select id="traceGapFilter">
           <option value="">${esc(t('trace_filter_any'))}</option>
           <option value="gap">${esc(t('trace_filter_gap'))}</option>
@@ -3037,6 +3251,19 @@ function renderTraceabilityPanel() {
   const ownerSel = document.getElementById('traceOwnerFilter');
   const assigneeSel = document.getElementById('traceAssigneeFilter');
   const gapSel = document.getElementById('traceGapFilter');
+  const confirmSel = document.getElementById('traceConfirmFilter');
+  const saveBtn = document.getElementById('traceSaveBtn');
+  const metaEl = document.getElementById('traceNotesMeta');
+
+  function refreshSaveState() {
+    const n = tracePendingCount();
+    saveBtn.hidden = n === 0;
+    saveBtn.disabled = false;
+    saveBtn.textContent = t('trace_save_button', n);
+    metaEl.textContent = TRACE_NOTES.updated_at
+      ? t('trace_notes_meta', TRACE_NOTES.updated_at.slice(0, 10), TRACE_NOTES.updated_by || t('notes_meta_unknown'))
+      : t('trace_notes_meta_never');
+  }
   const search = document.getElementById('traceSearch');
   const groupsEl = document.getElementById('traceGroups');
 
@@ -3045,6 +3272,8 @@ function renderTraceabilityPanel() {
   function matches(r) {
     if (ownerSel.value && r.owner !== ownerSel.value) return false;
     if (assigneeSel.value && !(r.swe2 || []).some(x => assigneeOf(x) === assigneeSel.value)) return false;
+    if (confirmSel.value === 'yes' && !TRACE_NOTES.confirmed[traceRowId(r)]) return false;
+    if (confirmSel.value === 'no' && TRACE_NOTES.confirmed[traceRowId(r)]) return false;
     const q = search.value.trim().toLowerCase();
     if (q) {
       const hay = [r.reqid, r.title, r.sub, ...(r.swe1 || []).map(x => x.k + ' ' + x.t),
@@ -3089,31 +3318,124 @@ function renderTraceabilityPanel() {
             <span class="meta">${esc(t('trace_owner_summary', stat.reqs, stat.s1, stat.s2, stat.pct))}</span>
             <div class="trace-meter"><div style="width:${stat.pct}%"></div></div>
           </summary>
-          <div class="trace-reqs">${list.map(r => `
-            <div class="trace-req">
+          <div class="trace-reqs">${list.map(r => {
+            const rid = traceRowId(r);
+            const conf = TRACE_NOTES.confirmed[rid];
+            return `
+            <div class="trace-req${conf ? ' confirmed' : ''}" data-row="${rid}">
               <div class="trace-req-head">
                 <span class="rid">${esc(r.reqid)}</span>
                 <span class="rtitle">${esc(r.title)}</span>
                 <span class="rmeta">${esc([r.prio, r.sub].filter(Boolean).join(' · '))}</span>
+                <label class="trace-confirm${conf ? ' on' : ''}">
+                  <input type="checkbox" data-confirm="${rid}"${conf ? ' checked' : ''}>
+                  ${esc(t('trace_confirm_label'))}
+                  <span class="trace-confirm-meta">${conf ? esc(t('trace_confirm_meta', conf.by || '?', (conf.at || '').slice(0, 10))) : ''}</span>
+                </label>
               </div>
               ${(r.swe1 || []).map(x => `
-                <div class="trace-line"><span class="lane">SWE1</span>${traceTicket(x)}<span class="trace-title">${esc(x.t)}</span></div>`).join('')}
+                <div class="trace-line"><span class="lane">SWE1</span>${traceTicket(x, true)}<span class="trace-title">${esc(x.t)}</span></div>
+                ${traceCommentPanel(x.k)}`).join('')}
               ${visibleSwe2(r).map(x => `
                 <div class="trace-line">
-                  <span class="lane">SWE2</span>${traceTicket(x)}<span class="trace-title">${esc(x.t)}</span>
+                  <span class="lane">SWE2</span>${traceTicket(x, true)}<span class="trace-title">${esc(x.t)}</span>
                   <span class="trace-arrow">→</span>
                   ${x.swe3.length
                     ? x.swe3.map(y => `${traceTicket(y)}`).join('<span class="trace-arrow">,</span> ')
                     : `<span class="trace-gap">${esc(t('trace_no_swe3'))}</span>`}
-                </div>`).join('') || `<div class="trace-line"><span class="lane"></span><span class="trace-title">${esc(t('trace_no_swe2'))}</span></div>`}
-            </div>`).join('')}</div>
+                </div>
+                ${traceCommentPanel(x.k)}`).join('') || `<div class="trace-line"><span class="lane"></span><span class="trace-title">${esc(t('trace_no_swe2'))}</span></div>`}
+            </div>`; }).join('')}</div>
         </details>`;
     }).join('');
   }
 
-  [ownerSel, assigneeSel, gapSel].forEach(el => el.addEventListener('change', () => renderGroups()));
+  [ownerSel, assigneeSel, gapSel, confirmSel].forEach(el => el.addEventListener('change', () => renderGroups()));
+  saveBtn.addEventListener('click', () => saveTraceNotes(saveBtn));
+  document.getElementById('traceTokenBtn').addEventListener('click', () => { getGithubToken(true); traceUserName(true); });
   search.addEventListener('input', () => renderGroups());
+
+  // Delegated: the group list is re-rendered whenever a filter changes, so handlers
+  // live on the container rather than on each row.
+  groupsEl.addEventListener('change', e => {
+    const box = e.target.closest('input[data-confirm]');
+    if (!box) return;
+    const rid = box.dataset.confirm;
+    const label = box.closest('.trace-confirm');
+    const block = box.closest('.trace-req');
+    if (box.checked) {
+      const who = traceUserName(false) || t('notes_meta_unknown');
+      const entry = { by: who, at: new Date().toISOString() };
+      TRACE_NOTES.confirmed[rid] = entry;
+      tracePending.confirmed[rid] = entry;
+      label.classList.add('on');
+      block.classList.add('confirmed');
+      label.querySelector('.trace-confirm-meta').textContent = t('trace_confirm_meta', entry.by, entry.at.slice(0, 10));
+    } else {
+      delete TRACE_NOTES.confirmed[rid];
+      tracePending.confirmed[rid] = null;
+      label.classList.remove('on');
+      block.classList.remove('confirmed');
+      label.querySelector('.trace-confirm-meta').textContent = '';
+    }
+    updateConfirmCells();
+    refreshSaveState();
+  });
+
+  groupsEl.addEventListener('click', e => {
+    const toggle = e.target.closest('.cmt-btn');
+    if (toggle) {
+      const box = toggle.closest('.trace-line').nextElementSibling;
+      if (box && box.classList.contains('cmt-box')) box.hidden = !box.hidden;
+      return;
+    }
+    const post = e.target.closest('.cmt-post');
+    if (!post) return;
+    const key = post.dataset.cmtPost;
+    const input = groupsEl.querySelector(`textarea[data-cmt-input="${CSS.escape(key)}"]`);
+    const text = (input.value || '').trim();
+    if (!text) return;
+    const who = traceUserName(false) || t('notes_meta_unknown');
+    const comment = { text, by: who, at: new Date().toISOString() };
+    TRACE_NOTES.comments[key] = (TRACE_NOTES.comments[key] || []).concat([comment]);
+    (tracePending.comments[key] = tracePending.comments[key] || []).push(comment);
+    input.value = '';
+    // Refresh every panel and badge for this ticket — the same key can appear under
+    // several requirements.
+    groupsEl.querySelectorAll(`[data-cmt-box="${CSS.escape(key)}"]`).forEach(box => {
+      const open = !box.hidden;
+      box.outerHTML = traceCommentPanel(key);
+      if (open) {
+        const fresh = groupsEl.querySelector(`[data-cmt-box="${CSS.escape(key)}"]`);
+        if (fresh) fresh.hidden = false;
+      }
+    });
+    const n = TRACE_NOTES.comments[key].length;
+    groupsEl.querySelectorAll(`.cmt-btn[data-cmt="${CSS.escape(key)}"]`).forEach(b => {
+      b.textContent = '💬' + n;
+      b.classList.add('has');
+    });
+    refreshSaveState();
+  });
+
+  function updateConfirmCells() {
+    const counts = new Map();
+    rows.forEach(r => {
+      if (!counts.has(r.owner)) counts.set(r.owner, { n: 0, total: 0 });
+      const c = counts.get(r.owner);
+      c.total++;
+      if (TRACE_NOTES.confirmed[traceRowId(r)]) c.n++;
+    });
+    panel.querySelectorAll('[data-confirm-cell]').forEach(td => {
+      const c = counts.get(td.dataset.confirmCell);
+      if (c) td.textContent = `${c.n} / ${c.total}`;
+    });
+  }
+
+  refreshSaveState();
   renderGroups();
+  // Pick up anything saved by someone else since this page was built.
+  refreshTraceNotesFromGithub(() => { updateConfirmCells(); refreshSaveState(); renderGroups(); });
 
   panel.querySelectorAll('.trace-owner-row').forEach(tr => {
     tr.addEventListener('click', () => {
