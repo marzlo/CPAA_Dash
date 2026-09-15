@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-15T09:27:31.951Z",
+  "updated_at": "2026-09-15T09:28:18.136Z",
   "updated_by": "Leyo",
   "confirmed": {},
   "comments": {
@@ -11,5 +11,16 @@
       }
     ]
   },
-  "owners": {}
+  "owners": {
+    "NR1LT-5423": {
+      "name": "CCCJHuang(黃清俊)",
+      "by": "Leyo",
+      "at": "2026-09-15T09:28:02.873Z"
+    },
+    "NR1LT-5424": {
+      "name": "CCCJHuang(黃清俊)",
+      "by": "Leyo",
+      "at": "2026-09-15T09:28:11.805Z"
+    }
+  }
 }
