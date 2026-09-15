@@ -1,0 +1,445 @@
+owner,reqid,title,cat,sub,prio,frop,swe1,swe2
+,NRL-393379,Accessory Interface Specification CarPlay Addendum,Others.,CP / Accessory Interface Specification CarPlay Addendum,Low,,NR1LT-4955,
+,NRL-393380 / NRL-393381,Purpose of This Specification,Others.,CP / Purpose of This Specification,Low,,NR1LT-4956,
+,NRL-393380 / NRL-393382,"Requirements, Recommendations, and Permissions",Others.,"CP / Requirements, Recommendations, and Permissions",Low,,NR1LT-4957,
+,NRL-393380 / NRL-393383 / NRL-393384,Device,Others.,CP / Device,Low,,NR1LT-4958,
+,NRL-393380 / NRL-393383 / NRL-393385,Accessory,Others.,CP / Accessory,Low,,NR1LT-4959,
+孙文奇,NRL-393386,Accessory Wi‑Fi Information Sharing,Functional,WiFi / Accessory Wi‑Fi Information Sharing,Low,WiFi AP,NR1LT-4960,NR1LT-5243
+孙琦,NRL-393386,Accessory Wi‑Fi Information Sharing,Functional,WiFi / Accessory Wi‑Fi Information Sharing,Low,CarPlay,NR1LT-4960,NR1LT-5244
+孙琦,NRL-393387,Requirements,Functional,WiFi / Requirements,Medium,CarPlay,NR1LT-4961,NR1LT-5245
+孙琦,NRL-393388,Usage,Functional,WiFi / Usage,Medium,CarPlay,NR1LT-4962,NR1LT-5246
+,NRL-393389,Test Procedures,Others.,CP / Test Procedures,Low,,NR1LT-4963,
+,NRL-393390,CarPlay,Functional,CP / CarPlay,Low,,NR1LT-4964,
+,NRL-393391,Additional Specifications,Functional,CP / Additional Specifications,Medium,,NR1LT-4965,
+孙琦,NRL-393392 / NRL-393393,Overview,Functional,CP / Overview,Medium,CarPlay,NR1LT-4966,NR1LT-5238
+,NRL-393392 / NRL-393394,Hardware Requirements,Others.,CP / Hardware Requirements,Low,,NR1LT-4967,
+FrankYHYang(楊宇翔),NRL-393396 / NRL-393395,High Resolution Displays,Functional,CP / High Resolution Displays,Low,Hardware,NR1LT-5190 NR1LT-1283 NR1LT-1284,NR1LT-5428 NR1LT-1034 NR1LT-1035
+哈曼,NRL-393397,Processing,Functional,CP / Processing,Medium,Hardware,NR1LT-1285,NR1LT-5429 NR1LT-1036
+AKSHAY HEGDE,NRL-393398,User Input Devices,Functional,SWC / User Input Devices,Medium,SWC,NR1LT-1286,NR1LT-5430 NR1LT-1037
+孙琦,NRL-393398,User Input Devices,Functional,SWC / User Input Devices,Medium,CarPlay,NR1LT-1286,NR1LT-5431
+哈曼,,Speakers and Microphone,Functional,Audio Management / Speakers and Microphone,Medium,Hardware,NR1LT-4968,NR1LT-5247
+哈曼,,Speakers and Microphone,Functional,Audio Management / Speakers and Microphone,Medium,Audio/ECNR,NR1LT-4968,NR1LT-5248
+孙琦,,Speakers and Microphone,Functional,Audio Management / Speakers and Microphone,Medium,CarPlay,NR1LT-4968,NR1LT-5249
+Sudha M,,Siri Button,Functional,SWC / Siri Button,Low,Hardware,NR1LT-4969,NR1LT-5250
+Sudha M,,Siri Button,Functional,SWC / Siri Button,Low,SWC,NR1LT-4969,NR1LT-5251
+孙琦,,Siri Button,Functional,SWC / Siri Button,Low,CarPlay,NR1LT-4969,NR1LT-5252
+Shane（葉秀軒）,,Siri Button,Functional,SWC / Siri Button,Low,DM,NR1LT-4969,NR1LT-5253
+BrianYang,,CarPlay Entry Point,Functional,CP / CarPlay Entry Point,Medium,Launcher,NR1LT-4970,NR1LT-5254
+BrianYang,,CarPlay Label,Functional,CP / CarPlay Label,Low,Launcher,NR1LT-4971,NR1LT-5255
+BrianYang,,CarPlay Logo,Functional,CP / CarPlay Logo,Low,Launcher,NR1LT-4972,NR1LT-5256
+stanleyKCWu,,CarPlay Icon,Functional,CP / CarPlay Icon,Low,Hardware,NR1LT-4973,NR1LT-5257
+江定远,,Sensors and Location,Functional,GPS/GNSS / Sensors and Location,Medium,GPS/GNSS,NR1LT-4974,NR1LT-5258
+孙琦,,Sensors and Location,Functional,GPS/GNSS / Sensors and Location,Medium,CarPlay,NR1LT-4974,NR1LT-5233
+孙琦,,Connection to the device,Functional,Bluetooth / Connection to the device,Low,CarPlay,NR1LT-4975,NR1LT-5259
+哈曼,,Device Mount Location,Functional,CP / Device Mount Location,Low,Hardware,NR1LT-4976,NR1LT-5260
+孙文奇,NRL-393392 / NRL-393402 / NRL-393401 / NRL-393400 / NRL-393407 / NRL-393405 / NRL-393408 / NRL-393406 / NRL-393403 / NRL-393404 / NRL-393399 / NRL-393409,Architecture,Functional,Bluetooth / Architecture,High,Bluetooth,NR1LT-4977,NR1LT-5261
+孙文奇,NRL-393392 / NRL-393402 / NRL-393401 / NRL-393400 / NRL-393407 / NRL-393405 / NRL-393408 / NRL-393406 / NRL-393403 / NRL-393404 / NRL-393399 / NRL-393409,Architecture,Functional,Bluetooth / Architecture,High,WiFi AP,NR1LT-4977,NR1LT-5262
+哈曼,NRL-393392 / NRL-393402 / NRL-393401 / NRL-393400 / NRL-393407 / NRL-393405 / NRL-393408 / NRL-393406 / NRL-393403 / NRL-393404 / NRL-393399 / NRL-393409,Architecture,Functional,Bluetooth / Architecture,High,USB,NR1LT-4977,NR1LT-5263
+孙琦,NRL-393392 / NRL-393402 / NRL-393401 / NRL-393400 / NRL-393407 / NRL-393405 / NRL-393408 / NRL-393406 / NRL-393403 / NRL-393404 / NRL-393399 / NRL-393409,Architecture,Functional,Bluetooth / Architecture,High,CarPlay,NR1LT-4977,NR1LT-5264
+哈曼,NRL-393392 / NRL-393427 / NRL-393428 / NRL-393424 / NRL-393426 / NRL-393425 / NRL-393410 / NRL-393413 / NRL-393412 / NRL-393411,CarPlay over USB,Functional,USB / CarPlay over USB,Low,USB,NR1LT-5191 NR1LT-1287 NR1LT-1288 NR1LT-1289,NR1LT-5432 NR1LT-629 NR1LT-1038 NR1LT-1039 NR1LT-1040
+孙琦,NRL-393392 / NRL-393427 / NRL-393428 / NRL-393424 / NRL-393426 / NRL-393425 / NRL-393410 / NRL-393413 / NRL-393412 / NRL-393411,CarPlay over USB,Functional,USB / CarPlay over USB,Low,CarPlay,NR1LT-5191 NR1LT-1287 NR1LT-1288 NR1LT-1289,NR1LT-5433
+哈曼,,Role Switch,Functional,USB / Role Switch,Medium,USB,NR1LT-4978,NR1LT-5232
+哈曼,NRL-393419 / NRL-393420 / NRL-393416 / NRL-393417 / NRL-393414 / NRL-393415 / NRL-393418,iAP2 / NCM Interface Configuration,Functional,USB / iAP2 / NCM Interface Configuration,Low,USB,NR1LT-5192 NR1LT-1290 NR1LT-1291,NR1LT-5434 NR1LT-629 NR1LT-1041 NR1LT-1042 NR1LT-1508
+weili.chou,NRL-393419 / NRL-393420 / NRL-393416 / NRL-393417 / NRL-393414 / NRL-393415 / NRL-393418,iAP2 / NCM Interface Configuration,Functional,USB / iAP2 / NCM Interface Configuration,Low,CMS,NR1LT-5192 NR1LT-1290 NR1LT-1291,NR1LT-5435 NR1LT-629 NR1LT-1041 NR1LT-1042
+孙琦,NRL-393419 / NRL-393420 / NRL-393416 / NRL-393417 / NRL-393414 / NRL-393415 / NRL-393418,iAP2 / NCM Interface Configuration,Functional,USB / iAP2 / NCM Interface Configuration,Low,CarPlay,NR1LT-5192 NR1LT-1290 NR1LT-1291,NR1LT-1510 NR1LT-1041
+哈曼,NRL-393421,Authentication,Functional,CP / Authentication,Low,Hardware,NR1LT-1292,NR1LT-5436 NR1LT-1043
+孙琦,NRL-393421,Authentication,Functional,CP / Authentication,Low,CarPlay,NR1LT-1292,NR1LT-5437 NR1LT-1043
+哈曼,NRL-393422,Networking,Functional,USB / Networking,Medium,USB,NR1LT-1293,NR1LT-1762 NR1LT-1044
+weili.chou,NRL-393422,Networking,Functional,USB / Networking,Medium,CMS,NR1LT-1293,NR1LT-5439 NR1LT-1044
+孙琦,NRL-393422,Session Establishment,Functional,USB / Session Establishment,High,CarPlay,NR1LT-5188,NR1LT-5265
+哈曼,NRL-393423,Session Termination,Functional,USB / Session Termination,High,USB,NR1LT-4979,NR1LT-5266
+weili.chou,NRL-393423,Session Termination,Functional,USB / Session Termination,High,CMS,NR1LT-4979,NR1LT-5267
+KVVD Subrahmanyam,NRL-393423,Session Termination,Functional,USB / Session Termination,High,Audio Management,NR1LT-4979,NR1LT-5268
+孙琦,NRL-393423,Session Termination,Functional,USB / Session Termination,High,CarPlay,NR1LT-4979,NR1LT-5269
+孙文奇,NRL-393392 / NRL-393429 / NRL-393433 / NRL-393436 / NRL-393434 / NRL-393430 / NRL-393432 / NRL-393431 / NRL-393435,CarPlay over Wireless,Functional,Bluetooth / CarPlay over Wireless,Low,Bluetooth,NR1LT-5193 NR1LT-1294 NR1LT-1295 NR1LT-1296 NR1LT-1297 NR1LT-1298 NR1LT-1299 NR1LT-1300,NR1LT-5440 NR1LT-549 NR1LT-633 NR1LT-1045 NR1LT-1046 NR1LT-1049 NR1LT-1050 NR1LT-1051 NR1LT-1765 NR1LT-1767 NR1LT-1777 NR1LT-1781 NR1LT-1784
+孙文奇,NRL-393392 / NRL-393429 / NRL-393433 / NRL-393436 / NRL-393434 / NRL-393430 / NRL-393432 / NRL-393431 / NRL-393435,CarPlay over Wireless,Functional,Bluetooth / CarPlay over Wireless,Low,WiFi AP,NR1LT-5193 NR1LT-1294 NR1LT-1295 NR1LT-1296 NR1LT-1297 NR1LT-1298 NR1LT-1299 NR1LT-1300,NR1LT-5441 NR1LT-633 NR1LT-1047 NR1LT-1048 NR1LT-1049 NR1LT-1050 NR1LT-1771 NR1LT-1774 NR1LT-1778
+哈曼,NRL-393392 / NRL-393429 / NRL-393433 / NRL-393436 / NRL-393434 / NRL-393430 / NRL-393432 / NRL-393431 / NRL-393435,CarPlay over Wireless,Functional,Bluetooth / CarPlay over Wireless,Low,USB,NR1LT-5193 NR1LT-1294 NR1LT-1295 NR1LT-1296 NR1LT-1297 NR1LT-1298 NR1LT-1299 NR1LT-1300,NR1LT-5442 NR1LT-1046 NR1LT-1768
+Shane（葉秀軒）,NRL-393392 / NRL-393429 / NRL-393433 / NRL-393436 / NRL-393434 / NRL-393430 / NRL-393432 / NRL-393431 / NRL-393435,CarPlay over Wireless,Functional,Bluetooth / CarPlay over Wireless,Low,DM,NR1LT-5193 NR1LT-1294 NR1LT-1295 NR1LT-1296 NR1LT-1297 NR1LT-1298 NR1LT-1299 NR1LT-1300,NR1LT-5443 NR1LT-633 NR1LT-680 NR1LT-1045 NR1LT-1046 NR1LT-1047 NR1LT-1048 NR1LT-1049 NR1LT-1050 NR1LT-1051 NR1LT-1766 NR1LT-1769 NR1LT-1772 NR1LT-1775 NR1LT-1779 NR1LT-1782 NR1LT-1785
+weili.chou,NRL-393392 / NRL-393429 / NRL-393433 / NRL-393436 / NRL-393434 / NRL-393430 / NRL-393432 / NRL-393431 / NRL-393435,CarPlay over Wireless,Functional,Bluetooth / CarPlay over Wireless,Low,CMS,NR1LT-5193 NR1LT-1294 NR1LT-1295 NR1LT-1296 NR1LT-1297 NR1LT-1298 NR1LT-1299 NR1LT-1300,NR1LT-5444 NR1LT-633 NR1LT-1048 NR1LT-1049 NR1LT-1051
+孙琦,NRL-393392 / NRL-393429 / NRL-393433 / NRL-393436 / NRL-393434 / NRL-393430 / NRL-393432 / NRL-393431 / NRL-393435,CarPlay over Wireless,Functional,Bluetooth / CarPlay over Wireless,Low,CarPlay,NR1LT-5193 NR1LT-1294 NR1LT-1295 NR1LT-1296 NR1LT-1297 NR1LT-1298 NR1LT-1299 NR1LT-1300,NR1LT-5445 NR1LT-633 NR1LT-1046 NR1LT-1047 NR1LT-1048 NR1LT-1049 NR1LT-1050 NR1LT-1051 NR1LT-1770 NR1LT-1773 NR1LT-1776 NR1LT-1780 NR1LT-1783 NR1LT-1786
+孙文奇,NRL-393438 / NRL-393437 / NRL-393439,Accessory CarPlay Bluetooth EIR,Functional,Bluetooth / Accessory CarPlay Bluetooth EIR,Low,Bluetooth,NR1LT-1301,NR1LT-549 NR1LT-1052 NR1LT-1787
+孙文奇,,Device CarPlay Bluetooth EIR,Functional,Bluetooth / Device CarPlay Bluetooth EIR,Low,Bluetooth,NR1LT-4980,NR1LT-549
+孙文奇,,Accessory iAP2 Bluetooth EIR,Functional,Bluetooth / Accessory iAP2 Bluetooth EIR,Medium,Bluetooth,NR1LT-4981,NR1LT-526
+孙琦,,Accessory iAP2 Bluetooth EIR,Functional,Bluetooth / Accessory iAP2 Bluetooth EIR,Medium,CarPlay,NR1LT-4981,NR1LT-5270
+孙文奇,NRL-393441 / NRL-393440,Wi‑Fi Access Point,Functional,WiFi / Wi‑Fi Access Point,Medium,WiFi AP,NR1LT-1302,NR1LT-5446 NR1LT-559 NR1LT-562 NR1LT-1053
+孙琦,NRL-393441 / NRL-393440,Wi‑Fi Access Point,Functional,WiFi / Wi‑Fi Access Point,Medium,CarPlay,NR1LT-1302,NR1LT-5447
+孙文奇,,Example Access Point Bandwidth Requirements,Others.,WiFi / Example Access Point Bandwidth Requirements,Low,WiFi AP,NR1LT-4982,NR1LT-5271
+孙文奇,NRL-393442 / NRL-393443 / NRL-393444,Hardware Requirements,Functional,WiFi / Hardware Requirements,Low,WiFi AP,NR1LT-4983,NR1LT-5272
+孙文奇,NRL-393446 / NRL-393447 / NRL-393445,Frequency Bands,Functional,WiFi / Frequency Bands,Low,WiFi AP,NR1LT-1303,NR1LT-5448 NR1LT-1054 NR1LT-1789
+孙文奇,,Multiple Access Points,Functional,WiFi / Multiple Access Points,Low,WiFi AP,NR1LT-4984,NR1LT-5236
+孙文奇,NRL-393452 / NRL-393449 / NRL-393450 / NRL-393451 / NRL-393448,Wi‑Fi Requirements,Functional,WiFi / Wi‑Fi Requirements,Low,WiFi AP,NR1LT-4985,NR1LT-5542 NR1LT-561
+孙文奇,NRL-393455 / NRL-393453 / NRL-393454,Security,Functional,WiFi / Security,Low,WiFi AP,NR1LT-1304,NR1LT-5449 NR1LT-1055 NR1LT-1791
+孙文奇,NRL-393456 / NRL-393457 / NRL-393459 / NRL-393458 / NRL-393460 / NRL-393461,Privacy,Functional,WiFi / Privacy,Low,WiFi AP,NR1LT-4986,NR1LT-5273
+孙文奇,NRL-393462,Performance,Non-Functional,WiFi / Performance,Low,WiFi AP,NR1LT-4987,NR1LT-5274
+孙文奇,NRL-393463,Wi‑Fi Alliance Compliance and Conformance,Functional,WiFi / Wi‑Fi Alliance Compliance and Conformance,Medium,WiFi AP,NR1LT-4988,NR1LT-5275
+孙文奇,NRL-393464,Interworking Information Element (IE),Functional,WiFi / Interworking Information Element (IE),Low,WiFi AP,NR1LT-4989,NR1LT-5276
+孙文奇,NRL-403407,Apple Device Information Element (IE),Functional,WiFi / Apple Device Information Element (IE),Low,WiFi AP,NR1LT-1305,NR1LT-5450 NR1LT-557 NR1LT-560 NR1LT-1056
+孙文奇,NRL-403408 / NRL-403409 / NRL-403410,Use Cases,Functional,WiFi / Use Cases,Low,WiFi AP,NR1LT-5194 NR1LT-1303 NR1LT-1306 NR1LT-1307 NR1LT-1308,NR1LT-5451 NR1LT-1054 NR1LT-1057 NR1LT-1058 NR1LT-1059 NR1LT-1789 NR1LT-1793
+孙文奇,NRL-403411,Channel Switch Announcement and Extended Channel Switch Announcement,Functional,WiFi / Advanced Protocol / CSA & E-CSA,Low,WiFi AP,NR1LT-1309,NR1LT-1060
+孙文奇,NRL-403412,Beacon Request and Report,Functional,WiFi / Advanced Protocol / Beacon Report,Low,WiFi AP,NR1LT-1310,NR1LT-1061
+孙文奇,NRL-403413,Neighbor Request and Report,Functional,WiFi / Advanced Protocol / Neighbor Report,Low,WiFi AP,NR1LT-1311,NR1LT-1062
+孙文奇,NRL-403419 / NRL-403422 / NRL-403418 / NRL-403414 / NRL-403423 / NRL-403421 / NRL-403424 / NRL-403425 / NRL-403415 / NRL-403420 / NRL-403417 / NRL-403416,BSS Transition Management,Functional,WiFi / BSS Transition Management,Low,WiFi AP,NR1LT-5195 NR1LT-1312 NR1LT-1313 NR1LT-1314 NR1LT-1315 NR1LT-1316 NR1LT-1317 NR1LT-1318 NR1LT-1319 NR1LT-1320 NR1LT-1321 NR1LT-1322 NR1LT-1323,NR1LT-5452 NR1LT-1063 NR1LT-1064 NR1LT-1065 NR1LT-1066 NR1LT-1067 NR1LT-1068 NR1LT-1069 NR1LT-1070 NR1LT-1071 NR1LT-1072 NR1LT-1073 NR1LT-1074
+孙文奇,NRL-403426 / NRL-393465,Networking,Functional,WiFi / Networking,Low,WiFi AP,NR1LT-5196 NR1LT-1324 NR1LT-1325,NR1LT-5453 NR1LT-556 NR1LT-1075 NR1LT-1076
+weili.chou,NRL-403426 / NRL-393465,Networking,Functional,WiFi / Networking,Low,CMS,NR1LT-5196 NR1LT-1324 NR1LT-1325,NR1LT-5454
+孙文奇,,Enabling Internet Data Connectivity,Functional,WiFi / Enabling Internet Data Connectivity,Low,WiFi AP,NR1LT-4990,NR1LT-5277
+孙文奇,NRL-403430 / NRL-403429 / NRL-403428 / NRL-403431 / NRL-403433 / NRL-403427 / NRL-403432 / NRL-403434,Session Establishment,Functional,Bluetooth / Session Establishment,Low,Bluetooth,NR1LT-5197 NR1LT-1326 NR1LT-1327 NR1LT-1328 NR1LT-1329 NR1LT-1330 NR1LT-1331 NR1LT-1332 NR1LT-1333,NR1LT-5455 NR1LT-549 NR1LT-1077 NR1LT-1078 NR1LT-1080 NR1LT-1081 NR1LT-1082 NR1LT-1083 NR1LT-1084 NR1LT-1795 NR1LT-1801 NR1LT-1804 NR1LT-1807 NR1LT-1810 NR1LT-1815
+孙文奇,NRL-403430 / NRL-403429 / NRL-403428 / NRL-403431 / NRL-403433 / NRL-403427 / NRL-403432 / NRL-403434,Session Establishment,Functional,Bluetooth / Session Establishment,Low,WiFi AP,NR1LT-5197 NR1LT-1326 NR1LT-1327 NR1LT-1328 NR1LT-1329 NR1LT-1330 NR1LT-1331 NR1LT-1332 NR1LT-1333,NR1LT-5456 NR1LT-1079 NR1LT-1083 NR1LT-1798 NR1LT-1811
+Shane（葉秀軒）,NRL-403430 / NRL-403429 / NRL-403428 / NRL-403431 / NRL-403433 / NRL-403427 / NRL-403432 / NRL-403434,Session Establishment,Functional,Bluetooth / Session Establishment,Low,DM,NR1LT-5197 NR1LT-1326 NR1LT-1327 NR1LT-1328 NR1LT-1329 NR1LT-1330 NR1LT-1331 NR1LT-1332 NR1LT-1333,NR1LT-5457 NR1LT-680 NR1LT-1078 NR1LT-1079 NR1LT-1080 NR1LT-1081 NR1LT-1082 NR1LT-1083 NR1LT-1084 NR1LT-1796 NR1LT-1799 NR1LT-1802 NR1LT-1805 NR1LT-1808 NR1LT-1812 NR1LT-1817
+weili.chou,NRL-403430 / NRL-403429 / NRL-403428 / NRL-403431 / NRL-403433 / NRL-403427 / NRL-403432 / NRL-403434,Session Establishment,Functional,Bluetooth / Session Establishment,Low,CMS,NR1LT-5197 NR1LT-1326 NR1LT-1327 NR1LT-1328 NR1LT-1329 NR1LT-1330 NR1LT-1331 NR1LT-1332 NR1LT-1333,NR1LT-5458 NR1LT-1079 NR1LT-1081 NR1LT-1082 NR1LT-1084
+孙琦,NRL-403430 / NRL-403429 / NRL-403428 / NRL-403431 / NRL-403433 / NRL-403427 / NRL-403432 / NRL-403434,Session Establishment,Functional,Bluetooth / Session Establishment,Low,CarPlay,NR1LT-5197 NR1LT-1326 NR1LT-1327 NR1LT-1328 NR1LT-1329 NR1LT-1330 NR1LT-1331 NR1LT-1332 NR1LT-1333,NR1LT-5459 NR1LT-1078 NR1LT-1079 NR1LT-1080 NR1LT-1081 NR1LT-1082 NR1LT-1083 NR1LT-1084 NR1LT-1797 NR1LT-1800 NR1LT-1803 NR1LT-1806 NR1LT-1809 NR1LT-1813 NR1LT-1818
+孙文奇,NRL-403435 / NRL-403436,Session Reconnection,Functional,Bluetooth / Session Reconnection,High,WiFi AP,NR1LT-5198 NR1LT-1334 NR1LT-1335,NR1LT-1826 NR1LT-1085 NR1LT-1086 NR1LT-1821
+Shane（葉秀軒）,NRL-403435 / NRL-403436,Session Reconnection,Functional,Bluetooth / Session Reconnection,High,DM,NR1LT-5198 NR1LT-1334 NR1LT-1335,NR1LT-5460 NR1LT-680 NR1LT-1085 NR1LT-1086 NR1LT-1822 NR1LT-1827
+weili.chou,NRL-403435 / NRL-403436,Session Reconnection,Functional,Bluetooth / Session Reconnection,High,CMS,NR1LT-5198 NR1LT-1334 NR1LT-1335,NR1LT-5461 NR1LT-1085 NR1LT-1086
+孙琦,NRL-403435 / NRL-403436,Session Reconnection,Functional,Bluetooth / Session Reconnection,High,CarPlay,NR1LT-5198 NR1LT-1334 NR1LT-1335,NR1LT-1828 NR1LT-1085 NR1LT-1086 NR1LT-1823
+Santoshkumar Hiremath,,Reconnection Latencies,Non-Functional,Bluetooth / Reconnection Latencies,Low,Power Management,NR1LT-4991,NR1LT-5278
+孙文奇,,Reconnection Latencies,Non-Functional,Bluetooth / Reconnection Latencies,Low,Framework/Bluetooth,NR1LT-4991,NR1LT-5279
+Shane（葉秀軒）,,Reconnection Latencies,Non-Functional,Bluetooth / Reconnection Latencies,Low,DM,NR1LT-4991,NR1LT-5280
+孙琦,,Reconnection Latencies,Non-Functional,Bluetooth / Reconnection Latencies,Low,CarPlay,NR1LT-4991,NR1LT-5281
+,,Session Termination,Functional,CP / Session Termination,Low,,NR1LT-4992,
+孙文奇,NRL-403437,Leaving the Vehicle,Functional,CP / Session Termination / Power Off,High,Bluetooth,NR1LT-1336,NR1LT-1829 NR1LT-1087
+孙文奇,NRL-403437,Leaving the Vehicle,Functional,CP / Session Termination / Power Off,High,WiFi AP,NR1LT-1336,NR1LT-1830 NR1LT-1087
+weili.chou,NRL-403437,Leaving the Vehicle,Functional,CP / Session Termination / Power Off,High,CMS,NR1LT-1336,NR1LT-5462 NR1LT-569 NR1LT-691
+孙琦,NRL-403437,Leaving the Vehicle,Functional,CP / Session Termination / Power Off,High,CarPlay,NR1LT-1336,NR1LT-1831 NR1LT-691 NR1LT-1087
+Santoshkumar Hiremath,NRL-403437,Leaving the Vehicle,Functional,CP / Session Termination / Power Off,High,Power Management,NR1LT-1336,NR1LT-1832 NR1LT-569 NR1LT-691 NR1LT-1087
+孙文奇,NRL-403439 / NRL-403441 / NRL-403438 / NRL-403440,Direct User Action,Functional,Bluetooth / Direct User Action,Low,WiFi AP,NR1LT-5199 NR1LT-1337 NR1LT-1338 NR1LT-1339 NR1LT-1340,NR1LT-5463 NR1LT-1088 NR1LT-1089 NR1LT-1090 NR1LT-1091 NR1LT-1834 NR1LT-1837 NR1LT-1839 NR1LT-1842 NR1LT-2696
+Shane（葉秀軒）,NRL-403439 / NRL-403441 / NRL-403438 / NRL-403440,Direct User Action,Functional,Bluetooth / Direct User Action,Low,DM,NR1LT-5199 NR1LT-1337 NR1LT-1338 NR1LT-1339 NR1LT-1340,NR1LT-5464 NR1LT-568 NR1LT-1088 NR1LT-1089 NR1LT-1090 NR1LT-2696
+weili.chou,NRL-403439 / NRL-403441 / NRL-403438 / NRL-403440,Direct User Action,Functional,Bluetooth / Direct User Action,Low,CMS,NR1LT-5199 NR1LT-1337 NR1LT-1338 NR1LT-1339 NR1LT-1340,NR1LT-5465 NR1LT-2696
+Santoshkumar Hiremath,NRL-403439 / NRL-403441 / NRL-403438 / NRL-403440,Direct User Action,Functional,Bluetooth / Direct User Action,Low,Power Management,NR1LT-5199 NR1LT-1337 NR1LT-1338 NR1LT-1339 NR1LT-1340,NR1LT-5466
+孙琦,NRL-403439 / NRL-403441 / NRL-403438 / NRL-403440,Direct User Action,Functional,Bluetooth / Direct User Action,Low,CarPlay,NR1LT-5199 NR1LT-1337 NR1LT-1338 NR1LT-1339 NR1LT-1340,NR1LT-5467 NR1LT-1088 NR1LT-1089 NR1LT-1090 NR1LT-1091 NR1LT-1835 NR1LT-1838 NR1LT-1840 NR1LT-1843 NR1LT-2696
+孙文奇,NRL-403442,Out of Range,Functional,CP / Session Termination / Out of Range,High,WiFi AP,NR1LT-1341,NR1LT-5468 NR1LT-1092
+孙琦,NRL-403442,Out of Range,Functional,CP / Session Termination / Out of Range,High,CarPlay,NR1LT-1341,NR1LT-1092
+孙文奇,NRL-403443,Unexpected Disconnect,Functional,WiFi / Unexpected Disconnect,Medium,Bluetooth,NR1LT-1342,NR1LT-5469 NR1LT-1093
+孙文奇,NRL-403443,Unexpected Disconnect,Functional,WiFi / Unexpected Disconnect,Medium,WiFi AP,NR1LT-1342,NR1LT-5470 NR1LT-1093 NR1LT-1844
+Shane（葉秀軒）,NRL-403443,Unexpected Disconnect,Functional,WiFi / Unexpected Disconnect,Medium,DM,NR1LT-1342,NR1LT-5471 NR1LT-1093 NR1LT-1845
+weili.chou,NRL-403443,Unexpected Disconnect,Functional,WiFi / Unexpected Disconnect,Medium,CMS,NR1LT-1342,NR1LT-5472 NR1LT-1093
+孙琦,NRL-403443,Unexpected Disconnect,Functional,WiFi / Unexpected Disconnect,Medium,CarPlay,NR1LT-1342,NR1LT-5473 NR1LT-1093 NR1LT-1846
+Shane（葉秀軒）,,Supporting Multiple Devices,Functional,Device Manager / Supporting Multiple Devices,Low,System,NR1LT-4993,NR1LT-5234
+Shane（葉秀軒）,,Supporting Multiple Devices,Functional,Device Manager / Supporting Multiple Devices,Low,DM,NR1LT-4993,NR1LT-5282
+weili.chou,,Supporting Multiple Devices,Functional,Device Manager / Supporting Multiple Devices,Low,CMS,NR1LT-4993,NR1LT-5283
+孙琦,,Supporting Multiple Devices,Functional,Device Manager / Supporting Multiple Devices,Low,CarPlay,NR1LT-4993,NR1LT-5284
+,,Wireless Coexistence,Functional,Bluetooth / Wireless Coexistence,Medium,,NR1LT-4994,
+孙文奇,NRL-403444,Wi‑Fi and Bluetooth Coexistence,Functional,Bluetooth / Wi‑Fi and Bluetooth Coexistence,Low,WiFi AP,NR1LT-1343,NR1LT-5474 NR1LT-633 NR1LT-1094 NR1LT-1848
+weili.chou,NRL-403444,Wi‑Fi and Bluetooth Coexistence,Functional,Bluetooth / Wi‑Fi and Bluetooth Coexistence,Low,CMS,NR1LT-1343,NR1LT-5475 NR1LT-633 NR1LT-1094
+孙琦,NRL-403444,Wi‑Fi and Bluetooth Coexistence,Functional,Bluetooth / Wi‑Fi and Bluetooth Coexistence,Low,CarPlay,NR1LT-1343,NR1LT-5476 NR1LT-633
+孙文奇,NRL-403445,Wi‑Fi and Cellular Coexistence,Functional,WiFi / Wi‑Fi and Cellular Coexistence,Low,WiFi AP,NR1LT-1344,NR1LT-1095
+孙文奇,,Wi‑Fi and Coexistence with Other RF Technologies,Functional,WiFi / Wi‑Fi and Coexistence with Other RF Technologies,Low,WiFi AP,NR1LT-4995,NR1LT-5285
+孙文奇,,Multiple Wi‑Fi Access Points,Functional,WiFi / Multiple Wi‑Fi Access Points,Low,WiFi AP,NR1LT-4996,NR1LT-5286
+孙琦,NRL-403446,Supporting USB Data Ports,Functional,USB / Supporting USB Data Ports,Medium,CarPlay,NR1LT-1345,NR1LT-1852 NR1LT-1096
+孙文奇,NRL-403447 / NRL-403449 / NRL-403448 / NRL-403450,USB port supports CarPlay,Functional,USB / USB port supports CarPlay,Low,Bluetooth,NR1LT-5200 NR1LT-1346 NR1LT-1347 NR1LT-1348 NR1LT-1349,NR1LT-1855 NR1LT-1098
+weili.chou,NRL-403447 / NRL-403449 / NRL-403448 / NRL-403450,USB port supports CarPlay,Functional,USB / USB port supports CarPlay,Low,USB,NR1LT-5200 NR1LT-1346 NR1LT-1347 NR1LT-1348 NR1LT-1349,NR1LT-5477 NR1LT-1097 NR1LT-1098 NR1LT-1856
+Shane（葉秀軒）,NRL-403447 / NRL-403449 / NRL-403448 / NRL-403450,USB port supports CarPlay,Functional,USB / USB port supports CarPlay,Low,DM,NR1LT-5200 NR1LT-1346 NR1LT-1347 NR1LT-1348 NR1LT-1349,NR1LT-5478 NR1LT-681 NR1LT-1097 NR1LT-1098 NR1LT-1099 NR1LT-1100 NR1LT-1853 NR1LT-1857 NR1LT-1859
+weili.chou,NRL-403447 / NRL-403449 / NRL-403448 / NRL-403450,USB port supports CarPlay,Functional,USB / USB port supports CarPlay,Low,CMS,NR1LT-5200 NR1LT-1346 NR1LT-1347 NR1LT-1348 NR1LT-1349,NR1LT-5479 NR1LT-1097 NR1LT-1098 NR1LT-1099 NR1LT-1100
+孙琦,NRL-403447 / NRL-403449 / NRL-403448 / NRL-403450,USB port supports CarPlay,Functional,USB / USB port supports CarPlay,Low,CarPlay,NR1LT-5200 NR1LT-1346 NR1LT-1347 NR1LT-1348 NR1LT-1349,NR1LT-5480 NR1LT-681 NR1LT-1097 NR1LT-1098 NR1LT-1099 NR1LT-1100 NR1LT-1854 NR1LT-1858 NR1LT-1860
+weili.chou,NRL-403453 / NRL-403451 / NRL-403452,USB port does not support CarPlay,Functional,USB / USB port does not support CarPlay,Low,USB,NR1LT-5201 NR1LT-1350 NR1LT-1351 NR1LT-1352,NR1LT-5481 NR1LT-1103 NR1LT-1864
+Shane（葉秀軒）,NRL-403453 / NRL-403451 / NRL-403452,USB port does not support CarPlay,Functional,USB / USB port does not support CarPlay,Low,DM,NR1LT-5201 NR1LT-1350 NR1LT-1351 NR1LT-1352,NR1LT-5482 NR1LT-1101 NR1LT-1103 NR1LT-1861 NR1LT-1865
+weili.chou,NRL-403453 / NRL-403451 / NRL-403452,USB port does not support CarPlay,Functional,USB / USB port does not support CarPlay,Low,CMS,NR1LT-5201 NR1LT-1350 NR1LT-1351 NR1LT-1352,NR1LT-5483 NR1LT-1103
+孙琦,NRL-403453 / NRL-403451 / NRL-403452,USB port does not support CarPlay,Functional,USB / USB port does not support CarPlay,Low,CarPlay,NR1LT-5201 NR1LT-1350 NR1LT-1351 NR1LT-1352,NR1LT-5484 NR1LT-1101 NR1LT-1102 NR1LT-1103 NR1LT-1862 NR1LT-1866
+孙琦,NRL-393392 / NRL-393466 / NRL-403454,Software Clients,Functional,USB / Software Clients,Medium,CarPlay,NR1LT-1353,NR1LT-1868 NR1LT-1104
+孙琦,NRL-403456 / NRL-403455 / NRL-403464,iAP2 Client over USB,Functional,USB / iAP2 Client over USB,Low,CarPlay,NR1LT-5202 NR1LT-1354 NR1LT-1355 NR1LT-1363,NR1LT-5485 NR1LT-1105 NR1LT-1106 NR1LT-1869 NR1LT-1871
+FrankYHYang(楊宇翔),NRL-403456 / NRL-403455 / NRL-403464,iAP2 Client over USB,Functional,USB / iAP2 Client over USB,Low,Framework/GNSS,NR1LT-5202 NR1LT-1354 NR1LT-1355 NR1LT-1363,NR1LT-5486 NR1LT-1105 NR1LT-1106 NR1LT-1114 NR1LT-1870 NR1LT-1872
+Shane（葉秀軒）,NRL-403458 / NRL-403457,iAP2 Client over Bluetooth,Functional,Bluetooth / iAP2 Client over Bluetooth,Medium,DM,NR1LT-5203 NR1LT-1356 NR1LT-1357,NR1LT-5487 NR1LT-681 NR1LT-1108 NR1LT-1875
+weili.chou,NRL-403458 / NRL-403457,iAP2 Client over Bluetooth,Functional,Bluetooth / iAP2 Client over Bluetooth,Medium,CMS,NR1LT-5203 NR1LT-1356 NR1LT-1357,NR1LT-5488 NR1LT-1108
+孙琦,NRL-403458 / NRL-403457,iAP2 Client over Bluetooth,Functional,Bluetooth / iAP2 Client over Bluetooth,Medium,CarPlay,NR1LT-5203 NR1LT-1356 NR1LT-1357,NR1LT-5489 NR1LT-681 NR1LT-1107 NR1LT-1108 NR1LT-1876
+孙琦,NRL-403461 / NRL-403459 / NRL-403460,CarPlay Client,Functional,CP / CarPlay Client,Low,CarPlay,NR1LT-5204 NR1LT-1358 NR1LT-1359 NR1LT-1360,NR1LT-5490 NR1LT-1109 NR1LT-1110 NR1LT-1111 NR1LT-1878 NR1LT-1884
+孙琦,NRL-408237 / NRL-403462 / NRL-403463,iAP2 Client over CarPlay Client,Functional,GPS/GNSS / iAP2 Client over CarPlay Client,Low,CarPlay,NR1LT-5205 NR1LT-1361 NR1LT-1362,NR1LT-5491 NR1LT-683 NR1LT-684 NR1LT-1112 NR1LT-1113
+孙琦,NRL-403466 / NRL-403465,iOS Applications for CarPlay,Functional,CP / iOS Applications for CarPlay,Low,CarPlay,NR1LT-5206 NR1LT-1364 NR1LT-1365,NR1LT-5492 NR1LT-690 NR1LT-1115 NR1LT-1116
+孙琦,NRL-393392 / NRL-393467 / NRL-403467,Media Types and Formats,Functional,CP / Media Types and Formats,Medium,CarPlay,NR1LT-1366,NR1LT-1117
+哈曼,NRL-393468,User Interface Streams,Functional,CP / User Interface Streams,Low,Hardware/System,NR1LT-5189,NR1LT-5287
+孙琦,NRL-393468,User Interface Streams,Functional,CP / User Interface Streams,Low,CarPlay,NR1LT-5189,NR1LT-5288
+哈曼,NRL-393482 / NRL-393481 / NRL-393468,H.264,Functional,CP / H.264,Low,Hardware/System,NR1LT-1367,NR1LT-5493
+孙琦,NRL-393482 / NRL-393481 / NRL-393468,H.264,Functional,CP / H.264,Low,CarPlay,NR1LT-1367,NR1LT-5494
+哈曼,,HEVC,Functional,CP / HEVC,Medium,Hardware/System,NR1LT-4997,NR1LT-5289
+孙琦,,HEVC,Functional,CP / HEVC,Medium,CarPlay,NR1LT-4997,NR1LT-5290
+,,Example Video Stream Configurations,Others.,CP / Example Video Stream Configurations,Low,,NR1LT-4998,
+孙琦,NRL-403469 / NRL-403468,Main Display,Functional,CP / Main Display,Low,CarPlay,NR1LT-5207 NR1LT-1368 NR1LT-1369,NR1LT-5495 NR1LT-1119 NR1LT-1120
+K M MOHAMMED HUSSAIN,NRL-403473 / NRL-403474 / NRL-403471 / NRL-403472 / NRL-403470,Instrument Cluster Display,Functional,CP / Instrument Cluster Display,Low,Cluster,NR1LT-5208 NR1LT-1370 NR1LT-1371 NR1LT-1372 NR1LT-1373 NR1LT-1374,NR1LT-5496 NR1LT-685 NR1LT-1121 NR1LT-1122 NR1LT-1123 NR1LT-1124 NR1LT-1125
+孙琦,NRL-403473 / NRL-403474 / NRL-403471 / NRL-403472 / NRL-403470,Instrument Cluster Display,Functional,CP / Instrument Cluster Display,Low,CarPlay,NR1LT-5208 NR1LT-1370 NR1LT-1371 NR1LT-1372 NR1LT-1373 NR1LT-1374,NR1LT-5497 NR1LT-685 NR1LT-1121 NR1LT-1122 NR1LT-1123 NR1LT-1124
+孙琦,,Display Panel Information,Functional,CP / Display Panel Information,Medium,CarPlay,NR1LT-4945,NR1LT-5291
+FrankYHYang(楊宇翔),,Display Panel Information,Functional,CP / Display Panel Information,Medium,Hardware,NR1LT-4945,NR1LT-5292
+孙琦,,View Area,Functional,CP / View Area,Low,CarPlay,NR1LT-4946,NR1LT-5293
+K M MOHAMMED HUSSAIN,,View Area,Functional,CP / View Area,Low,Cluster,NR1LT-4946,NR1LT-5294
+孙琦,,Safe Area,Functional,CP / Safe Area,Low,CarPlay,NR1LT-4947,NR1LT-5295
+K M MOHAMMED HUSSAIN,,Safe Area,Functional,CP / Safe Area,Low,Cluster,NR1LT-4947,NR1LT-5296
+孙琦,NRL-408238,UI Layout Configurations,Functional,CP / UI Layout Configurations,Low,CarPlay,NR1LT-4948,NR1LT-5297
+K M MOHAMMED HUSSAIN,NRL-408238,UI Layout Configurations,Functional,CP / UI Layout Configurations,Low,Cluster,NR1LT-4948,NR1LT-5298
+孙琦,,Corner Clipping Masks,Functional,CP / Corner Clipping Masks,Medium,CarPlay,NR1LT-4949,NR1LT-5299
+孙琦,,Status Bar Position,Functional,CP / Status Bar Position,Low,CarPlay,NR1LT-4999,NR1LT-5300
+孙琦,,Appearance Modes,Functional,CP / Appearance Modes,Medium,CarPlay,NR1LT-4950,NR1LT-5301
+哈曼,NRL-403479 / NRL-393475 / NRL-393473 / NRL-393470 / NRL-403477 / NRL-403478 / NRL-393469 / NRL-393474 / NRL-403476 / NRL-393476 / NRL-403475 / NRL-403480 / NRL-393471 / NRL-393472,Audio,Functional,Audio Management / Audio,Low,Audio/ECNR,NR1LT-5209 NR1LT-1375 NR1LT-1376 NR1LT-1377 NR1LT-1378 NR1LT-1379 NR1LT-1380 NR1LT-1381 NR1LT-1382 NR1LT-1383 NR1LT-1384 NR1LT-1385,NR1LT-5498 NR1LT-593 NR1LT-1126 NR1LT-1127 NR1LT-1132 NR1LT-1898 NR1LT-1907 NR1LT-1931
+KVVD Subrahmanyam,NRL-403479 / NRL-393475 / NRL-393473 / NRL-393470 / NRL-403477 / NRL-403478 / NRL-393469 / NRL-393474 / NRL-403476 / NRL-393476 / NRL-403475 / NRL-403480 / NRL-393471 / NRL-393472,Audio,Functional,Audio Management / Audio,Low,Audio Management,NR1LT-5209 NR1LT-1375 NR1LT-1376 NR1LT-1377 NR1LT-1378 NR1LT-1379 NR1LT-1380 NR1LT-1381 NR1LT-1382 NR1LT-1383 NR1LT-1384 NR1LT-1385,NR1LT-5499 NR1LT-607 NR1LT-1126 NR1LT-1127 NR1LT-1128 NR1LT-1129 NR1LT-1130 NR1LT-1131 NR1LT-1132 NR1LT-1133 NR1LT-1134 NR1LT-1135 NR1LT-1136 NR1LT-1896 NR1LT-1905 NR1LT-1912 NR1LT-1916 NR1LT-1921 NR1LT-1925 NR1LT-1929 NR1LT-1936 NR1LT-1941 NR1LT-1945
+孙琦,NRL-403479 / NRL-393475 / NRL-393473 / NRL-393470 / NRL-403477 / NRL-403478 / NRL-393469 / NRL-393474 / NRL-403476 / NRL-393476 / NRL-403475 / NRL-403480 / NRL-393471 / NRL-393472,Audio,Functional,Audio Management / Audio,Low,CarPlay,NR1LT-5209 NR1LT-1375 NR1LT-1376 NR1LT-1377 NR1LT-1378 NR1LT-1379 NR1LT-1380 NR1LT-1381 NR1LT-1382 NR1LT-1383 NR1LT-1384 NR1LT-1385,NR1LT-5500 NR1LT-1126 NR1LT-1127 NR1LT-1128 NR1LT-1129 NR1LT-1130 NR1LT-1131 NR1LT-1132 NR1LT-1133 NR1LT-1134 NR1LT-1135 NR1LT-1136 NR1LT-1892 NR1LT-1900 NR1LT-1910 NR1LT-1914 NR1LT-1919 NR1LT-1923 NR1LT-1927 NR1LT-1934 NR1LT-1939 NR1LT-1943
+哈曼,,Main Audio ‑ Entertainment,Functional,Audio Management / Main Audio ‑ Entertainment,Medium,Audio Management,NR1LT-5000,NR1LT-5302
+孙琦,,Main Audio ‑ Entertainment,Functional,Audio Management / Main Audio ‑ Entertainment,Medium,CarPlay,NR1LT-5000,NR1LT-5303
+哈曼,NRL-393484 / NRL-393485 / NRL-393483 / NRL-393480 / NRL-393478 / NRL-393479 / NRL-638712,Main Audio ‑ Telephony,Functional,Audio Management / Main Audio ‑ Telephony,Low,Audio/ECNR,NR1LT-5001,NR1LT-5304
+哈曼,NRL-393484 / NRL-393485 / NRL-393483 / NRL-393480 / NRL-393478 / NRL-393479 / NRL-638712,Main Audio ‑ Telephony,Functional,Audio Management / Main Audio ‑ Telephony,Low,Audio Management,NR1LT-5001,NR1LT-5305
+孙琦,NRL-393484 / NRL-393485 / NRL-393483 / NRL-393480 / NRL-393478 / NRL-393479 / NRL-638712,Main Audio ‑ Telephony,Functional,Audio Management / Main Audio ‑ Telephony,Low,CarPlay,NR1LT-5001,NR1LT-5306
+哈曼,NRL-638712,Main Audio ‑ FaceTime Audio,Functional,Audio Management / Main Audio ‑ FaceTime Audio,Low,Audio/ECNR,NR1LT-5002,NR1LT-5307
+哈曼,NRL-638712,Main Audio ‑ FaceTime Audio,Functional,Audio Management / Main Audio ‑ FaceTime Audio,Low,Audio Management,NR1LT-5002,NR1LT-5308
+孙琦,NRL-638712,Main Audio ‑ FaceTime Audio,Functional,Audio Management / Main Audio ‑ FaceTime Audio,Low,CarPlay,NR1LT-5002,NR1LT-5309
+哈曼,,Main Audio ‑ Speech Recognition,Functional,Audio Management / Main Audio ‑ Speech Recognition,Low,Audio/ECNR,NR1LT-5003,NR1LT-5310
+哈曼,,Main Audio ‑ Speech Recognition,Functional,Audio Management / Main Audio ‑ Speech Recognition,Low,Audio Management,NR1LT-5003,NR1LT-5311
+孙琦,,Main Audio ‑ Speech Recognition,Functional,Audio Management / Main Audio ‑ Speech Recognition,Low,CarPlay,NR1LT-5003,NR1LT-5312
+哈曼,,Main Audio ‑ Alert,Functional,Audio Management / Main Audio ‑ Alert,Medium,Audio Management,NR1LT-5004,NR1LT-5313
+孙琦,,Main Audio ‑ Alert,Functional,Audio Management / Main Audio ‑ Alert,Medium,CarPlay,NR1LT-5004,NR1LT-5239
+哈曼,,Main Audio ‑ Default,Functional,Audio Management / Main Audio ‑ Default,Low,Audio/ECNR,NR1LT-5005,NR1LT-5314
+哈曼,,Main Audio ‑ Default,Functional,Audio Management / Main Audio ‑ Default,Low,Audio Management,NR1LT-5005,NR1LT-5315
+孙琦,,Main Audio ‑ Default,Functional,Audio Management / Main Audio ‑ Default,Low,CarPlay,NR1LT-5005,NR1LT-5316
+哈曼,,Main High Audio ‑ Entertainment,Functional,Audio Management / Main High Audio ‑ Entertainment,Medium,Audio Management,NR1LT-5006,NR1LT-5317
+孙琦,,Main High Audio ‑ Entertainment,Functional,Audio Management / Main High Audio ‑ Entertainment,Medium,CarPlay,NR1LT-5006,NR1LT-5318
+哈曼,,Main Buffered Audio ‑ Entertainment,Functional,Audio Management / Main Buffered Audio ‑ Entertainment,Low,Audio Management,NR1LT-5007,NR1LT-5319
+孙琦,,Main Buffered Audio ‑ Entertainment,Functional,Audio Management / Main Buffered Audio ‑ Entertainment,Low,CarPlay,NR1LT-5007,NR1LT-5320
+哈曼,,Spatial Audio,Functional,Audio Management / Spatial Audio,Low,Audio Management,NR1LT-5008,NR1LT-5543 NR1LT-600
+孙琦,,Spatial Audio,Functional,Audio Management / Spatial Audio,Low,CarPlay,NR1LT-5008,NR1LT-5321
+哈曼,NRL-393477,Alternate Audio,Functional,Audio Management / Alternate Audio,Medium,Audio Management,NR1LT-5009,NR1LT-5322
+孙琦,NRL-393477,Alternate Audio,Functional,Audio Management / Alternate Audio,Medium,CarPlay,NR1LT-5009,NR1LT-5323
+哈曼,,Auxiliary Input Audio ‑ Speech Recognition,Functional,SSE/ECNR / Auxiliary Input Audio ‑ Speech Recognition,Low,Audio/ECNR,NR1LT-5010,NR1LT-5324
+哈曼,,Auxiliary Input Audio ‑ Speech Recognition,Functional,SSE/ECNR / Auxiliary Input Audio ‑ Speech Recognition,Low,Audio Management,NR1LT-5010,NR1LT-5325
+孙琦,,Auxiliary Input Audio ‑ Speech Recognition,Functional,SSE/ECNR / Auxiliary Input Audio ‑ Speech Recognition,Low,CarPlay,NR1LT-5010,NR1LT-5326
+哈曼,,Auxiliary Output Audio ‑ Speech Recognition,Functional,SSE/ECNR / Auxiliary Output Audio ‑ Speech Recognition,Medium,Audio Management,NR1LT-5011,NR1LT-5327
+孙琦,,Auxiliary Output Audio ‑ Speech Recognition,Functional,SSE/ECNR / Auxiliary Output Audio ‑ Speech Recognition,Medium,CarPlay,NR1LT-5011,NR1LT-5328
+KVVD Subrahmanyam,NRL-393488 / NRL-393486 / NRL-393487,Mixing,Functional,Audio Management / Mixing,Medium,Audio Management,NR1LT-5012,NR1LT-5329
+孙琦,NRL-393488 / NRL-393486 / NRL-393487,Mixing,Functional,Audio Management / Mixing,Medium,CarPlay,NR1LT-5012,NR1LT-5330
+KVVD Subrahmanyam,NRL-393489 / NRL-403482 / NRL-403481,Volume Management,Functional,Audio Management / Volume Management,Low,Audio Management,NR1LT-5210 NR1LT-1386 NR1LT-1387,NR1LT-5501 NR1LT-598 NR1LT-599 NR1LT-611 NR1LT-1137 NR1LT-1138
+KVVD Subrahmanyam,NRL-403484 / NRL-403483,Ducking,Functional,Audio Management / Ducking,Low,Audio Management,NR1LT-5211 NR1LT-1388 NR1LT-1389,NR1LT-5502 NR1LT-596 NR1LT-609 NR1LT-1139 NR1LT-1140 NR1LT-1949 NR1LT-1953
+孙琦,NRL-403484 / NRL-403483,Ducking,Functional,Audio Management / Ducking,Low,CarPlay,NR1LT-5211 NR1LT-1388 NR1LT-1389,NR1LT-1951 NR1LT-1139 NR1LT-1140 NR1LT-1947
+孙琦,NRL-393490,CarPlay Communication Protocol,Interface,CP / CarPlay Communication Protocol,Low,CarPlay,NR1LT-5013,NR1LT-5331
+,NRL-393491,Discovery,Others.,CP / Discovery,Low,,NR1LT-5014,
+孙琦,,Device Discovery by Accessories,Functional,CP / Device Discovery by Accessories,Low,CarPlay,NR1LT-4951,NR1LT-5332
+孙琦,,CarPlay Control,Functional,CP / CarPlay Control,Low,CarPlay,NR1LT-4952,NR1LT-5333
+孙琦,,Accessory Discovery,Functional,CP / Accessory Discovery,Low,CarPlay,NR1LT-4953,NR1LT-5334
+孙琦,NRL-393492,Setup and Control,Functional,CP / Setup and Control,Medium,CarPlay,NR1LT-5015,NR1LT-5335
+孙琦,,Pairing,Functional,CP / Pairing,Medium,CarPlay,NR1LT-5016,NR1LT-5336
+,,Encryption,Others.,CP / Encryption,Low,,NR1LT-5017,
+孙琦,,Control and Event Channel Encryption,Functional,CP / Control and Event Channel Encryption,Medium,CarPlay,NR1LT-4954,NR1LT-5337
+孙琦,,Media Payload Encryption,Functional,CP / Media Payload Encryption,Medium,CarPlay,NR1LT-5018,NR1LT-5338
+孙琦,,MFI‑SAP,Functional,CP / MFI‑SAP,Medium,CarPlay,NR1LT-5019,NR1LT-5339
+,NRL-408239,Info Message,Interface,CP / Info Message,Low,,NR1LT-5020,
+,,Setup Message,Interface,CP / Setup Message,Low,,NR1LT-5021,
+,,Streams,Interface,CP / Streams,Low,,NR1LT-5022,
+,,Feedback Message,Interface,CP / Feedback Message,Low,,NR1LT-5023,
+,,URLs,Interface,CP / URLs,Low,,NR1LT-5024,
+孙琦,NRL-403485,Synchronization,Functional,CP / Synchronization,Low,CarPlay,NR1LT-1390,NR1LT-5503 NR1LT-1141
+孙琦,,Wall Clock Synchronization,Others.,CP / Wall Clock Synchronization,Low,CarPlay,NR1LT-5025,NR1LT-5340
+孙琦,NRL-403486,Media Clock Synchronization,Functional,CP / Media Clock Synchronization,Medium,CarPlay,NR1LT-1391,NR1LT-5504 NR1LT-1142
+孙琦,NRL-403487,Keepalive,Functional,CP / Keepalive,Medium,CarPlay,NR1LT-1392,NR1LT-1143
+孙琦,NRL-393493 / NRL-403488,Resources,Functional,CP / Resources,Low,CarPlay,NR1LT-1393,NR1LT-5505 NR1LT-1144 NR1LT-1956
+KVVD Subrahmanyam,NRL-393493 / NRL-403488,Resources,Functional,CP / Resources,Low,Audio Management,NR1LT-1393,NR1LT-5506 NR1LT-587 NR1LT-686 NR1LT-1144 NR1LT-1958
+Build-in VR,NRL-393493 / NRL-403488,Resources,Functional,CP / Resources,Low,Build-in VR,NR1LT-1393,NR1LT-5507
+孙琦,NRL-393493 / NRL-403489,App States,Functional,CP / App States,Low,CarPlay,NR1LT-1394,NR1LT-5508 NR1LT-684 NR1LT-686 NR1LT-1145 NR1LT-1959
+孙琦,NRL-393493 / NRL-403490,Resource Ownership,Functional,CP / Resource Ownership,Low,CarPlay,NR1LT-1395,NR1LT-5509 NR1LT-686 NR1LT-1146 NR1LT-1964
+,NRL-393493,Examples of Resource Management,Others.,CP / Examples of Resource Management,Low,,NR1LT-5026,
+孙琦,NRL-393494,Modes,Functional,CP / Modes,Low,CarPlay,NR1LT-5027,NR1LT-5341
+KVVD Subrahmanyam,NRL-393494,Modes,Functional,CP / Modes,Low,Audio Management,NR1LT-5027,NR1LT-5342
+孙琦,,Initial Mode,Functional,CP / Initial Mode,Low,CarPlay,NR1LT-5028,NR1LT-5343
+KVVD Subrahmanyam,,Initial Mode,Functional,CP / Initial Mode,Low,Audio Management,NR1LT-5028,NR1LT-5344
+孙琦,,Mode Changes,Functional,CP / Mode Changes,Low,CarPlay,NR1LT-5029,NR1LT-5345
+KVVD Subrahmanyam,,Mode Changes,Functional,CP / Mode Changes,Low,Audio Management,NR1LT-5029,NR1LT-5346
+孙琦,,Current Mode,Functional,CP / Current Mode,Medium,CarPlay,NR1LT-5030,NR1LT-5347
+Sudha M,NRL-393495 / NRL-403491 / NRL-638713,User Input,Functional,SWC / User Input,Low,SWC,NR1LT-1396,NR1LT-5510 NR1LT-1028 NR1LT-1147
+孙琦,NRL-393495 / NRL-403491 / NRL-638713,User Input,Functional,SWC / User Input,Low,CarPlay,NR1LT-1396,NR1LT-5511 NR1LT-1028
+,,Digitizer Support (Touchscreen and Touchpad),Others.,CP / Digitizer Support (Touchscreen and Touchpad),Low,,NR1LT-5031,
+孙琦,,Touchscreen,Functional,CP / Touchscreen,Low,CarPlay,NR1LT-5032,NR1LT-614
+孙琦,,Touchpad,Functional,CP / Touchpad,Medium,CarPlay,NR1LT-5033,NR1LT-5348
+孙琦,,HID Descriptor Support,Functional,CP / HID Descriptor Support,Low,CarPlay,NR1LT-5034,NR1LT-5349
+孙琦,,Single Touch,Functional,CP / Single Touch,Medium,CarPlay,NR1LT-5035,NR1LT-5350
+孙琦,,Buttons Accompanying Single Touch,Functional,CP / Buttons Accompanying Single Touch,Medium,CarPlay,NR1LT-5036,NR1LT-5351
+孙琦,,Character Input Gesture Support,Functional,CP / Character Input Gesture Support,Low,CarPlay,NR1LT-5037,NR1LT-5352
+孙琦,,Basic Character Gesture Recognition,Functional,CP / Basic Character Gesture Recognition,Low,CarPlay,NR1LT-5038,NR1LT-5353
+孙琦,,Character Gesture Recognition with Alternate Interpretations,Functional,CP / Character Gesture Recognition with Alternate Interpretations,Medium,CarPlay,NR1LT-5039,NR1LT-5354
+AKSHAY HEGDE,NRL-393497,Knob Support (Multi‑axis Controller),Functional,SWC / Knob Support (Multi‑axis Controller),Low,SWC,NR1LT-1398,NR1LT-5512 NR1LT-1149
+孙琦,NRL-393497,Knob Support (Multi‑axis Controller),Functional,SWC / Knob Support (Multi‑axis Controller),Low,CarPlay,NR1LT-1398,NR1LT-5513
+孙琦,NRL-403492,UI Focus Transfer,Functional,CP / UI Focus Transfer,Low,CarPlay,NR1LT-1399,NR1LT-5514 NR1LT-1150
+孙琦,,Transferring Focus from Built‑in UI to CarPlay UI,Functional,CP / Transferring Focus from Built‑in UI to CarPlay UI,Low,CarPlay,NR1LT-5040,NR1LT-5355
+孙琦,,Transferring Focus from CarPlay UI to Built‑in UI,Functional,CP / Transferring Focus from CarPlay UI to Built‑in UI,Medium,CarPlay,NR1LT-5041,NR1LT-5356
+孙琦,,Initial Focus,Functional,CP / Initial Focus,Medium,CarPlay,NR1LT-5042,NR1LT-5357
+孙琦,NRL-393496 / NRL-408240,Buttons,Functional,SWC / Buttons,Low,CarPlay,NR1LT-1397,NR1LT-5515 NR1LT-1028 NR1LT-1148
+FrankYHYang(楊宇翔),,Human Presence,Functional,SWC / Human Presence,Low,Hardware,NR1LT-5043,NR1LT-5358
+孙琦,,Human Presence,Functional,SWC / Human Presence,Low,CarPlay,NR1LT-5043,NR1LT-5237
+stanleyKCWu,NRL-393498,Shortcut Buttons,Functional,SWC / Shortcut Buttons,Medium,SWC/SystemUI,NR1LT-5044,NR1LT-5359
+孙琦,NRL-393498,Shortcut Buttons,Functional,SWC / Shortcut Buttons,Medium,CarPlay,NR1LT-5044,NR1LT-5360
+孙琦,,UI Context,Functional,SWC / UI Context,Low,CarPlay,NR1LT-5045,NR1LT-5361
+stanleyKCWu,,Telephony,Functional,SWC / Telephony,Medium,SWC/SystemUI,NR1LT-5046,NR1LT-5362
+孙琦,,Telephony,Functional,SWC / Telephony,Medium,CarPlay,NR1LT-5046,NR1LT-5363
+stanleyKCWu,,Navigation and Map,Functional,SWC / Navigation and Map,Low,SWC/SystemUI,NR1LT-5047,NR1LT-5364
+孙琦,,Navigation and Map,Functional,SWC / Navigation and Map,Low,CarPlay,NR1LT-5047,NR1LT-5365
+stanleyKCWu,,Alternate Actions,Functional,SWC / Alternate Actions,Low,SWC/SystemUI,NR1LT-5048,NR1LT-5366
+孙琦,,Alternate Actions,Functional,SWC / Alternate Actions,Low,CarPlay,NR1LT-5048,NR1LT-5367
+Sudha M,NRL-393499 / NRL-403493,Activating Siri,Functional,SWC / Activating Siri,Low,SWC,NR1LT-1400,NR1LT-5516
+孙琦,NRL-393499 / NRL-403493,Activating Siri,Functional,SWC / Activating Siri,Low,CarPlay,NR1LT-1400,NR1LT-5517 NR1LT-1151 NR1LT-1968
+Sudha M,,Button Activation from the Accessory,Functional,SWC / Button Activation from the Accessory,Medium,SWC,NR1LT-5049,NR1LT-5368
+孙琦,,Button Activation from the Accessory,Functional,SWC / Button Activation from the Accessory,Medium,CarPlay,NR1LT-5049,NR1LT-5369
+Sudha M,NRL-393500,Overloaded Speech Recognition Button,Functional,SWC / Overloaded Speech Recognition Button,Low,SWC,NR1LT-1401,NR1LT-5518
+孙琦,NRL-393500,Overloaded Speech Recognition Button,Functional,SWC / Overloaded Speech Recognition Button,Low,CarPlay,NR1LT-1401,NR1LT-5519 NR1LT-1152
+Sudha M,,Dedicated Siri Button,Functional,SWC / Dedicated Siri Button,High,SWC,NR1LT-5050,NR1LT-5370
+孙琦,,Dedicated Siri Button,Functional,SWC / Dedicated Siri Button,High,CarPlay,NR1LT-5050,NR1LT-5371
+哈曼,,Voice Activation from the Accessory,Functional,SSE/ECNR / Voice Activation from the Accessory,Low,Audio/ECNR,NR1LT-5051,NR1LT-5372
+KVVD Subrahmanyam,,Voice Activation from the Accessory,Functional,SSE/ECNR / Voice Activation from the Accessory,Low,Audio Management,NR1LT-5051,NR1LT-5373
+孙琦,,Voice Activation from the Accessory,Functional,SSE/ECNR / Voice Activation from the Accessory,Low,CarPlay,NR1LT-5051,NR1LT-5374
+哈曼,,Keyword Detection Mode,Functional,SSE/ECNR / Keyword Detection Mode,High,Audio/ECNR,NR1LT-5052,NR1LT-5375
+哈曼,,Keyword Detection Mode,Functional,SSE/ECNR / Keyword Detection Mode,High,Audio Management,NR1LT-5052,NR1LT-5235
+孙琦,,Keyword Detection Mode,Functional,SSE/ECNR / Keyword Detection Mode,High,CarPlay,NR1LT-5052,NR1LT-5376
+哈曼,,Voice Activity Detection Mode,Functional,SSE/ECNR / Voice Activity Detection Mode,Low,Audio/ECNR,NR1LT-5053,NR1LT-5377
+哈曼,,Voice Activity Detection Mode,Functional,SSE/ECNR / Voice Activity Detection Mode,Low,Audio Management,NR1LT-5053,NR1LT-5235
+孙琦,,Voice Activity Detection Mode,Functional,SSE/ECNR / Voice Activity Detection Mode,Low,CarPlay,NR1LT-5053,NR1LT-5378
+孙琦,,Deactivated,Functional,SSE/ECNR / Deactivated,Medium,CarPlay,NR1LT-5054,NR1LT-5379
+孙琦,,Activating from the Device,Functional,CP / Activating from the Device,Medium,CarPlay,NR1LT-5055,NR1LT-5380
+KVVD Subrahmanyam,,Multiple Voice Assistants,Functional,Audio Management / Multiple Voice Assistants,Low,Audio/ECNR,NR1LT-5056,NR1LT-5381
+Sudha M,,Multiple Voice Assistants,Functional,Audio Management / Multiple Voice Assistants,Low,SWC,NR1LT-5056,NR1LT-5382
+孙琦,,Multiple Voice Assistants,Functional,Audio Management / Multiple Voice Assistants,Low,CarPlay,NR1LT-5056,NR1LT-5383
+孙琦,,Legacy Siri Mode,Functional,CP / Legacy Siri Mode,Medium,CarPlay,NR1LT-5057,NR1LT-5384
+,NRL-393501,Commands,Interface,CP / Commands,Low,,NR1LT-5058,
+,,duckAudio,Interface,Audio Management / duckAudio,Low,,NR1LT-5059,
+,,unduckAudio,Interface,Audio Management / unduckAudio,Low,,NR1LT-5060,
+,,disableBluetooth,Interface,Bluetooth / disableBluetooth,Medium,,NR1LT-5061,
+,,changeModes,Interface,Audio Management / changeModes,Medium,,NR1LT-5062,
+,,modesChanged,Interface,Audio Management / modesChanged,Medium,,NR1LT-5063,
+,,forceKeyFrame,Interface,CP / forceKeyFrame,Low,,NR1LT-5064,
+,,hidSendReport,Interface,CP / hidSendReport,Medium,,NR1LT-5065,
+,,hidSetInputMode,Interface,CP / hidSetInputMode,Medium,,NR1LT-5066,
+,,requestSiri,Interface,CP / requestSiri,Low,,NR1LT-5067,
+,,requestUI,Interface,CP / requestUI,Medium,,NR1LT-5068,
+,NRL-393502,setNightMode,Interface,CP / setNightMode,Medium,,NR1LT-1402,
+,,setLimitedUI,Interface,CP / setLimitedUI,Low,,NR1LT-5069,
+,,updateVehicleInformation,Interface,CAN / updateVehicleInformation,Low,,NR1LT-5070,
+,,iAPSendMessage,Interface,CP / iAPSendMessage,Medium,,NR1LT-5071,
+,,flushAudio,Interface,Audio Management / flushAudio,Low,,NR1LT-5072,
+,,performHapticFeedback,Interface,CP / performHapticFeedback,High,,NR1LT-5073,
+,,updateViewArea,Interface,CP / updateViewArea,Medium,,NR1LT-5074,
+,,requestViewArea,Interface,CP / requestViewArea,Low,,NR1LT-5075,
+,,changeUIContext,Interface,CP / changeUIContext,Medium,,NR1LT-5076,
+,,accessoryGiveFocus,Interface,CP / accessoryGiveFocus,Medium,,NR1LT-5077,
+,,deviceOfferFocus,Interface,CP / deviceOfferFocus,Medium,,NR1LT-5078,
+,,accessoryAcquireFocus,Interface,CP / accessoryAcquireFocus,Low,,NR1LT-5079,
+,,showUI,Interface,CP / showUI,Low,,NR1LT-5080,
+,,stopUI,Interface,CP / stopUI,Medium,,NR1LT-5081,
+,,suggestUI,Interface,CP / suggestUI,Medium,,NR1LT-5082,
+,,uiAppearanceUpdate,Interface,CP / uiAppearanceUpdate,Medium,,NR1LT-5083,
+,,mapAppearanceUpdate,Interface,CP / mapAppearanceUpdate,Medium,,NR1LT-5084,
+,,changeMapZoomLevel,Interface,TbT / changeMapZoomLevel,Low,,NR1LT-5085,
+,,updateDisplayPanels,Interface,CP / updateDisplayPanels,Medium,,NR1LT-5086,
+,,updateVocoderInfo,Interface,Bluetooth / updateVocoderInfo,Medium,,NR1LT-5087,
+孙琦,NRL-393503,CarPlay Communication Plug‑in,Functional,CP / CarPlay Communication Plug‑in,Low,CarPlay,NR1LT-5088,NR1LT-5385
+,NRL-393504,Test Procedures,Others.,CP / Test Procedures,Low,,NR1LT-5089,
+,NRL-393505,CarPlay Connection,Others.,CP / CarPlay Connection,Low,,NR1LT-5090,
+孙琦,NRL-393506,Requirements,Functional,CP / Requirements,Medium,CarPlay,NR1LT-5091,NR1LT-5386
+孙琦,NRL-393507,Usage,Functional,Bluetooth / Usage,Low,CarPlay,NR1LT-5092,NR1LT-5387
+,NRL-393508,Test Procedures,Others.,CP / Test Procedures,Low,,NR1LT-5093,
+,NRL-393509,Car Keys Pairing,Others.,System / Car Keys Pairing,Low,,NR1LT-5094,
+孙琦,NRL-393510,Requirements,Functional,System / Requirements,Medium,System,NR1LT-5095,NR1LT-5388
+孙琦,NRL-393510,Requirements,Functional,System / Requirements,Medium,CarPlay,NR1LT-5095,NR1LT-5389
+孙琦,NRL-393511,Usage,Functional,System / Usage,Medium,System,NR1LT-5096,NR1LT-5390
+孙琦,NRL-393511,Usage,Functional,System / Usage,Medium,CarPlay,NR1LT-5096,NR1LT-5391
+,NRL-393512,Test Procedures,Others.,System / Test Procedures,Low,,NR1LT-5097,
+,NRL-393513,Car Keys Matching,Others.,System / Car Keys Matching,Low,,NR1LT-5098,
+孙琦,NRL-393514,Requirements,Functional,System / Requirements,Medium,System,NR1LT-5099,NR1LT-5392
+孙琦,NRL-393514,Requirements,Functional,System / Requirements,Medium,CarPlay,NR1LT-5099,NR1LT-5393
+孙琦,NRL-393515,Usage,Functional,System / Usage,Medium,System,NR1LT-5100,NR1LT-5394
+孙琦,NRL-393515,Usage,Functional,System / Usage,Medium,CarPlay,NR1LT-5100,NR1LT-5395
+,NRL-393516,Test Procedures,Others.,System / Test Procedures,Low,,NR1LT-5101,
+,NRL-393517,Destination Information,Functional,TbT / Destination Information,Low,,NR1LT-5102,
+孙琦,NRL-393518,Requirements,Functional,TbT / Requirements,Medium,CarPlay,NR1LT-5103,NR1LT-5396
+Build-in Navigation,NRL-393519,Usage,Functional,TbT / Usage,Low,Build-in Navigation,NR1LT-5104,NR1LT-5397
+孙琦,NRL-393519,Usage,Functional,TbT / Usage,Low,CarPlay,NR1LT-5104,NR1LT-5398
+,NRL-393520,Test Procedures,Others.,TbT / Test Procedures,Low,,NR1LT-5105,
+Build-in Navigation,NRL-393521,Electric Vehicle Routing,Functional,TbT / Electric Vehicle Routing,Low,Build-in Navigation,NR1LT-5106,NR1LT-5399
+FrankYHYang(楊宇翔),NRL-393521,Electric Vehicle Routing,Functional,TbT / Electric Vehicle Routing,Low,Framework,NR1LT-5106,NR1LT-5400
+孙琦,NRL-393521,Electric Vehicle Routing,Functional,TbT / Electric Vehicle Routing,Low,CarPlay,NR1LT-5106,NR1LT-5401
+K M MOHAMMED HUSSAIN,NRL-393522,Route Guidance,Functional,TbT / Route Guidance,Medium,SystemUI/Cluster/Heads-up,NR1LT-5107,NR1LT-5402
+孙琦,NRL-393522,Route Guidance,Functional,TbT / Route Guidance,Medium,CarPlay,NR1LT-5107,NR1LT-5403
+孙琦,NRL-393523,Requirements,Functional,TbT / Requirements,Medium,CarPlay,NR1LT-5108,NR1LT-5404
+孙琦,NRL-393524 / NRL-403494,Usage,Functional,TbT / Usage,Low,CarPlay,NR1LT-1403,NR1LT-5520 NR1LT-1154
+,NRL-393525 / NRL-393526,Normal Junction Example,Others.,TbT / Normal Junction Example,Low,,NR1LT-5109,
+,NRL-393525 / NRL-393527,Roundabout Junction Example,Others.,TbT / Roundabout Junction Example,Low,,NR1LT-5110,
+,NRL-393525 / NRL-393528,Example Usage,Others.,TbT / Example Usage,Low,,NR1LT-5111,
+,NRL-393529,Test Procedures,Others.,TbT / Test Procedures,Low,,NR1LT-5112,
+FrankYHYang(楊宇翔),NRL-393530 / NRL-393531,Vehicle Status,Functional,CAN / Vehicle Status,Low,System,NR1LT-1404,NR1LT-5521
+孙琦,NRL-393530 / NRL-393531,Vehicle Status,Functional,CAN / Vehicle Status,Low,CarPlay,NR1LT-1404,NR1LT-5522
+FrankYHYang(楊宇翔),NRL-393532,Requirements,Functional,CAN / Requirements,Medium,System,NR1LT-5113,NR1LT-5405
+孙琦,NRL-393532,Requirements,Functional,CAN / Requirements,Medium,CarPlay,NR1LT-5113,NR1LT-5406
+FrankYHYang(楊宇翔),NRL-393533,Usage,Functional,CAN / Usage,Medium,System,NR1LT-5114,NR1LT-5407
+孙琦,NRL-393533,Usage,Functional,CAN / Usage,Medium,CarPlay,NR1LT-5114,NR1LT-5408
+,NRL-393534,Addendum: Accessory Identification,Others.,CP / Addendum: Accessory Identification,Low,,NR1LT-5115,
+孙琦,NRL-393535,Requirements,Functional,CP / Requirements,Medium,CarPlay,NR1LT-5116,NR1LT-5409
+,NRL-393536,Usage,Others.,CP / Usage,Low,,NR1LT-5117,
+,NRL-393537,Test Procedures,Others.,CP / Test Procedures,Low,,NR1LT-5118,
+孙琦,NRL-393538,Addendum: App Discovery,Functional,CP / Addendum: App Discovery,Low,CarPlay,NR1LT-5119,NR1LT-5240
+孙琦,NRL-393539,Requirements,Functional,CP / Requirements,Low,CarPlay,NR1LT-5120,NR1LT-5410
+孙琦,NRL-393540,Usage,Functional,CP / Usage,Low,CarPlay,NR1LT-5121,NR1LT-5411
+,NRL-393541,Addendum: Communications,Others.,Bluetooth / Addendum: Communications,Low,,NR1LT-5122,
+孙琦,NRL-393542,Requirements,Functional,Bluetooth / Requirements,Medium,CarPlay,NR1LT-5123,NR1LT-5412
+孙琦,NRL-393543 / NRL-393544,List Updates,Functional,Bluetooth / List Updates,Low,CarPlay,NR1LT-5124,NR1LT-5413
+,NRL-393545,Test Procedures,Others.,Bluetooth / Test Procedures,Low,,NR1LT-5125,
+孙琦,NRL-393546,Addendum: Device Notifications,Functional,CP / Addendum: Device Notifications,Low,CarPlay,NR1LT-5126,NR1LT-5414
+孙琦,NRL-393547,Requirements,Functional,Bluetooth / Requirements,Low,CarPlay,NR1LT-5127,NR1LT-5415
+,NRL-393548,Usage,Others.,CP / Usage,Low,,NR1LT-5128,
+,NRL-393549,Test Procedures,Others.,CP / Test Procedures,Low,,NR1LT-5129,
+,NRL-393550,Addendum: Location Information,Others.,GPS/GNSS / Addendum: Location Information,Low,,NR1LT-5130,
+江定远,NRL-393551 / NRL-393552,Requirements,Functional,GPS/GNSS / Requirements,Low,GPS/GNSS,NR1LT-1405,NR1LT-5523 NR1LT-1156 NR1LT-1979
+孙琦,NRL-393551 / NRL-393552,Requirements,Functional,GPS/GNSS / Requirements,Low,CarPlay,NR1LT-1405,NR1LT-1977 NR1LT-1156
+江定远,NRL-393553 / NRL-393554,Global Navigation Satellite System (GNSS) Positioning Module,Functional,GPS/GNSS / Global Navigation Satellite System (GNSS) Positioning Module,Low,GPS/GNSS,NR1LT-1406,NR1LT-1984 NR1LT-632 NR1LT-1157
+孙琦,NRL-393553 / NRL-393554,Global Navigation Satellite System (GNSS) Positioning Module,Functional,GPS/GNSS / Global Navigation Satellite System (GNSS) Positioning Module,Low,CarPlay,NR1LT-1406,NR1LT-1982 NR1LT-1157
+江定远,NRL-393555 / NRL-393556,Speed,Functional,CAN / Speed,Medium,CAN,NR1LT-1407,NR1LT-1990 NR1LT-618 NR1LT-1158
+孙琦,NRL-393555 / NRL-393556,Speed,Functional,CAN / Speed,Medium,CarPlay,NR1LT-1407,NR1LT-1988 NR1LT-618 NR1LT-1158
+江定远,NRL-393557,Aftermarket Installation,Functional,GPS/GNSS / Aftermarket Installation,Medium,GPS/GNSS,NR1LT-5131,NR1LT-5241
+江定远,NRL-393557,Aftermarket Installation,Functional,GPS/GNSS / Aftermarket Installation,Medium,CAN,NR1LT-5131,NR1LT-5416
+stanleyKCWu,NRL-393557,Aftermarket Installation,Functional,GPS/GNSS / Aftermarket Installation,Medium,Pop-Up,NR1LT-5131,NR1LT-5417
+孙琦,NRL-393557,Aftermarket Installation,Functional,GPS/GNSS / Aftermarket Installation,Medium,CarPlay,NR1LT-5131,NR1LT-5418
+Santoshkumar Hiremath,NRL-393558 / NRL-393559,Performance,Non-Functional,GPS/GNSS / Performance,Low,Power Management,NR1LT-1408,NR1LT-5524
+江定远,NRL-393558 / NRL-393559,Performance,Non-Functional,GPS/GNSS / Performance,Low,GPS/GNSS,NR1LT-1408,NR1LT-1994 NR1LT-632 NR1LT-1159
+江定远,NRL-393558 / NRL-393559,Performance,Non-Functional,GPS/GNSS / Performance,Low,CAN,NR1LT-1408,NR1LT-5525 NR1LT-632
+孙琦,NRL-393558 / NRL-393559,Performance,Non-Functional,GPS/GNSS / Performance,Low,CarPlay,NR1LT-1408,NR1LT-1992 NR1LT-1159
+江定远,NRL-393560,Usage,Functional,GPS/GNSS / Usage,Low,GPS/GNSS,NR1LT-5132,NR1LT-5419
+江定远,NRL-393560,Usage,Functional,GPS/GNSS / Usage,Low,CAN,NR1LT-5132,NR1LT-5420
+孙琦,NRL-393560,Usage,Functional,GPS/GNSS / Usage,Low,CarPlay,NR1LT-5132,NR1LT-5421
+,NRL-393561,Test Procedures,Others.,GPS/GNSS / Test Procedures,Low,,NR1LT-5133,
+孙琦,NRL-393562,Addendum: iAP2,Functional,CP / Addendum: iAP2,Medium,CarPlay,NR1LT-5134,NR1LT-5422
+,NRL-393563 / NRL-393564,Setup Datagram (Version 2),Interface,CP / Setup Datagram (Version 2),Low,,NR1LT-5135,
+,NRL-393565,Addendum: USB,Others.,USB / Addendum: USB,Low,,NR1LT-5136,
+weili.chou,NRL-393566 / NRL-393567,USB Role Switch Usage,Functional,USB / USB Role Switch Usage,Medium,USB,NR1LT-5137,NR1LT-5423
+weili.chou,NRL-393566 / NRL-393567,USB Role Switch Usage,Functional,USB / USB Role Switch Usage,Medium,CMS,NR1LT-5137,NR1LT-5424
+,NRL-393568,Test Procedures,Others.,USB / Test Procedures,Low,,NR1LT-5138,
+,NRL-393569 / NRL-393570,Accessory Wi‑Fi Information Sharing,Others.,WiFi / Accessory Wi‑Fi Information Sharing,Low,,NR1LT-5139,
+,NRL-393571,RequestAccessoryWiFiConfigurationInformation,Interface,WiFi / RequestAccessoryWiFiConfigurationInformation,Low,,NR1LT-5140,
+,NRL-393572,AccessoryWiFiConfigurationInformation,Interface,WiFi / AccessoryWiFiConfigurationInformation,Medium,,NR1LT-5141,
+,NRL-393569 / NRL-393573,Destination Information,Others.,TbT / Destination Information,Low,,NR1LT-5142,
+,NRL-393574,StartDestinationInformation,Interface,TbT / StartDestinationInformation,Medium,,NR1LT-5143,
+,NRL-393575,DestinationInformation,Interface,TbT / DestinationInformation,Low,,NR1LT-5144,
+,NRL-393576,DestinationInformationStatus,Interface,TbT / DestinationInformationStatus,Low,,NR1LT-5145,
+,NRL-393577,StopDestinationInformation,Interface,TbT / StopDestinationInformation,Low,,NR1LT-5146,
+,NRL-393569 / NRL-393578,Route Guidance,Others.,TbT / Route Guidance,Low,,NR1LT-5147,
+,NRL-393579,StartRouteGuidanceUpdates,Interface,TbT / StartRouteGuidanceUpdates,Medium,,NR1LT-5148,
+,NRL-393580,RouteGuidanceUpdate,Interface,TbT / RouteGuidanceUpdate,Low,,NR1LT-5149,
+,NRL-393581,RouteGuidanceManeuverInformation,Interface,TbT / RouteGuidanceManeuverInformation,Low,,NR1LT-5150,
+,NRL-393582,StopRouteGuidanceUpdates,Interface,TbT / StopRouteGuidanceUpdates,Medium,,NR1LT-5151,
+,NRL-393583,LaneGuidanceInformation,Interface,TbT / LaneGuidanceInformation,Low,,NR1LT-5152,
+,NRL-393569 / NRL-393584 / NRL-393585,StartVehicleStatusUpdates,Interface,CAN / StartVehicleStatusUpdates,Low,,NR1LT-5153,
+,NRL-393569 / NRL-393584 / NRL-393586,VehicleStatusUpdate,Interface,CAN / VehicleStatusUpdate,Low,,NR1LT-5154,
+,NRL-393569 / NRL-393584 / NRL-393587,StopVehicleStatusUpdates,Interface,CAN / StopVehicleStatusUpdates,Low,,NR1LT-5155,
+,NRL-393569 / NRL-393588,App Discovery,Others.,CP / App Discovery,Low,,NR1LT-5156,
+,NRL-393589,StartAppDiscoveryUpdates,Interface,CP / StartAppDiscoveryUpdates,Medium,,NR1LT-5157,
+,NRL-393590,AppDiscoveryUpdate,Interface,CP / AppDiscoveryUpdate,Low,,NR1LT-5158,
+,NRL-393591,RequestAppDiscoveryAppIcons,Interface,CP / RequestAppDiscoveryAppIcons,Low,,NR1LT-5159,
+,NRL-393592,AppDiscoveryAppIcon,Interface,CP / AppDiscoveryAppIcon,Low,,NR1LT-5160,
+,NRL-393569 / NRL-393593,CarPlay Connection,Others.,Bluetooth / CarPlay Connection,Low,,NR1LT-5161,
+,NRL-393594,CarPlayAvailability,Interface,Bluetooth / CarPlayAvailability,Low,,NR1LT-5162,
+,NRL-393595,CarPlayStartSession,Interface,Bluetooth / CarPlayStartSession,High,,NR1LT-5163,
+,NRL-393569 / NRL-393596,Car Keys Matching,Others.,System / Car Keys Matching,Low,,NR1LT-5164,
+,NRL-393597,AvailableDigitalCarKeys,Interface,System / AvailableDigitalCarKeys,Low,,NR1LT-5165,
+,NRL-393598,MatchedDigitalCarKeys,Interface,System / MatchedDigitalCarKeys,Low,,NR1LT-5166,
+,NRL-393569 / NRL-393599,Addendum: Accessory Identification,Others.,CP / Addendum: Accessory Identification,Low,,NR1LT-5167,
+,NRL-393600,IdentificationInformation,Interface,CP / IdentificationInformation,Low,,NR1LT-5168,
+,NRL-393601,IdentificationRejected,Interface,CP / IdentificationRejected,Low,,NR1LT-5169,
+,NRL-393602,VehicleDigitalCarKeyInformation,Interface,System / VehicleDigitalCarKeyInformation,Low,,NR1LT-5170,
+,NRL-393569 / NRL-393603,Addendum: Communications,Others.,Bluetooth / Addendum: Communications,Low,,NR1LT-5171,
+,NRL-393604,StartListUpdates,Interface,Bluetooth / StartListUpdates,Low,,NR1LT-5172,
+,NRL-393605,ListUpdate,Interface,Bluetooth / ListUpdate,Low,,NR1LT-5173,
+,NRL-393606,StopListUpdates,Interface,Bluetooth / StopListUpdates,Low,,NR1LT-5174,
+,NRL-393569 / NRL-393607,Addendum: Device Notifications,Others.,CP / Addendum: Device Notifications,Low,,NR1LT-5175,
+,NRL-393608,WirelessCarPlayUpdate,Interface,CP / WirelessCarPlayUpdate,Low,,NR1LT-5176,
+,NRL-393609,DeviceTransportIdentifierNotification,Interface,Bluetooth / DeviceTransportIdentifierNotification,Low,,NR1LT-5177,
+,NRL-393569 / NRL-393610,Addendum: Location,Others.,GPS/GNSS / Addendum: Location,Low,,NR1LT-5178,
+,NRL-393611,GPRMCDataStatusValuesNotification,Interface,GPS/GNSS / GPRMCDataStatusValuesNotification,Low,,NR1LT-5179,
+,NRL-393612,Revision History,Others.,CP / Revision History,Low,,NR1LT-5180,
+,NRL-393613,Updated Content,Others.,CP / Updated Content,Low,,NR1LT-5181,
+,, Apple Inc. Copyright © 2025 Apple Inc. All rights reserved.,Others.,CP /  Apple Inc. Copyright © 2025 Apple Inc. All rights reserved.,Low,,NR1LT-5182,
+,,非Spec文档内容,,,,,NR1LT-5183,
