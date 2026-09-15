@@ -202,10 +202,18 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   }
   .table-wrap { max-height: 480px; overflow: auto; }
   .empty-state { color: var(--muted); font-size: 13px; padding: 20px; text-align: center; }
+  .trace-stats > summary {
+    cursor: pointer; list-style: none; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  }
+  .trace-stats > summary::-webkit-details-marker { display: none; }
+  .trace-stats > summary::before { content: '▾'; color: var(--muted); font-size: 13px; }
+  .trace-stats:not([open]) > summary::before { content: '▸'; }
+  .trace-stats > summary h2 { display: inline; margin: 0; font-size: 16px; }
+  .trace-stats > summary .hint { font-size: 12px; color: var(--muted); font-weight: 400; }
   .trace-meter { height: 6px; background: var(--grid); border-radius: 3px; overflow: hidden; min-width: 90px; }
   .trace-meter > div { height: 100%; background: var(--series-cp); }
-  .trace-owner-row { cursor: pointer; }
-  .trace-owner-row:hover td { background: var(--page); }
+  .trace-owner-row, .trace-assignee-row { cursor: pointer; }
+  .trace-owner-row:hover td, .trace-assignee-row:hover td { background: var(--page); }
   .trace-group { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; background: var(--page); }
   .trace-group[open] { background: var(--surface-1); }
   .trace-group > summary {
@@ -694,6 +702,13 @@ const STRINGS = {
   trace_th_covered: { zh: '有 SWE3', en: 'With SWE3' },
   trace_th_coverage: { zh: 'SWE3 覆蓋率', en: 'SWE3 coverage' },
   trace_th_swe3done: { zh: 'SWE3 完成', en: 'SWE3 done' },
+  trace_assignee_heading: { zh: 'SWE2 Assignee 統計(依 Jira 現況)', en: 'Per-assignee summary (current Jira assignee of each SWE2)' },
+  trace_assignee_caption: { zh: '以每張 SWE2 票在 Jira 上的 assignee 分組,同一張票只算一次。這跟上面的 Owner 不一樣:Owner 是報告裡登記的需求負責人,assignee 是票現在掛在誰身上', en: 'Groups each SWE2 ticket by its current Jira assignee, counting every ticket once. This is not the Owner above: Owner is who the report says owns the requirement, assignee is who holds the ticket today' },
+  trace_th_assignee: { zh: 'Assignee', en: 'Assignee' },
+  trace_th_swe2done: { zh: 'SWE2 完成', en: 'SWE2 done' },
+  trace_filter_all_assignee: { zh: '全部 Assignee', en: 'All assignees' },
+  trace_unassigned: { zh: '(未指派)', en: '(unassigned)' },
+  trace_collapse_hint: { zh: '點標題可收合', en: 'click to collapse' },
   trace_detail_heading: { zh: '明細清單(依 Owner 分組)', en: 'Detail by owner' },
   trace_detail_caption: { zh: '每個需求列出對應的 SWE1 與 SWE2 票,SWE2 後面接的是它關聯到的 SWE3 票與狀態', en: 'Each requirement lists its SWE1 and SWE2 tickets; each SWE2 is followed by the SWE3 it links to, with status' },
   trace_filter_all_owner: { zh: '全部 Owner', en: 'All owners' },
@@ -2853,6 +2868,30 @@ function traceOwnerStats(rows) {
   })).sort((a, b) => b.s2 - a.s2 || b.reqs - a.reqs);
 }
 
+// Grouped by the SWE2 ticket's current Jira assignee rather than by the report's
+// Owner column — a ticket counts once no matter how many requirements reference it.
+function traceAssigneeStats(rows) {
+  const seen = new Map();
+  rows.forEach(r => (r.swe2 || []).forEach(x => { if (!seen.has(x.k)) seen.set(x.k, x); }));
+  const map = new Map();
+  seen.forEach(x => {
+    const name = x.a || t('trace_unassigned');
+    if (!map.has(name)) map.set(name, { name, s2: 0, done: 0, cov: 0, s3: new Map() });
+    const a = map.get(name);
+    a.s2++;
+    if (x.c === 'done') a.done++;
+    if (x.swe3 && x.swe3.length) {
+      a.cov++;
+      x.swe3.forEach(y => a.s3.set(y.k, y.c));
+    }
+  });
+  return [...map.values()].map(a => ({
+    name: a.name, s2: a.s2, done: a.done, cov: a.cov,
+    s3: a.s3.size, s3done: [...a.s3.values()].filter(c => c === 'done').length,
+    pct: a.s2 ? Math.round(a.cov / a.s2 * 100) : 0,
+  })).sort((x, y) => y.s2 - x.s2 || x.name.localeCompare(y.name));
+}
+
 function traceTotals(rows) {
   const s1 = new Set(), s2 = new Set(), cov = new Set(), s3 = new Map();
   rows.forEach(r => {
@@ -2880,6 +2919,7 @@ function renderTraceabilityPanel() {
   const rows = TRACE.rows;
   const totals = traceTotals(rows);
   const owners = traceOwnerStats(rows);
+  const assignees = traceAssigneeStats(rows);
   const covPct = totals.s2 ? Math.round(totals.cov / totals.s2 * 100) : 0;
   const donePct = totals.s3 ? Math.round(totals.s3done / totals.s3 * 100) : 0;
 
@@ -2914,7 +2954,8 @@ function renderTraceabilityPanel() {
     </div>
 
     <section class="card">
-      <h2>${esc(t('trace_owner_heading'))}</h2>
+      <details class="trace-stats" open>
+      <summary><h2>${esc(t('trace_owner_heading'))}</h2><span class="hint">${esc(t('trace_collapse_hint'))}</span></summary>
       <p class="caption">${esc(t('trace_owner_caption'))}</p>
       <div class="table-wrap">
         <table>
@@ -2941,6 +2982,37 @@ function renderTraceabilityPanel() {
             </tr>`).join('')}</tbody>
         </table>
       </div>
+      </details>
+    </section>
+
+    <section class="card">
+      <details class="trace-stats" open>
+      <summary><h2>${esc(t('trace_assignee_heading'))}</h2><span class="hint">${esc(t('trace_collapse_hint'))}</span></summary>
+      <p class="caption">${esc(t('trace_assignee_caption'))}</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>${esc(t('trace_th_assignee'))}</th><th>${esc(t('trace_th_swe2'))}</th>
+            <th>${esc(t('trace_th_swe2done'))}</th><th>${esc(t('trace_th_covered'))}</th>
+            <th>${esc(t('trace_th_coverage'))}</th><th>${esc(t('trace_th_swe3done'))}</th>
+          </tr></thead>
+          <tbody>${assignees.map(a => `
+            <tr class="trace-assignee-row" data-assignee="${esc(a.name)}">
+              <td>${esc(a.name)}</td>
+              <td>${a.s2}</td>
+              <td>${a.done} / ${a.s2}</td>
+              <td>${a.cov}</td>
+              <td>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <div class="trace-meter"><div style="width:${a.pct}%"></div></div>
+                  <span style="font-variant-numeric:tabular-nums;">${a.pct}%</span>
+                </div>
+              </td>
+              <td>${a.s3 ? `${a.s3done} / ${a.s3}` : '—'}</td>
+            </tr>`).join('')}</tbody>
+        </table>
+      </div>
+      </details>
     </section>
 
     <section class="card">
@@ -2949,6 +3021,8 @@ function renderTraceabilityPanel() {
       <div class="filters">
         <select id="traceOwnerFilter"><option value="">${esc(t('trace_filter_all_owner'))}</option>${
           owners.map(o => `<option value="${esc(o.owner)}">${esc(o.owner)}</option>`).join('')}</select>
+        <select id="traceAssigneeFilter"><option value="">${esc(t('trace_filter_all_assignee'))}</option>${
+          assignees.map(a => `<option value="${esc(a.name)}">${esc(a.name)}</option>`).join('')}</select>
         <select id="traceGapFilter">
           <option value="">${esc(t('trace_filter_any'))}</option>
           <option value="gap">${esc(t('trace_filter_gap'))}</option>
@@ -2961,12 +3035,16 @@ function renderTraceabilityPanel() {
   `;
 
   const ownerSel = document.getElementById('traceOwnerFilter');
+  const assigneeSel = document.getElementById('traceAssigneeFilter');
   const gapSel = document.getElementById('traceGapFilter');
   const search = document.getElementById('traceSearch');
   const groupsEl = document.getElementById('traceGroups');
 
+  function assigneeOf(x) { return x.a || t('trace_unassigned'); }
+
   function matches(r) {
     if (ownerSel.value && r.owner !== ownerSel.value) return false;
+    if (assigneeSel.value && !(r.swe2 || []).some(x => assigneeOf(x) === assigneeSel.value)) return false;
     const q = search.value.trim().toLowerCase();
     if (q) {
       const hay = [r.reqid, r.title, r.sub, ...(r.swe1 || []).map(x => x.k + ' ' + x.t),
@@ -2981,9 +3059,11 @@ function renderTraceabilityPanel() {
   // A requirement's SWE2 list is filtered too, so "only SWE2 without SWE3" shows the
   // gap itself rather than the whole requirement around it.
   function visibleSwe2(r) {
-    if (gapSel.value === 'gap') return r.swe2.filter(x => !x.swe3.length);
-    if (gapSel.value === 'has') return r.swe2.filter(x => x.swe3.length);
-    return r.swe2;
+    let list = r.swe2;
+    if (assigneeSel.value) list = list.filter(x => assigneeOf(x) === assigneeSel.value);
+    if (gapSel.value === 'gap') return list.filter(x => !x.swe3.length);
+    if (gapSel.value === 'has') return list.filter(x => x.swe3.length);
+    return list;
   }
 
   function renderGroups(openOwner) {
@@ -3031,14 +3111,24 @@ function renderTraceabilityPanel() {
     }).join('');
   }
 
-  [ownerSel, gapSel].forEach(el => el.addEventListener('change', () => renderGroups()));
+  [ownerSel, assigneeSel, gapSel].forEach(el => el.addEventListener('change', () => renderGroups()));
   search.addEventListener('input', () => renderGroups());
   renderGroups();
 
   panel.querySelectorAll('.trace-owner-row').forEach(tr => {
     tr.addEventListener('click', () => {
       ownerSel.value = tr.dataset.owner;
+      assigneeSel.value = '';
       renderGroups(tr.dataset.owner);
+      groupsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  panel.querySelectorAll('.trace-assignee-row').forEach(tr => {
+    tr.addEventListener('click', () => {
+      assigneeSel.value = tr.dataset.assignee;
+      ownerSel.value = '';
+      renderGroups();
       groupsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   });
