@@ -100,7 +100,8 @@ def fetch_issues(keys, headers):
         jql = "key in ({})".format(",".join(chunk))
         next_token = None
         while True:
-            body = {"jql": jql, "maxResults": 100, "fields": ["summary", "status", "issuelinks"]}
+            body = {"jql": jql, "maxResults": 100,
+                    "fields": ["summary", "status", "assignee", "issuelinks"]}
             if next_token:
                 body["nextPageToken"] = next_token
             data = post(url, body, headers)
@@ -125,6 +126,7 @@ def fetch_issues(keys, headers):
                 out[issue["key"]] = {
                     "summary": f.get("summary") or "",
                     "status": status.get("name", "?"),
+                    "assignee": (f.get("assignee") or {}).get("displayName") or "",
                     "cat": STATUS_CATEGORY.get(cat, "todo"),
                     "links": links,
                 }
@@ -150,8 +152,12 @@ def build(rows, issues):
         if not info:
             # Key in the report but not in Jira (deleted or mistyped) — keep the row
             # visible rather than dropping it silently.
-            return {"k": key, "t": "", "st": "not found", "c": "todo"}
-        return {"k": key, "t": short_title(info["summary"]), "st": info["status"], "c": info["cat"]}
+            return {"k": key, "t": "", "st": "not found", "c": "todo", "a": ""}
+        # "a" is the ticket's current Jira assignee, which is a different question from
+        # the report's Owner column: Owner says who is responsible for the requirement,
+        # assignee says who is holding the ticket today.
+        return {"k": key, "t": short_title(info["summary"]), "st": info["status"],
+                "c": info["cat"], "a": info.get("assignee") or ""}
 
     def swe3_of(key):
         info = issues.get(key)
