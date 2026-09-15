@@ -191,6 +191,48 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   }
   .table-wrap { max-height: 480px; overflow: auto; }
   .empty-state { color: var(--muted); font-size: 13px; padding: 20px; text-align: center; }
+  .issue-entry { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; background: var(--page); }
+  .issue-entry[open] { background: var(--surface-1); }
+  .issue-entry > summary {
+    cursor: pointer; padding: 11px 14px; font-size: 14px; font-weight: 600;
+    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; list-style: none;
+  }
+  .issue-entry > summary::-webkit-details-marker { display: none; }
+  .issue-entry > summary::before { content: '▸'; color: var(--muted); font-weight: 400; }
+  .issue-entry[open] > summary::before { content: '▾'; }
+  .issue-entry > summary .issue-date { font-size: 12px; font-weight: 400; color: var(--muted); margin-left: auto; }
+  .issue-body { padding: 0 16px 16px; font-size: 13px; line-height: 1.7; }
+  .issue-body p { margin: 0 0 12px; }
+  .issue-body h4 { margin: 18px 0 6px; font-size: 13px; }
+  .issue-body ul { margin: 0 0 12px; padding-left: 18px; }
+  .issue-body li { margin-bottom: 5px; }
+  .issue-body code {
+    font-family: ui-monospace, Menlo, monospace; font-size: 12px;
+    background: var(--page); border: 1px solid var(--grid); border-radius: 4px; padding: 0 4px;
+  }
+  .issue-lead { font-size: 14px; border-left: 2px solid var(--series-cp); padding-left: 12px; }
+  .issue-table-wrap { overflow-x: auto; margin: 0 0 14px; }
+  .issue-table { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 520px; }
+  .issue-table th, .issue-table td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  .issue-table th { font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); font-weight: 600; white-space: nowrap; }
+  .issue-table td:first-child { white-space: nowrap; font-weight: 600; }
+  .issue-table tbody tr:last-child td { border-bottom: none; }
+  .issue-table .verdict-miss { color: #c9781f; }
+  .issue-table .verdict-extra { color: var(--critical); }
+  .issue-figure { margin: 0 0 14px; overflow-x: auto; }
+  .issue-figure svg { display: block; max-width: 100%; height: auto; min-width: 520px; margin: 0 auto; }
+  .issue-figure figcaption { font-size: 12px; color: var(--text-secondary); margin-top: 6px; }
+  .issue-tickets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .issue-tickets a {
+    font-size: 12px; text-decoration: none; color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px;
+  }
+  .issue-tickets a:hover { border-color: var(--series-cp); color: var(--series-cp); }
+  .issue-tickets a span { color: var(--muted); }
+  .issue-chips { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 12px; }
+  .issue-chip { font-size: 11.5px; padding: 2px 8px; border-radius: 4px; background: var(--page); color: var(--text-secondary); }
+  .issue-chip.start { background: color-mix(in srgb, var(--warning) 20%, transparent); color: #8a6200; }
+  .issue-chip.stop { background: color-mix(in srgb, var(--critical) 15%, transparent); color: var(--critical); }
   #panel-Stats section.card { position: relative; }
   #panel-Stats section.card > h2, #panel-Stats section.card h2.drag-title {
     cursor: grab; user-select: none;
@@ -581,6 +623,9 @@ const STRINGS = {
   refresh_reload_button: { zh: '重新整理頁面', en: 'Reload page' },
   cards_reorder_hint: { zh: '拖曳卡片標題可調整這一頁的排列順序(只影響你自己的瀏覽器,重新整理後仍會記得)', en: 'Drag a card title to reorder this page (saved in your own browser only)' },
   cards_reset_order: { zh: '恢復預設順序', en: 'Reset order' },
+  issue_notes_heading: { zh: '問題處理經驗', en: 'Issue post-mortems' },
+  issue_notes_caption: { zh: '已經釐清根因的問題紀錄,點標題展開。留這些是為了下次遇到類似症狀時,不用再從 log 重新推一次', en: 'Write-ups of issues whose root cause is settled — click a title to expand. Kept so the next similar symptom does not have to be re-derived from logs' },
+  issue_notes_empty: { zh: '目前沒有紀錄', en: 'No entries yet' },
   refresh_view_run: { zh: '在 GitHub 查看執行紀錄', en: 'View the run on GitHub' },
   refresh_hide_button: { zh: '關閉', en: 'Dismiss' },
   bug_missing_caption: { zh: n => `共 ${n} 張票 (Bug 總數 ${BUGS.length} 張)`, en: n => `${n} tickets shown (out of ${BUGS.length} Bugs total)` },
@@ -1386,6 +1431,243 @@ async function refreshLatestData() {
   }
 }
 
+// --- 問題處理經驗 -------------------------------------------------------------
+// Hand-written post-mortems for issues whose root cause is settled. They live in
+// this list rather than in a separate document so they ship with the dashboard and
+// need no login to read; add a new entry by prepending an object here. Entries are
+// collapsed by default — this card is reference material, not a daily number.
+const ISSUE_NOTES = [
+  {
+    id: 'wireless-aa-reconnect',
+    date: '2026-09-15',
+    title: '三題 PCTS 無線 AA 失敗,是同一個決策放錯了地方',
+    tickets: [
+      { key: 'NR1LT-4306', note: 'WPC55' },
+      { key: 'NR1LT-4165', note: 'WPC20' },
+      { key: 'NR1LT-4811', note: 'WPC131' },
+    ],
+    html: `
+      <p class="issue-lead">「要不要自動重連無線 AA」目前由 <b>DMS 依自己記住的上次連線狀態</b>決定;
+      而 PCTS 判定依據的是 <b>WPP 協定事件與 error code</b>,那些狀態只有 SmartProjection 看得到。
+      決策放在看不到協定的那一層,行為就只能用猜的 —— 於是同一個錯誤往兩個方向跑出來:<b>該連的時候沒連</b>,<b>不該連的時候連了</b>。</p>
+
+      <h4>三個測項各自在測什麼</h4>
+      <div class="issue-table-wrap">
+        <table class="issue-table">
+          <thead><tr><th>測項</th><th>測試情境</th><th>判定條件</th><th>這次的失敗</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>WPC20</td>
+              <td>刪除車機與手機兩邊的藍牙配對紀錄 → 重新配對 → 手機跳出提示時點「OK」</td>
+              <td>手機連上車機 RFCOMM 後,必須在 <b>1100ms 內</b>拿到車機的 WiFi AP 資訊;手機回報 <code>INSTRUCT_USER_TO_CHECK_THE_PHONE</code> 時,車機<b>不得</b>自行重連</td>
+              <td class="verdict-extra">車機搶先重連,手機的 WifiStartRequest 被回 ALREADY_STARTED</td>
+            </tr>
+            <tr>
+              <td>WPC55</td>
+              <td>已配對的手機,以 WPP(Wireless Projection Protocol)建立連線:RFCOMM → 車機 WiFi AP → TCP socket → <code>onReadyForProjection</code></td>
+              <td>車機收到能力通知後,必須在 <b>1100ms 內</b>主動發起無線 AA(<code>WIFI_REQUEST_START</code> / StartProjection);手機不會再給使用者第二次機會觸發</td>
+              <td class="verdict-miss">車機沒有發起,手機等滿 1100ms 後放棄</td>
+            </tr>
+            <tr>
+              <td>WPC131</td>
+              <td>連線中由<b>使用者主動</b>中斷(手機送 ByeBye),之後 WPP 重新連上</td>
+              <td>原文:<i>HU should not send wifi start request with reason AUTO_LAUNCH to MD after disconnection with ByeBye request followed by a WPP reconnection</i> —— 重連後車機<b>不得</b>再以 AUTO_LAUNCH 發起投影</td>
+              <td class="verdict-extra">車機在使用者說「不要」之後約 2 秒又自己連回去</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>三項共同的前提是 <b>1100ms</b> 這個時間窗與「誰有權發起連線」的歸屬:WPC20／131 要求車機<b>不准</b>主動連,WPC55 要求車機<b>必須</b>主動連。同一套判斷邏輯要同時滿足兩邊,才會暴露出決策放錯層的問題。</p>
+
+      <h4>決策歸屬</h4>
+      <figure class="issue-figure">
+        <svg viewBox="0 0 760 300" role="img" aria-label="現況是 DMS 依 lastMode 記憶自行決定重連,協定事件停在 SmartProjection;方案是 SmartProjection 依 WPP 事件判斷後呼叫 requestWirelessAaAutoReconnect 由 DMS 執行">
+          <defs>
+            <marker id="in-ow-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker>
+            <marker id="in-ow-dms" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#c9781f"></path></marker>
+            <marker id="in-ow-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2e8b57"></path></marker>
+          </defs>
+          <text x="8" y="16" font-size="12" font-weight="600" fill="currentColor">現況</text>
+          <text x="400" y="16" font-size="12" font-weight="600" fill="#2e8b57">方案</text>
+          <line x1="370" y1="0" x2="370" y2="300" stroke="currentColor" stroke-opacity=".18" stroke-dasharray="3 4"></line>
+
+          <rect x="8" y="34" width="150" height="40" rx="6" fill="none" stroke="currentColor" stroke-opacity=".45"></rect>
+          <text x="83" y="59" text-anchor="middle" font-size="12.5" fill="currentColor">手機 (MD)</text>
+          <line x1="83" y1="74" x2="83" y2="112" stroke="currentColor" stroke-width="1.4" marker-end="url(#in-ow-ink)"></line>
+          <text x="92" y="97" font-size="11" fill="currentColor" opacity=".75">WPP 事件</text>
+          <rect x="8" y="112" width="150" height="54" rx="6" fill="#1a8b86" fill-opacity=".12" stroke="#1a8b86"></rect>
+          <text x="83" y="133" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1a8b86">SmartProjection</text>
+          <text x="83" y="150" text-anchor="middle" font-size="11" fill="#1a8b86">看得到協定狀態</text>
+          <text x="83" y="186" text-anchor="middle" font-size="11" fill="currentColor" opacity=".55">事件到此為止</text>
+          <line x1="66" y1="190" x2="100" y2="198" stroke="#cf4a3e" stroke-width="1.6"></line>
+          <line x1="100" y1="190" x2="66" y2="198" stroke="#cf4a3e" stroke-width="1.6"></line>
+
+          <rect x="200" y="112" width="150" height="54" rx="6" fill="#c9781f" fill-opacity=".14" stroke="#c9781f"></rect>
+          <text x="275" y="133" text-anchor="middle" font-size="12.5" font-weight="600" fill="#c9781f">DMS</text>
+          <text x="275" y="150" text-anchor="middle" font-size="11" fill="#c9781f">只憑 lastMode 記憶</text>
+          <line x1="275" y1="112" x2="275" y2="80" stroke="#c9781f" stroke-width="1.4" marker-end="url(#in-ow-dms)"></line>
+          <rect x="200" y="42" width="150" height="34" rx="6" fill="none" stroke="#c9781f" stroke-dasharray="4 3"></rect>
+          <text x="275" y="63" text-anchor="middle" font-size="11.5" fill="#c9781f">自行決定重連</text>
+          <line x1="275" y1="166" x2="275" y2="212" stroke="#c9781f" stroke-width="1.4" marker-end="url(#in-ow-dms)"></line>
+          <rect x="182" y="212" width="186" height="40" rx="6" fill="none" stroke="#cf4a3e"></rect>
+          <text x="275" y="237" text-anchor="middle" font-size="12" fill="#cf4a3e">時機與規範對不上</text>
+
+          <rect x="400" y="34" width="150" height="40" rx="6" fill="none" stroke="currentColor" stroke-opacity=".45"></rect>
+          <text x="475" y="59" text-anchor="middle" font-size="12.5" fill="currentColor">手機 (MD)</text>
+          <line x1="475" y1="74" x2="475" y2="112" stroke="currentColor" stroke-width="1.4" marker-end="url(#in-ow-ink)"></line>
+          <text x="484" y="97" font-size="11" fill="currentColor" opacity=".75">WPP 事件</text>
+          <rect x="386" y="112" width="136" height="54" rx="6" fill="#1a8b86" fill-opacity=".12" stroke="#1a8b86"></rect>
+          <text x="454" y="133" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1a8b86">SmartProjection</text>
+          <text x="454" y="150" text-anchor="middle" font-size="11" fill="#1a8b86">判斷該不該重連</text>
+          <line x1="522" y1="139" x2="606" y2="139" stroke="#2e8b57" stroke-width="1.6" marker-end="url(#in-ow-ok)"></line>
+          <text x="564" y="131" text-anchor="middle" font-size="10" fill="#2e8b57">request…()</text>
+          <rect x="612" y="112" width="132" height="54" rx="6" fill="#c9781f" fill-opacity=".14" stroke="#c9781f"></rect>
+          <text x="678" y="133" text-anchor="middle" font-size="12.5" font-weight="600" fill="#c9781f">DMS</text>
+          <text x="678" y="150" text-anchor="middle" font-size="11" fill="#c9781f">只負責執行</text>
+          <line x1="678" y1="166" x2="678" y2="212" stroke="#2e8b57" stroke-width="1.4" marker-end="url(#in-ow-ok)"></line>
+          <rect x="570" y="212" width="176" height="40" rx="6" fill="none" stroke="#2e8b57"></rect>
+          <text x="658" y="237" text-anchor="middle" font-size="12" fill="#2e8b57">時機由協定事件決定</text>
+          <text x="400" y="288" font-size="11.5" fill="currentColor" opacity=".6">差別只有一條線:決策留在 SP,DMS 不再自己猜。</text>
+        </svg>
+        <figcaption>左:WPP 事件送不到做決定的那一層,能不能過測試變成機率問題。右:DMS 收到 <code>requestWirelessAaAutoReconnect()</code> 才動作。</figcaption>
+      </figure>
+
+      <h4>WPC55 — 該連卻沒連(逾時 1100ms)</h4>
+      <figure class="issue-figure">
+        <svg viewBox="0 0 700 300" role="img" aria-label="WPC55 流程:手機 onReadyForProjection 後 SP 設定 wifi_AA capability,但沒有人讓 DMS 發起投影,1100 毫秒後手機判定失敗">
+          <defs>
+            <marker id="in-c1-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker>
+            <marker id="in-c1-fail" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#cf4a3e"></path></marker>
+          </defs>
+          <rect x="20" y="8" width="150" height="28" rx="5" fill="none" stroke="currentColor" stroke-opacity=".4"></rect>
+          <text x="95" y="27" text-anchor="middle" font-size="12" fill="currentColor">手機 (MD)</text>
+          <rect x="275" y="8" width="150" height="28" rx="5" fill="#1a8b86" fill-opacity=".12" stroke="#1a8b86"></rect>
+          <text x="350" y="27" text-anchor="middle" font-size="12" fill="#1a8b86">SmartProjection</text>
+          <rect x="530" y="8" width="150" height="28" rx="5" fill="#c9781f" fill-opacity=".14" stroke="#c9781f"></rect>
+          <text x="605" y="27" text-anchor="middle" font-size="12" fill="#c9781f">DMS</text>
+          <line x1="95" y1="40" x2="95" y2="280" stroke="currentColor" stroke-opacity=".25" stroke-dasharray="3 4"></line>
+          <line x1="350" y1="40" x2="350" y2="280" stroke="#1a8b86" stroke-opacity=".4" stroke-dasharray="3 4"></line>
+          <line x1="605" y1="40" x2="605" y2="280" stroke="#c9781f" stroke-opacity=".4" stroke-dasharray="3 4"></line>
+          <text x="95" y="72" text-anchor="middle" font-size="11" fill="currentColor" opacity=".8">onReadyForProjection</text>
+          <line x1="95" y1="80" x2="344" y2="80" stroke="currentColor" stroke-width="1.4" marker-end="url(#in-c1-ink)"></line>
+          <text x="478" y="112" text-anchor="middle" font-size="11" fill="#1a8b86">setCapability(wifi_AA)</text>
+          <line x1="350" y1="120" x2="599" y2="120" stroke="#1a8b86" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#in-c1-ink)"></line>
+          <text x="478" y="136" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6">經 CMS — capability 已存在,不發 broadcast</text>
+          <rect x="474" y="150" width="206" height="44" rx="5" fill="#c9781f" fill-opacity=".12" stroke="#c9781f" stroke-dasharray="4 3"></rect>
+          <text x="577" y="168" text-anchor="middle" font-size="11" fill="#c9781f">lastMode 不是 projection</text>
+          <text x="577" y="184" text-anchor="middle" font-size="11" fill="#c9781f">→ DMS 不動作</text>
+          <text x="222" y="212" text-anchor="middle" font-size="11" fill="#cf4a3e">HUIG 要求:1100ms 內 StartProjection</text>
+          <line x1="344" y1="222" x2="101" y2="222" stroke="#cf4a3e" stroke-width="1.4" stroke-dasharray="6 5"></line>
+          <text x="222" y="238" text-anchor="middle" font-size="10.5" fill="#cf4a3e" opacity=".85">這條訊息從未送出</text>
+          <line x1="95" y1="256" x2="95" y2="272" stroke="#cf4a3e" stroke-width="1.4" marker-end="url(#in-c1-fail)"></line>
+          <text x="110" y="270" font-size="11" fill="#cf4a3e">handleOnClientLost → FAIL</text>
+        </svg>
+        <figcaption>為什麼會偶爾過:DMS 若剛好處在「上次異常斷線、正在重試」的狀態,重連會比 <code>onReadyForProjection</code> 早到,測試就過了;順序反過來就失敗。這是競態,不是環境問題。</figcaption>
+      </figure>
+
+      <h4>WPC20 — 不該連卻連了(ALREADY_STARTED)</h4>
+      <figure class="issue-figure">
+        <svg viewBox="0 0 700 300" role="img" aria-label="WPC20 流程:手機回報請使用者查看手機,DMS 仍自行重連,導致手機後續的 WifiStartRequest 被回覆 already started 而失敗">
+          <defs>
+            <marker id="in-c2-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker>
+            <marker id="in-c2-dms" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#c9781f"></path></marker>
+            <marker id="in-c2-fail" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#cf4a3e"></path></marker>
+          </defs>
+          <rect x="20" y="8" width="150" height="28" rx="5" fill="none" stroke="currentColor" stroke-opacity=".4"></rect>
+          <text x="95" y="27" text-anchor="middle" font-size="12" fill="currentColor">手機 (MD)</text>
+          <rect x="275" y="8" width="150" height="28" rx="5" fill="#1a8b86" fill-opacity=".12" stroke="#1a8b86"></rect>
+          <text x="350" y="27" text-anchor="middle" font-size="12" fill="#1a8b86">SmartProjection</text>
+          <rect x="530" y="8" width="150" height="28" rx="5" fill="#c9781f" fill-opacity=".14" stroke="#c9781f"></rect>
+          <text x="605" y="27" text-anchor="middle" font-size="12" fill="#c9781f">DMS</text>
+          <line x1="95" y1="40" x2="95" y2="280" stroke="currentColor" stroke-opacity=".25" stroke-dasharray="3 4"></line>
+          <line x1="350" y1="40" x2="350" y2="280" stroke="#1a8b86" stroke-opacity=".4" stroke-dasharray="3 4"></line>
+          <line x1="605" y1="40" x2="605" y2="280" stroke="#c9781f" stroke-opacity=".4" stroke-dasharray="3 4"></line>
+          <text x="222" y="62" text-anchor="middle" font-size="11" fill="currentColor" opacity=".8">RFCOMM connected → WiFi AP 就緒</text>
+          <line x1="95" y1="70" x2="344" y2="70" stroke="currentColor" stroke-width="1.4" marker-end="url(#in-c2-ink)"></line>
+          <text x="222" y="98" text-anchor="middle" font-size="11" fill="currentColor" opacity=".8">INSTRUCT_USER_TO_CHECK_THE_PHONE</text>
+          <line x1="95" y1="106" x2="344" y2="106" stroke="currentColor" stroke-width="1.4" marker-end="url(#in-c2-ink)"></line>
+          <text x="222" y="122" text-anchor="middle" font-size="10.5" fill="#1a8b86">規範:此時車機不得重連</text>
+          <text x="478" y="150" text-anchor="middle" font-size="11" fill="#c9781f">autoConnectAndroidAuto</text>
+          <line x1="599" y1="158" x2="356" y2="158" stroke="#c9781f" stroke-width="1.6" marker-end="url(#in-c2-dms)"></line>
+          <text x="478" y="174" text-anchor="middle" font-size="10.5" fill="#c9781f">DMS 自行發起,約 3 秒後</text>
+          <text x="222" y="204" text-anchor="middle" font-size="11" fill="currentColor" opacity=".8">WifiStartRequest</text>
+          <line x1="95" y1="212" x2="344" y2="212" stroke="currentColor" stroke-width="1.4" marker-end="url(#in-c2-ink)"></line>
+          <text x="222" y="242" text-anchor="middle" font-size="11" fill="#cf4a3e">STATUS_PROJECTION_ALREADY_STARTED</text>
+          <line x1="344" y1="250" x2="101" y2="250" stroke="#cf4a3e" stroke-width="1.6" marker-end="url(#in-c2-fail)"></line>
+          <text x="222" y="270" text-anchor="middle" font-size="11" fill="#cf4a3e">投影已被車機搶先開啟 → FAIL</text>
+        </svg>
+        <figcaption>這張票有兩層根因。第一層是 CMS 開 WiFi AP 要 12 秒 —— <code>waitWlanDrvStateStarted()</code> 在等 Linux <code>/dev/wlan</code>,但改用 NXP HAL 後那個節點不會出現,每次白等 10 秒 timeout;該層已修正併入(PR #30 / build #668)。修完後仍 NG,剩下的才是上圖這個共通根因。</figcaption>
+      </figure>
+
+      <h4>WPC131 — 不該連卻連了(AUTO_LAUNCH)</h4>
+      <figure class="issue-figure">
+        <svg viewBox="0 0 700 250" role="img" aria-label="WPC131 流程:手機送出 ByeBye 由使用者主動中斷,SP 通知 DMS 錯誤碼後,DMS 約兩秒後仍重新發起連線而失敗">
+          <defs>
+            <marker id="in-c3-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker>
+            <marker id="in-c3-dms" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#c9781f"></path></marker>
+          </defs>
+          <rect x="20" y="8" width="150" height="28" rx="5" fill="none" stroke="currentColor" stroke-opacity=".4"></rect>
+          <text x="95" y="27" text-anchor="middle" font-size="12" fill="currentColor">手機 (MD)</text>
+          <rect x="275" y="8" width="150" height="28" rx="5" fill="#1a8b86" fill-opacity=".12" stroke="#1a8b86"></rect>
+          <text x="350" y="27" text-anchor="middle" font-size="12" fill="#1a8b86">SmartProjection</text>
+          <rect x="530" y="8" width="150" height="28" rx="5" fill="#c9781f" fill-opacity=".14" stroke="#c9781f"></rect>
+          <text x="605" y="27" text-anchor="middle" font-size="12" fill="#c9781f">DMS</text>
+          <line x1="95" y1="40" x2="95" y2="230" stroke="currentColor" stroke-opacity=".25" stroke-dasharray="3 4"></line>
+          <line x1="350" y1="40" x2="350" y2="230" stroke="#1a8b86" stroke-opacity=".4" stroke-dasharray="3 4"></line>
+          <line x1="605" y1="40" x2="605" y2="230" stroke="#c9781f" stroke-opacity=".4" stroke-dasharray="3 4"></line>
+          <text x="222" y="66" text-anchor="middle" font-size="11" fill="currentColor" opacity=".8">ByeByeRequest — 使用者主動中斷</text>
+          <line x1="95" y1="74" x2="344" y2="74" stroke="currentColor" stroke-width="1.4" marker-end="url(#in-c3-ink)"></line>
+          <text x="478" y="106" text-anchor="middle" font-size="11" fill="#1a8b86">ERROR_USER_SELECT_DISCONNECT</text>
+          <line x1="350" y1="114" x2="599" y2="114" stroke="#1a8b86" stroke-width="1.4" marker-end="url(#in-c3-ink)"></line>
+          <text x="478" y="130" text-anchor="middle" font-size="10.5" fill="#1a8b86">規範:收到此碼不得再送 AUTO_LAUNCH</text>
+          <text x="478" y="162" text-anchor="middle" font-size="11" fill="#c9781f">listenForWirelessDevice</text>
+          <line x1="599" y1="170" x2="356" y2="170" stroke="#c9781f" stroke-width="1.6" marker-end="url(#in-c3-dms)"></line>
+          <text x="478" y="186" text-anchor="middle" font-size="10.5" fill="#c9781f">約 2 秒後仍重連</text>
+          <rect x="150" y="196" width="400" height="32" rx="5" fill="#cf4a3e" fill-opacity=".12" stroke="#cf4a3e"></rect>
+          <text x="350" y="217" text-anchor="middle" font-size="11.5" fill="#cf4a3e">車機在使用者說「不要」之後又自己連回去 → FAIL</text>
+        </svg>
+        <figcaption>9/14 的聯調 log 顯示這條路徑仍未生效 —— DMS 確實收到了 <code>ERROR_USER_SELECT_DISCONNECT</code>,但還是重連了;WPC20 的抑制分支在 9/11 的 log 裡同樣沒擋住。</figcaption>
+      </figure>
+
+      <h4>影響範圍</h4>
+      <p>需要車機主動發起(目前不會連):</p>
+      <div class="issue-chips">
+        <span class="issue-chip start">WPC52</span><span class="issue-chip start">WPC55</span><span class="issue-chip start">WPC62</span><span class="issue-chip start">WPC67</span><span class="issue-chip start">WPC102</span><span class="issue-chip start">WPC107</span><span class="issue-chip start">WPC108</span><span class="issue-chip start">WPC109</span><span class="issue-chip start">WPC110</span><span class="issue-chip start">WPC133</span>
+      </div>
+      <p>必須不重連(目前會連):</p>
+      <div class="issue-chips">
+        <span class="issue-chip stop">WPC20</span><span class="issue-chip stop">WPC131</span>
+      </div>
+
+      <h4>方案與風險</h4>
+      <p>已協議的做法(9/3):新增 <code>IDeviceManagerService.requestWirelessAaAutoReconnect(deviceId)</code>,由 SP 判斷 WPC55／WPC52 的重連條件主動呼叫;DMS 收到 <code>ERROR_USER_SELECT_DISCONNECT</code>、<code>…INSTRUCT_USER_TO_CHECK_THE_PHONE</code> 時不自行重連。</p>
+      <ul>
+        <li><b>error code 跨 jar 對齊</b>:DMS 端收到 <code>errorCode = [19]</code>,而新的 enum 是手動補在 jar 最後一個位置。兩邊 ordinal 只要不一致,比對就永遠不成立,症狀跟「沒改到」完全一樣。建議改傳字串或明確常數,不要依賴 enum 順序。</li>
+        <li><b>黑名單 vs 白名單</b>:逐一列舉「哪些 code 不重連」,每出一個新 case 就要再補一次。既然已有 <code>requestWirelessAaAutoReconnect()</code>,把 DMS 預設改成 WPP 流程中一律不自動重連,12 個 case 一次收斂。</li>
+      </ul>
+    `,
+  },
+];
+
+function renderIssueNotes() {
+  const el = document.getElementById('issueNotes');
+  if (!el) return;
+  if (!ISSUE_NOTES.length) {
+    el.innerHTML = '<div class="empty-state">' + esc(t('issue_notes_empty')) + '</div>';
+    return;
+  }
+  el.innerHTML = ISSUE_NOTES.map(note => `
+    <details class="issue-entry" id="issue-${esc(note.id)}">
+      <summary>${esc(note.title)}<span class="issue-date">${esc(note.date)}</span></summary>
+      <div class="issue-body">
+        <div class="issue-tickets">${(note.tickets || []).map(tk =>
+          `<a href="${ticketUrl(tk.key)}" target="_blank" rel="noopener noreferrer">${esc(tk.key)}${tk.note ? ` <span>${esc(tk.note)}</span>` : ''}</a>`).join('')}</div>
+        ${note.html}
+      </div>
+    </details>
+  `).join('');
+}
+
 // --- Drag-to-reorder for the Stats cards ---------------------------------------
 // The order is a personal preference, so it lives in this viewer's own browser
 // rather than in the repo: no token needed, and one person rearranging their view
@@ -1499,6 +1781,11 @@ function renderStatsPanel() {
         </div>
       </div>
       <div class="notes-grid" id="overviewNotesGrid"></div>
+    </section>
+    <section class="card" data-card="experience">
+      <h2>${esc(t('issue_notes_heading'))}</h2>
+      <p class="caption">${esc(t('issue_notes_caption'))}</p>
+      <div id="issueNotes"></div>
     </section>
     <section class="card" data-card="trend">
       <h2>${esc(t('ov_trend_heading'))}</h2>
@@ -1713,6 +2000,8 @@ function renderStatsPanel() {
       el.addEventListener('click', () => jumpToBugAssigneeFromStats(el.dataset.assignee));
     });
   })();
+
+  renderIssueNotes();
 
   // Restore this viewer's card order (if any) and re-arm dragging — renderStatsPanel
   // rebuilds the panel on every language switch, so both have to run again here.
