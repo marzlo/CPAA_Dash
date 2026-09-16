@@ -695,7 +695,7 @@
    },
    "MDT_App": {
     "done": 10,
-    "total": 34
+    "total": 35
    },
    "MDT_PM": {
     "done": 18,
@@ -703,7 +703,7 @@
    },
    "MDT_System": {
     "done": 1,
-    "total": 17
+    "total": 14
    },
    "TS_CPAA": {
     "done": 131,
@@ -711,7 +711,7 @@
    },
    "TS_FW": {
     "done": 16,
-    "total": 18
+    "total": 19
    },
    "Unassigned": {
     "done": 1,
@@ -719,7 +719,7 @@
    },
    "Unknown": {
     "done": 3,
-    "total": 6
+    "total": 7
    }
   },
   "date": "2026-09-16",
