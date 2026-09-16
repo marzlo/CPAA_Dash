@@ -685,8 +685,8 @@
  },
  "2026-09-16": {
   "bugs": {
-   "done": 180,
-   "total": 259
+   "done": 181,
+   "total": 260
   },
   "bugs_by_team": {
    "MDI_System": {
@@ -694,7 +694,7 @@
     "total": 5
    },
    "MDT_App": {
-    "done": 10,
+    "done": 11,
     "total": 35
    },
    "MDT_PM": {
@@ -707,7 +707,7 @@
    },
    "TS_CPAA": {
     "done": 131,
-    "total": 146
+    "total": 147
    },
    "TS_FW": {
     "done": 16,
