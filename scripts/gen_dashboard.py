@@ -21,7 +21,11 @@ except FileNotFoundError:
         "updated_by": None,
         "development_status": "",
         "certification_status": "",
+        # "risk" holds the external risks (Harman, STLA, suppliers); "risk_internal"
+        # was added later for risks owned inside MDT, so an older notes file without
+        # it simply renders that column empty.
         "risk": "",
+        "risk_internal": "",
     }
 
 DATA["overview_notes"] = OVERVIEW_NOTES
@@ -418,8 +422,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     padding: 8px 10px; font-size: 12px; font-weight: 700; color: var(--text-secondary);
     background: var(--page); border-bottom: 1px solid var(--grid);
   }
-  .notes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  @media (max-width: 900px) { .notes-grid { grid-template-columns: 1fr; } }
+  .notes-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  /* Four columns need the room; below that they pair up, then stack. */
+  @media (max-width: 1240px) { .notes-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 760px) { .notes-grid { grid-template-columns: 1fr; } }
   .notes-col {
     background: var(--page); border: 1px solid var(--border); border-radius: 10px;
     padding: 16px; min-height: 140px;
@@ -705,7 +711,8 @@ const STRINGS = {
   overview_notes_heading: { zh: '專案總覽(可編輯)', en: 'Project Overview (editable)' },
   notes_dev_heading: { zh: 'Development status', en: 'Development status' },
   notes_cert_heading: { zh: 'Certification status', en: 'Certification status' },
-  notes_risk_heading: { zh: 'Risk', en: 'Risk' },
+  notes_risk_heading: { zh: 'Risk (External)', en: 'Risk (External)' },
+  notes_risk_internal_heading: { zh: 'Risk (Internal)', en: 'Risk (Internal)' },
   notes_empty: { zh: '尚未填寫,點擊「編輯」開始撰寫', en: 'Not filled in yet — click Edit to add notes' },
   notes_meta: { zh: (at, who) => `最後更新:${String(at).slice(0, 10)} by ${who}`, en: (at, who) => `Last updated ${String(at).slice(0, 10)} by ${who}` },
   notes_meta_never: { zh: '尚未儲存過任何內容', en: 'Nothing saved yet' },
@@ -1076,6 +1083,7 @@ function overviewNotesColumns() {
     { key: 'development_status', label: t('notes_dev_heading') },
     { key: 'certification_status', label: t('notes_cert_heading') },
     { key: 'risk', label: t('notes_risk_heading') },
+    { key: 'risk_internal', label: t('notes_risk_internal_heading') },
   ];
 }
 
@@ -1400,13 +1408,10 @@ async function saveOverviewNotes() {
   });
   const who = (prompt(t('notes_name_prompt'), OVERVIEW_NOTES.updated_by || '') || OVERVIEW_NOTES.updated_by || '').trim();
 
-  const payload = {
-    updated_at: new Date().toISOString(),
-    updated_by: who,
-    development_status: draft.development_status || '',
-    certification_status: draft.certification_status || '',
-    risk: draft.risk || '',
-  };
+  // Built from the column list rather than a fixed set of keys, so adding a column
+  // above is all it takes for its content to be saved too.
+  const payload = { updated_at: new Date().toISOString(), updated_by: who };
+  overviewNotesColumns().forEach(c => { payload[c.key] = draft[c.key] || ''; });
 
   const saveBtn = document.getElementById('overviewNotesSaveBtn');
   saveBtn.disabled = true;
