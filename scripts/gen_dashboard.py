@@ -83,6 +83,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     --series-green: #008300;
     --series-violet: #4a3aa7;
     --series-red: #e34948;
+    /* 9th categorical slot, added for the MDT_Sys_QA team line. */
+    --series-brown: #8a5a2b;
     --good: #0ca30c;
     --warning: #fab219;
     --serious: #ec835a;
@@ -107,6 +109,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       --series-green: #008300;
       --series-violet: #9085e9;
       --series-red: #e66767;
+      --series-brown: #b5834f;
     }
   }
   :root[data-theme="dark"] {
@@ -127,6 +130,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     --series-green: #008300;
     --series-violet: #9085e9;
     --series-red: #e66767;
+    --series-brown: #b5834f;
   }
   * { box-sizing: border-box; }
   body {
@@ -1636,6 +1640,196 @@ async function refreshLatestData() {
 // collapsed by default — this card is reference material, not a daily number.
 const ISSUE_NOTES = [
   {
+    id: 'carplay-src-placement',
+    date: '2026-09-17',
+    title: 'CarPlay 採樣率不統一:SRC 放在 Plugin,底層就不用切 Audio Path',
+    html: `
+      <p class="issue-lead">CarPlay 會送進 44.1／32／16／8 kHz,而 ADSP 只想固定跑 48 kHz。
+      問題不是「要不要做 SRC」,而是<b>誰來做</b> —— 同一段轉換放在 Plugin、放在 AudioFlinger、或讓 DSP 依採樣率切 Audio Path,
+      後果差很多:一個多一段 buffer,一個多一次通路切換。Harman 在 Qualcomm 平台的統一做法是
+      <b>把 SRC 放進 CarPlay Plugin 的 audio callback</b>,底層一律固定採樣率。</p>
+
+      <h4>建議架構</h4>
+      <figure class="issue-figure">
+        <svg viewBox="0 0 780 180" role="img" aria-label="CarPlay 的 44.1、32、16、8 kHz 音訊先在 Plugin 內轉成 48 kHz,再依序送入 Audio HAL、固定 48 kHz 的 ADSP,最後輸出到與 USB Media 共用的 bus0">
+          <defs>
+            <marker id="in-src-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker>
+            <marker id="in-src-a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1a8b86"></path></marker>
+          </defs>
+          <text x="8" y="28" font-size="10.5" fill="currentColor" opacity=".6">CARPLAY 輸入</text>
+          <rect x="8" y="38" width="110" height="22" rx="4" fill="currentColor" fill-opacity=".05" stroke="currentColor" stroke-opacity=".3"></rect>
+          <text x="63" y="53" text-anchor="middle" font-size="11" fill="currentColor">44.1 kHz</text>
+          <rect x="8" y="64" width="110" height="22" rx="4" fill="currentColor" fill-opacity=".05" stroke="currentColor" stroke-opacity=".3"></rect>
+          <text x="63" y="79" text-anchor="middle" font-size="11" fill="currentColor">32 kHz</text>
+          <rect x="8" y="90" width="110" height="22" rx="4" fill="currentColor" fill-opacity=".05" stroke="currentColor" stroke-opacity=".3"></rect>
+          <text x="63" y="105" text-anchor="middle" font-size="11" fill="currentColor">16 kHz</text>
+          <rect x="8" y="116" width="110" height="22" rx="4" fill="currentColor" fill-opacity=".05" stroke="currentColor" stroke-opacity=".3"></rect>
+          <text x="63" y="131" text-anchor="middle" font-size="11" fill="currentColor">8 kHz</text>
+
+          <line x1="122" y1="88" x2="152" y2="88" stroke="currentColor" stroke-width="1.4" marker-end="url(#in-src-a)"></line>
+
+          <rect x="158" y="60" width="170" height="56" rx="6" fill="#1a8b86" fill-opacity=".12" stroke="#1a8b86" stroke-width="1.6"></rect>
+          <text x="243" y="83" text-anchor="middle" font-size="12.5" fill="currentColor">CarPlay Plugin</text>
+          <text x="243" y="101" text-anchor="middle" font-size="11" fill="#1a8b86">SRC in audio callback</text>
+
+          <line x1="332" y1="88" x2="362" y2="88" stroke="#1a8b86" stroke-width="1.6" marker-end="url(#in-src-a2)"></line>
+          <text x="347" y="78" text-anchor="middle" font-size="10.5" fill="#1a8b86">48k</text>
+
+          <rect x="368" y="60" width="110" height="56" rx="6" fill="none" stroke="currentColor" stroke-opacity=".45"></rect>
+          <text x="423" y="93" text-anchor="middle" font-size="12.5" fill="currentColor">Audio HAL</text>
+
+          <line x1="482" y1="88" x2="512" y2="88" stroke="currentColor" stroke-width="1.4" marker-end="url(#in-src-a)"></line>
+
+          <rect x="518" y="60" width="110" height="56" rx="6" fill="none" stroke="currentColor" stroke-opacity=".45"></rect>
+          <text x="573" y="83" text-anchor="middle" font-size="12.5" fill="currentColor">ADSP</text>
+          <text x="573" y="101" text-anchor="middle" font-size="11" fill="currentColor" opacity=".7">固定 48 kHz</text>
+
+          <line x1="632" y1="88" x2="662" y2="88" stroke="currentColor" stroke-width="1.4" marker-end="url(#in-src-a)"></line>
+
+          <rect x="668" y="60" width="104" height="56" rx="6" fill="none" stroke="currentColor" stroke-opacity=".45"></rect>
+          <text x="720" y="83" text-anchor="middle" font-size="12.5" fill="currentColor">bus0</text>
+          <text x="720" y="101" text-anchor="middle" font-size="11" fill="currentColor" opacity=".7">與 USB 共用</text>
+
+          <line x1="243" y1="120" x2="243" y2="138" stroke="#1a8b86" stroke-opacity=".5" stroke-dasharray="3 4"></line>
+          <text x="243" y="154" text-anchor="middle" font-size="11" fill="#1a8b86">所有採樣率在此收斂</text>
+
+          <line x1="368" y1="132" x2="772" y2="132" stroke="currentColor" stroke-opacity=".3" stroke-dasharray="4 4"></line>
+          <line x1="368" y1="127" x2="368" y2="137" stroke="currentColor" stroke-opacity=".3"></line>
+          <line x1="772" y1="127" x2="772" y2="137" stroke="currentColor" stroke-opacity=".3"></line>
+          <text x="570" y="154" text-anchor="middle" font-size="11" fill="currentColor" opacity=".75">此段恆為 48 kHz,不因輸入採樣率切換 Audio Path</text>
+        </svg>
+        <figcaption>CarPlay Media 與一般 USB Media 共用 <code>bus0</code>,沒有專用的 MMAP device node;44.1 kHz 在 Plugin 轉成 48 kHz 後,後段全程維持單一採樣率。這是 Harman 在 Qualcomm 平台的統一方案,已有其他車載專案經驗。</figcaption>
+      </figure>
+
+      <h4>同一個槽位,換人做 SRC 的後果</h4>
+      <figure class="issue-figure">
+        <svg viewBox="0 0 720 258" role="img" aria-label="三種做法比較:A 由 Plugin 做 SRC,HAL 與 ADSP 都維持 48 kHz;B 由 AudioFlinger 做 SRC,多一段 buffer 與處理延遲;C 由 ADSP 依輸入採樣率切換 Audio Path,切換時造成 audio drop">
+          <defs>
+            <marker id="in-src-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker>
+          </defs>
+          <text x="114" y="18" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6">輸入</text>
+          <text x="259" y="18" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6">PLUGIN</text>
+          <text x="434" y="18" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6">HAL / AUDIOFLINGER</text>
+          <text x="624" y="18" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6">ADSP</text>
+          <line x1="64" y1="24" x2="704" y2="24" stroke="currentColor" stroke-opacity=".2" stroke-dasharray="3 4"></line>
+
+          <text x="56" y="55" text-anchor="end" font-size="11" fill="#1a8b86">A 採用</text>
+          <rect x="64" y="32" width="100" height="40" rx="5" fill="currentColor" fill-opacity=".05" stroke="currentColor" stroke-opacity=".3"></rect>
+          <text x="114" y="57" text-anchor="middle" font-size="11" fill="currentColor">44.1 kHz</text>
+          <line x1="168" y1="52" x2="190" y2="52" stroke="currentColor" stroke-width="1.3" marker-end="url(#in-src-b)"></line>
+          <rect x="194" y="32" width="130" height="40" rx="5" fill="#1a8b86" fill-opacity=".12" stroke="#1a8b86" stroke-width="1.6"></rect>
+          <text x="259" y="49" text-anchor="middle" font-size="11.5" fill="currentColor">SRC</text>
+          <text x="259" y="64" text-anchor="middle" font-size="11" fill="#1a8b86">→ 48 kHz</text>
+          <line x1="328" y1="52" x2="350" y2="52" stroke="currentColor" stroke-width="1.3" marker-end="url(#in-src-b)"></line>
+          <rect x="354" y="32" width="160" height="40" rx="5" fill="none" stroke="currentColor" stroke-opacity=".45"></rect>
+          <text x="434" y="57" text-anchor="middle" font-size="11.5" fill="currentColor">Audio HAL</text>
+          <line x1="518" y1="52" x2="540" y2="52" stroke="currentColor" stroke-width="1.3" marker-end="url(#in-src-b)"></line>
+          <rect x="544" y="32" width="160" height="40" rx="5" fill="none" stroke="currentColor" stroke-opacity=".45"></rect>
+          <text x="624" y="57" text-anchor="middle" font-size="11.5" fill="currentColor">固定 48 kHz</text>
+          <text x="259" y="90" text-anchor="middle" font-size="10.5" fill="#1a8b86">與 callback 同一執行流程,無額外 thread switching</text>
+
+          <text x="56" y="133" text-anchor="end" font-size="11" fill="currentColor" opacity=".7">B 不採用</text>
+          <rect x="64" y="110" width="100" height="40" rx="5" fill="currentColor" fill-opacity=".05" stroke="currentColor" stroke-opacity=".3"></rect>
+          <text x="114" y="135" text-anchor="middle" font-size="11" fill="currentColor">44.1 kHz</text>
+          <line x1="168" y1="130" x2="190" y2="130" stroke="currentColor" stroke-width="1.3" marker-end="url(#in-src-b)"></line>
+          <rect x="194" y="110" width="130" height="40" rx="5" fill="none" stroke="currentColor" stroke-opacity=".3" stroke-dasharray="4 4"></rect>
+          <text x="259" y="135" text-anchor="middle" font-size="11" fill="currentColor" opacity=".55">直通</text>
+          <line x1="328" y1="130" x2="350" y2="130" stroke="currentColor" stroke-width="1.3" marker-end="url(#in-src-b)"></line>
+          <rect x="354" y="110" width="160" height="40" rx="5" fill="#cf4a3e" fill-opacity=".1" stroke="#cf4a3e" stroke-width="1.6"></rect>
+          <text x="434" y="127" text-anchor="middle" font-size="11.5" fill="currentColor">AudioFlinger SRC</text>
+          <text x="434" y="142" text-anchor="middle" font-size="10.5" fill="#cf4a3e">系統服務內</text>
+          <line x1="518" y1="130" x2="540" y2="130" stroke="currentColor" stroke-width="1.3" marker-end="url(#in-src-b)"></line>
+          <rect x="544" y="110" width="160" height="40" rx="5" fill="none" stroke="currentColor" stroke-opacity=".45"></rect>
+          <text x="624" y="135" text-anchor="middle" font-size="11.5" fill="currentColor">固定 48 kHz</text>
+          <text x="434" y="168" text-anchor="middle" font-size="10.5" fill="#cf4a3e">多一段 buffer／處理延遲 → 35 ms 認證風險</text>
+
+          <text x="56" y="211" text-anchor="end" font-size="11" fill="currentColor" opacity=".7">C 不採用</text>
+          <rect x="64" y="188" width="100" height="40" rx="5" fill="currentColor" fill-opacity=".05" stroke="currentColor" stroke-opacity=".3"></rect>
+          <text x="114" y="213" text-anchor="middle" font-size="11" fill="currentColor">44.1 kHz</text>
+          <line x1="168" y1="208" x2="190" y2="208" stroke="currentColor" stroke-width="1.3" marker-end="url(#in-src-b)"></line>
+          <rect x="194" y="188" width="130" height="40" rx="5" fill="none" stroke="currentColor" stroke-opacity=".3" stroke-dasharray="4 4"></rect>
+          <text x="259" y="213" text-anchor="middle" font-size="11" fill="currentColor" opacity=".55">直通</text>
+          <line x1="328" y1="208" x2="350" y2="208" stroke="currentColor" stroke-width="1.3" marker-end="url(#in-src-b)"></line>
+          <rect x="354" y="188" width="160" height="40" rx="5" fill="none" stroke="currentColor" stroke-opacity=".3" stroke-dasharray="4 4"></rect>
+          <text x="434" y="213" text-anchor="middle" font-size="11" fill="currentColor" opacity=".55">直通</text>
+          <line x1="518" y1="208" x2="540" y2="208" stroke="currentColor" stroke-width="1.3" marker-end="url(#in-src-b)"></line>
+          <rect x="544" y="188" width="160" height="40" rx="5" fill="#cf4a3e" fill-opacity=".1" stroke="#cf4a3e" stroke-width="1.6"></rect>
+          <text x="624" y="205" text-anchor="middle" font-size="11.5" fill="currentColor">依輸入切 Path</text>
+          <text x="624" y="220" text-anchor="middle" font-size="10.5" fill="#cf4a3e">44.1 / 48 kHz</text>
+          <text x="624" y="246" text-anchor="middle" font-size="10.5" fill="#cf4a3e">動態切 Audio Path → audio drop</text>
+        </svg>
+        <figcaption>差異不在有沒有 SRC,而在它落在哪一層。實作上是用 Android／AOSP 的 <code>libaudioflinger</code>／<code>AudioResampler</code> 相關能力,在應用程式的 audio callback thread 裡直接 resample;因為與資料 callback 同一執行流程,沒有額外的 thread switching,但仍需控制 buffer 數量及處理時間。</figcaption>
+      </figure>
+
+      <h4>通話(uplink)—— 換率被擋在 Plugin 這一層</h4>
+      <figure class="issue-figure">
+        <svg viewBox="-34 0 734 190" role="img" aria-label="通話期間 Vocoder 採樣率由 8 kHz 變到 16 kHz 再到 32 kHz,Plugin 的 SRC 比率跟著調整,但 bus 與 Audio Path 維持同一條固定採樣率通路,全程沒有切換,因此不會產生 audio drop">
+          <text x="388" y="16" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6">通話時間 →</text>
+          <line x1="289" y1="24" x2="289" y2="112" stroke="#cf4a3e" stroke-opacity=".55" stroke-dasharray="4 4"></line>
+          <line x1="455" y1="24" x2="455" y2="112" stroke="#cf4a3e" stroke-opacity=".55" stroke-dasharray="4 4"></line>
+          <text x="289" y="20" text-anchor="middle" font-size="10" fill="#cf4a3e">換率</text>
+          <text x="455" y="20" text-anchor="middle" font-size="10" fill="#cf4a3e">換率</text>
+
+          <text x="74" y="52" text-anchor="end" font-size="11" fill="currentColor" opacity=".8">Vocoder</text>
+          <rect x="86" y="32" width="200" height="26" rx="4" fill="currentColor" fill-opacity=".05" stroke="currentColor" stroke-opacity=".3"></rect>
+          <text x="186" y="49" text-anchor="middle" font-size="11" fill="currentColor">8 kHz</text>
+          <rect x="292" y="32" width="160" height="26" rx="4" fill="currentColor" fill-opacity=".05" stroke="currentColor" stroke-opacity=".3"></rect>
+          <text x="372" y="49" text-anchor="middle" font-size="11" fill="currentColor">16 kHz</text>
+          <rect x="458" y="32" width="232" height="26" rx="4" fill="currentColor" fill-opacity=".05" stroke="currentColor" stroke-opacity=".3"></rect>
+          <text x="574" y="49" text-anchor="middle" font-size="11" fill="currentColor">32 kHz</text>
+
+          <text x="74" y="94" text-anchor="end" font-size="11" fill="#1a8b86">Plugin SRC</text>
+          <rect x="86" y="74" width="200" height="26" rx="4" fill="#1a8b86" fill-opacity=".12" stroke="#1a8b86"></rect>
+          <text x="186" y="91" text-anchor="middle" font-size="11" fill="#1a8b86">8 ↔ path rate</text>
+          <rect x="292" y="74" width="160" height="26" rx="4" fill="#1a8b86" fill-opacity=".12" stroke="#1a8b86"></rect>
+          <text x="372" y="91" text-anchor="middle" font-size="11" fill="#1a8b86">16 ↔ path rate</text>
+          <rect x="458" y="74" width="232" height="26" rx="4" fill="#1a8b86" fill-opacity=".12" stroke="#1a8b86"></rect>
+          <text x="574" y="91" text-anchor="middle" font-size="11" fill="#1a8b86">32 ↔ path rate</text>
+
+          <text x="74" y="138" text-anchor="end" font-size="11" fill="currentColor" opacity=".8">Bus／Audio Path</text>
+          <rect x="86" y="116" width="604" height="30" rx="4" fill="#2e8b57" fill-opacity=".1" stroke="#2e8b57"></rect>
+          <text x="388" y="136" text-anchor="middle" font-size="11.5" fill="currentColor">同一條固定採樣率 Audio Path,全程不切換</text>
+
+          <text x="388" y="172" text-anchor="middle" font-size="11" fill="#2e8b57">換率只停在 Plugin 這一層 → 不會有 audio drop</text>
+        </svg>
+        <figcaption>兩條紅色虛線是通話中 Vocoder 改變採樣率的時刻;它們穿過 Vocoder 與 Plugin 兩列,卻沒有往下切到 bus／Audio Path。Harman 不會為每一種輸入採樣率建立獨立 Audio Path,而是只維持少數固定採樣率的 Audio Path,由 Plugin 負責 8↔16 kHz、16↔32 kHz 等轉換。</figcaption>
+      </figure>
+
+      <h4>認證與待確認事項</h4>
+      <div class="issue-table-wrap">
+        <table class="issue-table">
+          <thead><tr><th>項目</th><th>現況</th><th>說明／待確認</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>44.1 → 48 kHz 轉換</td>
+              <td>預期無影響</td>
+              <td>CarPlay 認證主要驗證 44.1 kHz 能否播放、Latency、Audio Job 與聲學表現,通常不會檢查 ADSP 內部是否原生運作於 44.1 kHz。</td>
+            </tr>
+            <tr>
+              <td>Downlink latency</td>
+              <td class="verdict-miss">貼近上限</td>
+              <td>目前實測已貼近 <b>35 ms</b> requirement;若改由 AudioFlinger 做 SRC,可能增加 buffer 或處理延遲,帶來認證風險。</td>
+            </tr>
+            <tr>
+              <td>通話 SRC 演算法</td>
+              <td class="verdict-extra">待確認</td>
+              <td>需確認是否有通過 ITU‑T P.1100／P.1110、Apple MFi／CarPlay 的量產經驗。</td>
+            </tr>
+            <tr>
+              <td>Harman 佐證資料</td>
+              <td class="verdict-extra">無法提供</td>
+              <td>因保密不能提供其他專案報告,需改以既有實績佐證。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>一句話結論</h4>
+      <p>採用「Audio Path／ADSP 固定採樣率,CarPlay Plugin 在 callback 中做 SRC」的方案;好處是不需切換底層通路、可避免 audio drop,但必須特別驗證 resampler 的音質、buffer 與 latency 是否符合認證要求。</p>
+      <p style="color:var(--muted); font-size:12px;">來源:<a href="https://app.notion.com/p/SRC-issue-3d61c7f3357e8056b0dbcee22fb537a4?pvs=21" target="_blank" rel="noopener noreferrer">SRC issue · Notion</a></p>
+    `,
+  },
+  {
     id: 'wireless-aa-reconnect',
     date: '2026-09-15',
     title: '三題 PCTS 無線 AA 失敗,是同一個決策放錯了地方',
@@ -2334,7 +2528,7 @@ function renderSubFeatureBars() {
   SUBFEATURE_GROUPS.forEach(renderSubFeatureBarsFor);
 }
 
-const TEAM_ORDER = ['TS_FW', 'TS_CPAA', 'MDT_System', 'MDT_PM', 'MDT_App', 'MDI_System', 'Unassigned', 'Unknown'];
+const TEAM_ORDER = ['TS_FW', 'TS_CPAA', 'MDT_System', 'MDT_PM', 'MDT_App', 'MDT_Sys_QA', 'MDI_System', 'Unassigned', 'Unknown'];
 // Fixed categorical hue order (never cycled) used to color the Stats tab's
 // per-team Bug burndown lines; matches the palette already used for
 // FEATURE_COLORS/SWE_COLORS (slots 1-3), extended with slots 4-8.
@@ -2344,6 +2538,7 @@ const TEAM_COLORS = {
   MDT_System: 'var(--series-ipod)',
   MDT_PM: 'var(--series-yellow)',
   MDT_App: 'var(--series-magenta)',
+  MDT_Sys_QA: 'var(--series-brown)',
   MDI_System: 'var(--series-green)',
   Unassigned: 'var(--series-violet)',
   Unknown: 'var(--series-red)',

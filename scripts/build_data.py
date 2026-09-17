@@ -75,6 +75,11 @@ TEAM_MAP = {
     'BrianZYYang': 'MDT_App',
     'Anis Parveen Mohammed': 'MDI_System',
     'JustinCCChen': 'MDT_App',
+    # Added per user confirmation (2026-09-17). MDT_Sys_QA is a new team code;
+    # it also has to exist in gen_dashboard.py's TEAM_ORDER / TEAM_COLORS or the
+    # dashboard silently drops the column.
+    'GavinSYChou': 'MDT_App',
+    'RebeccaYFChang(張語棻)': 'MDT_Sys_QA',
 }
 
 DONE_STATUSES = {"Done"}  # statusCategory 'done'
