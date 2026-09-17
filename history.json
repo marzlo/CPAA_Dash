@@ -756,7 +756,7 @@
    },
    "MDT_System": {
     "done": 1,
-    "total": 14
+    "total": 15
    },
    "TS_CPAA": {
     "done": 133,
@@ -768,7 +768,7 @@
    },
    "Unassigned": {
     "done": 1,
-    "total": 2
+    "total": 1
    },
    "Unknown": {
     "done": 3,
@@ -777,15 +777,15 @@
   },
   "date": "2026-09-17",
   "swe2": {
-   "done": 309,
+   "done": 310,
    "total": 992
   },
   "swe3": {
-   "done": 249,
+   "done": 251,
    "total": 294
   },
   "swe5": {
-   "done": 86,
+   "done": 88,
    "total": 115
   }
  }
