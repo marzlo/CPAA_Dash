@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-16T04:02:27.364Z",
+  "updated_at": "2026-09-17T02:10:57.645Z",
   "updated_by": "Leyo",
   "confirmed": {
     "f4c0d095": {
@@ -49,6 +49,16 @@
       "name": "孙琦",
       "by": "Leyo",
       "at": "2026-09-15T10:04:47.977Z"
+    },
+    "NR1LT-4973": {
+      "name": "BrianZYYang",
+      "by": "Leyo",
+      "at": "2026-09-17T02:10:47.973Z"
+    },
+    "NR1LT-5257": {
+      "name": "BrianZYYang",
+      "by": "Leyo",
+      "at": "2026-09-17T02:10:54.691Z"
     }
   }
 }
