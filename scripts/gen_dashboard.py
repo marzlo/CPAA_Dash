@@ -1649,7 +1649,7 @@ const ISSUE_NOTES = [
       後果差很多:一個多一段 buffer,一個多一次通路切換。Harman 在 Qualcomm 平台的統一做法是
       <b>把 SRC 放進 CarPlay Plugin 的 audio callback</b>,底層一律固定採樣率。</p>
 
-      <h4>建議架構</h4>
+      <h4>建議架構 — Downlink／Media</h4>
       <figure class="issue-figure">
         <svg viewBox="0 0 780 180" role="img" aria-label="CarPlay 的 44.1、32、16、8 kHz 音訊先在 Plugin 內轉成 48 kHz,再依序送入 Audio HAL、固定 48 kHz 的 ADSP,最後輸出到與 USB Media 共用的 bus0">
           <defs>
@@ -1657,6 +1657,7 @@ const ISSUE_NOTES = [
             <marker id="in-src-a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1a8b86"></path></marker>
           </defs>
           <text x="8" y="28" font-size="10.5" fill="currentColor" opacity=".6">CARPLAY 輸入</text>
+          <text x="772" y="28" text-anchor="end" font-size="10.5" fill="currentColor" opacity=".55">DOWNLINK ／ MEDIA</text>
           <rect x="8" y="38" width="110" height="22" rx="4" fill="currentColor" fill-opacity=".05" stroke="currentColor" stroke-opacity=".3"></rect>
           <text x="63" y="53" text-anchor="middle" font-size="11" fill="currentColor">44.1 kHz</text>
           <rect x="8" y="64" width="110" height="22" rx="4" fill="currentColor" fill-opacity=".05" stroke="currentColor" stroke-opacity=".3"></rect>
@@ -1701,12 +1702,13 @@ const ISSUE_NOTES = [
         <figcaption>CarPlay Media 與一般 USB Media 共用 <code>bus0</code>,沒有專用的 MMAP device node;44.1 kHz 在 Plugin 轉成 48 kHz 後,後段全程維持單一採樣率。這是 Harman 在 Qualcomm 平台的統一方案,已有其他車載專案經驗。</figcaption>
       </figure>
 
-      <h4>同一個槽位,換人做 SRC 的後果</h4>
+      <h4>同一個槽位,換人做 SRC 的後果 — Downlink</h4>
       <figure class="issue-figure">
         <svg viewBox="0 0 720 258" role="img" aria-label="三種做法比較:A 由 Plugin 做 SRC,HAL 與 ADSP 都維持 48 kHz;B 由 AudioFlinger 做 SRC,多一段 buffer 與處理延遲;C 由 ADSP 依輸入採樣率切換 Audio Path,切換時造成 audio drop">
           <defs>
             <marker id="in-src-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker>
           </defs>
+          <text x="0" y="18" font-size="10.5" fill="currentColor" opacity=".55">DOWNLINK</text>
           <text x="114" y="18" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6">輸入</text>
           <text x="259" y="18" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6">PLUGIN</text>
           <text x="434" y="18" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6">HAL / AUDIOFLINGER</text>
@@ -1761,9 +1763,10 @@ const ISSUE_NOTES = [
         <figcaption>差異不在有沒有 SRC,而在它落在哪一層。實作上是用 Android／AOSP 的 <code>libaudioflinger</code>／<code>AudioResampler</code> 相關能力,在應用程式的 audio callback thread 裡直接 resample;因為與資料 callback 同一執行流程,沒有額外的 thread switching,但仍需控制 buffer 數量及處理時間。</figcaption>
       </figure>
 
-      <h4>通話(uplink)—— 換率被擋在 Plugin 這一層</h4>
+      <h4>通話 Uplink —— 換率被擋在 Plugin 這一層</h4>
       <figure class="issue-figure">
         <svg viewBox="-34 0 734 190" role="img" aria-label="通話期間 Vocoder 採樣率由 8 kHz 變到 16 kHz 再到 32 kHz,Plugin 的 SRC 比率跟著調整,但 bus 與 Audio Path 維持同一條固定採樣率通路,全程沒有切換,因此不會產生 audio drop">
+          <text x="-34" y="16" font-size="10.5" fill="currentColor" opacity=".55">UPLINK</text>
           <text x="388" y="16" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6">通話時間 →</text>
           <line x1="289" y1="24" x2="289" y2="112" stroke="#cf4a3e" stroke-opacity=".55" stroke-dasharray="4 4"></line>
           <line x1="455" y1="24" x2="455" y2="112" stroke="#cf4a3e" stroke-opacity=".55" stroke-dasharray="4 4"></line>
