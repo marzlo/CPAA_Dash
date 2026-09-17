@@ -422,9 +422,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     padding: 8px 10px; font-size: 12px; font-weight: 700; color: var(--text-secondary);
     background: var(--page); border-bottom: 1px solid var(--grid);
   }
-  .notes-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-  /* Four columns need the room; below that they pair up, then stack. */
-  @media (max-width: 1240px) { .notes-grid { grid-template-columns: repeat(2, 1fr); } }
+  /* Two columns, two rows — the column order in overviewNotesColumns() fills it
+     left-to-right, top-to-bottom. Stacks to one column on a phone. */
+  .notes-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; align-items: start; }
   @media (max-width: 760px) { .notes-grid { grid-template-columns: 1fr; } }
   .notes-col {
     background: var(--page); border: 1px solid var(--border); border-radius: 10px;
@@ -1078,12 +1078,16 @@ const GITHUB_NOTES_PATH = 'overview_notes.json';
 const GITHUB_RAW_NOTES_URL = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/${GITHUB_NOTES_PATH}`;
 let overviewNotesEditing = false;
 
+// Laid out as a 2x2 grid, so the order here is reading order:
+//   row 1: Development status | Risk (Internal)
+//   row 2: Certification status | Risk (External)
+// Each row pairs a status with the risks that threaten it.
 function overviewNotesColumns() {
   return [
     { key: 'development_status', label: t('notes_dev_heading') },
+    { key: 'risk_internal', label: t('notes_risk_internal_heading') },
     { key: 'certification_status', label: t('notes_cert_heading') },
     { key: 'risk', label: t('notes_risk_heading') },
-    { key: 'risk_internal', label: t('notes_risk_internal_heading') },
   ];
 }
 
