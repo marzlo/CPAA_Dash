@@ -442,6 +442,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .notes-html li { margin-bottom: 4px; }
   .notes-html p { margin: 0 0 6px; }
   .notes-html a { color: var(--series-cp); }
+  .notes-html img { max-width: 100%; border-radius: 6px; margin: 4px 0; display: block; }
   .notes-editor {
     min-height: 150px; max-height: 320px; overflow-y: auto; background: var(--surface-1);
     border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 13px;
@@ -451,6 +452,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .notes-editor ul, .notes-editor ol { margin: 0; padding-left: 18px; }
   .notes-editor li { margin-bottom: 4px; }
   .notes-editor a { color: var(--series-cp); }
+  .notes-editor img { max-width: 100%; border-radius: 6px; margin: 4px 0; display: block; }
   .notes-toolbar {
     grid-column: 1/-1; display: flex; gap: 4px; flex-wrap: wrap; align-items: center;
     padding: 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--page);
@@ -728,7 +730,7 @@ const STRINGS = {
   notes_token_prompt: { zh: '請貼上具備此 repo 寫入權限的 GitHub Personal Access Token(僅會存在你自己瀏覽器裡,不會傳給任何第三方):', en: 'Paste a GitHub Personal Access Token with write access to this repo (stored only in your own browser, never sent anywhere else):' },
   notes_name_prompt: { zh: '你的名字(會顯示在「最後更新」旁):', en: 'Your name (shown next to "last updated"):' },
   notes_saved_msg: { zh: '已儲存!其他人重新整理頁面後,大約 1 分鐘內就會看到最新內容。', en: 'Saved! Others will see the update within about a minute after refreshing the page.' },
-  notes_indent_hint: { zh: '提示:Tab 縮排(建立子項目)、Shift+Tab 取消縮排;貼上的格式會自動保留,連結存檔後可直接點擊', en: 'Tip: Tab indents (makes a sub-item), Shift+Tab outdents. Pasted formatting is kept, and links become clickable once saved' },
+  notes_indent_hint: { zh: '提示:Tab 縮排(建立子項目)、Shift+Tab 取消縮排;貼上的格式會自動保留,連結存檔後可直接點擊;也可以直接貼上圖片(例如截圖)', en: 'Tip: Tab indents (makes a sub-item), Shift+Tab outdents. Pasted formatting is kept, links become clickable once saved, and you can paste an image (e.g. a screenshot) directly' },
   notes_tb_bold: { zh: '粗體', en: 'Bold' },
   notes_tb_italic: { zh: '斜體', en: 'Italic' },
   notes_tb_underline: { zh: '底線', en: 'Underline' },
@@ -1129,13 +1131,17 @@ function renderNoteTree(node) {
 // that looks like markup is rendered instead — through a strict allowlist, because the
 // dashboard is public and notes are written by whoever holds the edit token.
 const NOTES_ALLOWED_TAGS = { UL: 1, OL: 1, LI: 1, BR: 1, P: 1, DIV: 1, SPAN: 1, B: 1, STRONG: 1,
-                             I: 1, EM: 1, U: 1, S: 1, A: 1, CODE: 1, SMALL: 1 };
+                             I: 1, EM: 1, U: 1, S: 1, A: 1, CODE: 1, SMALL: 1, IMG: 1 };
 // These are removed outright — keeping their text would dump code onto the page.
 const NOTES_DROPPED_TAGS = { SCRIPT: 1, STYLE: 1, IFRAME: 1, OBJECT: 1, EMBED: 1, NOSCRIPT: 1, TEMPLATE: 1, LINK: 1, META: 1 };
 const NOTES_ALLOWED_STYLE = /^(color|background-color|font-weight|font-style|text-decoration)$/;
+// Pasted images are re-encoded to a data: URI (see attachNotesEditor) rather than
+// uploaded anywhere, so this is the only <img src> the sanitizer ever needs to allow
+// — a remote http(s) src would let anyone embed tracking pixels on a public page.
+const NOTES_IMG_SRC = /^data:image\/(png|jpe?g|gif|webp);base64,/i;
 
 function looksLikeNotesHtml(raw) {
-  return /<(ul|ol|li|br|p|div|span|b|strong|i|em|u|a)\b[^>]*>/i.test(raw || '');
+  return /<(ul|ol|li|br|p|div|span|b|strong|i|em|u|a|img)\b[^>]*>/i.test(raw || '');
 }
 
 // Keeps the allowed tags, drops every other tag but keeps its text, and strips all
@@ -1163,6 +1169,10 @@ function sanitizeNotesHtml(raw) {
         child.replaceWith(doc.createTextNode(child.textContent || ''));
         return;
       }
+      if (child.tagName === 'IMG' && !NOTES_IMG_SRC.test(child.getAttribute('src') || '')) {
+        child.remove();
+        return;
+      }
       [...child.attributes].forEach(attr => {
         const name = attr.name.toLowerCase();
         if (name === 'style') {
@@ -1171,6 +1181,8 @@ function sanitizeNotesHtml(raw) {
             return NOTES_ALLOWED_STYLE.test(prop) && !/url\s*\(|expression/i.test(d);
           }).join('; ');
           if (safe) child.setAttribute('style', safe); else child.removeAttribute('style');
+        } else if (name === 'src' && child.tagName === 'IMG') {
+          // kept as-is — already validated above
         } else if (name === 'href' && child.tagName === 'A' && /^https?:\/\//i.test(attr.value)) {
           child.setAttribute('target', '_blank');
           child.setAttribute('rel', 'noopener noreferrer');
@@ -1307,7 +1319,17 @@ function attachNotesEditor(ed) {
   });
   // Paste through the same allowlist the renderer uses, so Word/Outlook/Confluence
   // markup arrives as plain bullets, colours and links — not a wall of mso styles.
+  // A pasted image (e.g. a screenshot copied straight from the clipboard) has no
+  // text/html part at all — it arrives as a clipboard file — so that's checked first.
   ed.addEventListener('paste', e => {
+    const items = e.clipboardData && e.clipboardData.items;
+    const imageItem = items && [...items].find(it => it.kind === 'file' && /^image\//.test(it.type));
+    if (imageItem) {
+      e.preventDefault();
+      const file = imageItem.getAsFile();
+      if (file) insertNotesImage(ed, file);
+      return;
+    }
     const html = e.clipboardData.getData('text/html');
     const text = e.clipboardData.getData('text/plain');
     if (!html && !text) return;
@@ -1315,6 +1337,34 @@ function attachNotesEditor(ed) {
     const clean = html ? sanitizeNotesHtml(html) : esc(text).replace(/\n/g, '<br>');
     document.execCommand('insertHTML', false, clean);
   });
+}
+
+// Pasted images are downscaled and re-encoded as JPEG before insertion, rather than
+// kept at native size/format — the note is stored as one JSON value fetched by every
+// viewer on every page load (see saveOverviewNotes), so an unscaled multi-MB
+// screenshot would bloat that fetch for everyone, not just whoever pasted it.
+const NOTES_MAX_IMG_WIDTH = 900;
+const NOTES_IMG_QUALITY = 0.82;
+
+function insertNotesImage(ed, file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, NOTES_MAX_IMG_WIDTH / img.width);
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', NOTES_IMG_QUALITY);
+      ed.focus();
+      document.execCommand('insertHTML', false, `<img src="${dataUrl}">`);
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
 }
 
 function wireNotesToolbar() {
