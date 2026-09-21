@@ -988,7 +988,7 @@
    },
    "TS_CPAA": {
     "done": 139,
-    "total": 159
+    "total": 158
    },
    "TS_FW": {
     "done": 17,
@@ -996,11 +996,11 @@
    },
    "Unassigned": {
     "done": 1,
-    "total": 2
+    "total": 1
    },
    "Unknown": {
     "done": 3,
-    "total": 4
+    "total": 6
    }
   },
   "date": "2026-09-21",
