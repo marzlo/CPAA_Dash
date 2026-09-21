@@ -2,10 +2,14 @@
 Build traceability.json: requirement -> SWE1 / SWE2 -> SWE3, with live Jira status.
 
 Input
-  traceability_source.csv   one row per requirement, produced from the STLA SWRA
-                            analysis report by scripts/swra_to_csv.py. Columns:
-                            owner, reqid, title, cat, sub, prio, frop, swe1, swe2
-                            (swe1/swe2 are space-separated Jira keys, possibly empty)
+  traceability_source.csv   one row per requirement, produced from one or more STLA
+                            SWRA analysis reports by scripts/swra_to_csv.py and
+                            concatenated together (one CSV per feature — CarPlay,
+                            Android Auto, ... — merged, keeping a single header).
+                            Columns: feature, owner, reqid, title, cat, sub, prio,
+                            frop, swe1, swe2 (swe1/swe2 are space-separated Jira
+                            keys, possibly empty; feature defaults to "CarPlay" if
+                            a row predates that column)
 
 Output
   traceability.json         read by gen_dashboard.py to render the Traceability tab
@@ -190,6 +194,7 @@ def build(rows, issues):
             item["swe3"] = swe3_of(k)
             swe2.append(item)
         out_rows.append({
+            "feature": (r.get("feature") or "CarPlay").strip() or "CarPlay",
             "owner": (r.get("owner") or "").strip() or "(未指定)",
             "reqid": r.get("reqid", ""), "title": r.get("title", ""),
             "cat": r.get("cat", ""), "sub": r.get("sub", ""),
@@ -213,10 +218,16 @@ def main():
 
     covered = sum(1 for r in out_rows for x in r["swe2"] if x["swe3"])
     total_swe2 = len({x["k"] for r in out_rows for x in r["swe2"]})
+    # Falls back to whatever features are actually present in the data, rather than a
+    # single hardcoded label, so this stays correct as reports for more features
+    # (CarPlay, Android Auto, iPod, ...) get merged into the same source CSV.
+    features_present = sorted({r["feature"] for r in out_rows})
+    default_project = " + ".join(features_present) if features_present else "CarPlay R10"
     data = {
         "generated_at": datetime.date.today().isoformat(),
-        "source": os.environ.get("TRACE_SOURCE_LABEL", "STLA SWRA Report · CPAA Analysis Report"),
-        "project": os.environ.get("TRACE_PROJECT", "CarPlay R10"),
+        "source": os.environ.get("TRACE_SOURCE_LABEL", "STLA SWRA Report · Analysis Report"),
+        "project": os.environ.get("TRACE_PROJECT", default_project),
+        "features": features_present,
         "rows": out_rows,
     }
     with open(OUT_JSON, "w", encoding="utf-8") as f:

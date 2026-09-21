@@ -834,6 +834,7 @@ const STRINGS = {
   trace_collapse_hint: { zh: '點標題可收合', en: 'click to collapse' },
   trace_detail_heading: { zh: '明細清單(依 Owner 分組)', en: 'Detail by owner' },
   trace_detail_caption: { zh: '每個需求列出對應的 SWE1 與 SWE2 票,SWE2 後面接的是它關聯到的 SWE3 票與狀態', en: 'Each requirement lists its SWE1 and SWE2 tickets; each SWE2 is followed by the SWE3 it links to, with status' },
+  trace_filter_all_feature: { zh: '全部功能(CarPlay/Android Auto)', en: 'All features (CarPlay/Android Auto)' },
   trace_filter_all_owner: { zh: '全部 Owner', en: 'All owners' },
   trace_filter_gap: { zh: '只看缺 SWE3 的 SWE2', en: 'Only SWE2 without SWE3' },
   trace_filter_has: { zh: '只看已有 SWE3 的 SWE2', en: 'Only SWE2 with SWE3' },
@@ -3607,6 +3608,10 @@ function renderTraceabilityPanel() {
     return;
   }
   const rows = TRACE.rows;
+  // Rows from before the "feature" column existed (or from a report that isn't
+  // CarPlay/Android Auto/iPod) still fall back to "CarPlay" in build_traceability.py,
+  // so this is never empty even on data that predates multi-report support.
+  const traceFeatures = [...new Set(rows.map(r => r.feature || 'CarPlay'))].sort();
   const totals = traceTotals(rows);
   // Slices and the owner summary both depend on the current overrides, so they are
   // recomputed (by refreshOwnerStats) every time an owner is edited or the notes file
@@ -3705,6 +3710,8 @@ function renderTraceabilityPanel() {
       </div>
       <datalist id="traceOwnerNames">${traceOwnerNameOptions(owners, assignees)}</datalist>
       <div class="filters">
+        <select id="traceFeatureFilter"><option value="">${esc(t('trace_filter_all_feature'))}</option>${
+          traceFeatures.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join('')}</select>
         <select id="traceOwnerFilter"><option value="">${esc(t('trace_filter_all_owner'))}</option>${
           owners.map(o => `<option value="${esc(o.owner)}">${esc(o.owner)}</option>`).join('')}</select>
         <select id="traceAssigneeFilter"><option value="">${esc(t('trace_filter_all_assignee'))}</option>${
@@ -3725,6 +3732,7 @@ function renderTraceabilityPanel() {
     </section>
   `;
 
+  const featureSel = document.getElementById('traceFeatureFilter');
   const ownerSel = document.getElementById('traceOwnerFilter');
   ownerSel.dataset.names = JSON.stringify(owners.map(o => o.owner));
   const assigneeSel = document.getElementById('traceAssigneeFilter');
@@ -3754,13 +3762,14 @@ function renderTraceabilityPanel() {
 
   function matches(s) {
     const r = s.r;
+    if (featureSel.value && (r.feature || 'CarPlay') !== featureSel.value) return false;
     if (ownerSel.value && s.owner !== ownerSel.value) return false;
     if (assigneeSel.value && !s.swe2.some(x => assigneeOf(x) === assigneeSel.value)) return false;
     if (confirmSel.value === 'yes' && !TRACE_NOTES.confirmed[s.rid]) return false;
     if (confirmSel.value === 'no' && TRACE_NOTES.confirmed[s.rid]) return false;
     const q = search.value.trim().toLowerCase();
     if (q) {
-      const hay = [r.reqid, r.title, r.sub, ...s.swe1.map(x => x.k + ' ' + x.t),
+      const hay = [r.reqid, r.title, r.sub, r.feature, ...s.swe1.map(x => x.k + ' ' + x.t),
                    ...s.swe2.map(x => x.k + ' ' + x.t)].join(' ').toLowerCase();
       if (!hay.includes(q)) return false;
     }
@@ -3827,7 +3836,7 @@ function renderTraceabilityPanel() {
               <div class="trace-req-head">
                 <span class="rid">${esc(r.reqid)}</span>
                 <span class="rtitle">${esc(r.title)}</span>
-                <span class="rmeta">${esc([r.prio, r.sub].filter(Boolean).join(' · '))}</span>
+                <span class="rmeta">${esc([r.feature, r.prio, r.sub].filter(Boolean).join(' · '))}</span>
                 ${s.owner !== r.owner ? `<span class="rmoved">${esc(t('trace_moved_from', r.owner))}</span>` : ''}
                 <label class="trace-confirm${conf ? ' on' : ''}">
                   <input type="checkbox" data-confirm="${rid}"${conf ? ' checked' : ''}>
@@ -3882,7 +3891,7 @@ function renderTraceabilityPanel() {
     renderGroups(openOwner);
   }
 
-  [ownerSel, assigneeSel, gapSel, confirmSel].forEach(el => el.addEventListener('change', () => renderGroups()));
+  [featureSel, ownerSel, assigneeSel, gapSel, confirmSel].forEach(el => el.addEventListener('change', () => renderGroups()));
   saveBtn.addEventListener('click', () => saveTraceNotes(saveBtn));
   document.getElementById('traceTokenBtn').addEventListener('click', () => { getGithubToken(true); traceUserName(true); });
   search.addEventListener('input', () => renderGroups());
