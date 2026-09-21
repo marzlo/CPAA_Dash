@@ -967,7 +967,7 @@
  "2026-09-21": {
   "bugs": {
    "done": 188,
-   "total": 282
+   "total": 283
   },
   "bugs_by_team": {
    "MDI_System": {
@@ -996,7 +996,7 @@
    },
    "Unassigned": {
     "done": 1,
-    "total": 1
+    "total": 2
    },
    "Unknown": {
     "done": 3,
