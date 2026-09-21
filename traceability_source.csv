@@ -474,22 +474,22 @@ Android Auto,,,Interfaces,Others.,Documentation / Interfaces,Low,,NR1LT-5959,
 Android Auto,Vincent,NRL-392184,Version compatibility,Functional,OEM / Version compatibility,Medium,OEM,NR1LT-5960,NR1LT-6240
 Android Auto,孙琦,NRL-392185 / NRL-392186 / NRL-392187 / NRL-392188 / NRL-392189,USB connection,Functional,Android Auto / USB connection,Medium,Android Auto,NR1LT-5961 NR1LT-1411 NR1LT-1412,NR1LT-6519 NR1LT-1162 NR1LT-1163
 Android Auto,weili.chou,NRL-392185 / NRL-392186 / NRL-392187 / NRL-392188 / NRL-392189,USB connection,Functional,CMS / USB connection,Medium,CMS,NR1LT-5961 NR1LT-1411 NR1LT-1412,NR1LT-6520 NR1LT-1162 NR1LT-1163
-Android Auto,CC,NRL-392185 / NRL-392186 / NRL-392187 / NRL-392188 / NRL-392189,USB connection,Functional,USB / USB connection,Medium,USB,NR1LT-5961 NR1LT-1411 NR1LT-1412,NR1LT-6521 NR1LT-1162 NR1LT-1163
+Android Auto,CC Huang,NRL-392185 / NRL-392186 / NRL-392187 / NRL-392188 / NRL-392189,USB connection,Functional,USB / USB connection,Medium,USB,NR1LT-5961 NR1LT-1411 NR1LT-1412,NR1LT-6521 NR1LT-1162 NR1LT-1163
 Android Auto,Vincent,NRL-392185 / NRL-392186 / NRL-392187 / NRL-392188 / NRL-392189,USB connection,Functional,OEM / USB connection,Medium,OEM,NR1LT-5961 NR1LT-1411 NR1LT-1412,NR1LT-6522 NR1LT-1162 NR1LT-1163
 Android Auto,,NRL-392190,Setting up transport,Others.,Documentation / Setting up transport,Low,,NR1LT-5962,
 Android Auto,孙琦,NRL-392191,Universal Serial Bus (USB),Functional,Android Auto / Universal Serial Bus (USB),Medium,Android Auto,NR1LT-5963,NR1LT-6241
-Android Auto,CC,NRL-392191,Universal Serial Bus (USB),Functional,USB / Universal Serial Bus (USB),Medium,USB,NR1LT-5963,NR1LT-6242
+Android Auto,CC Huang,NRL-392191,Universal Serial Bus (USB),Functional,USB / Universal Serial Bus (USB),Medium,USB,NR1LT-5963,NR1LT-6242
 Android Auto,孙琦,NRL-392192 / NRL-406146,Switching MD to AOA mode,Functional,Android Auto / Switching MD to AOA mode,Medium,Android Auto,NR1LT-1413,NR1LT-6523 NR1LT-1164
 Android Auto,weili.chou,NRL-392192 / NRL-406146,Switching MD to AOA mode,Functional,CMS / Switching MD to AOA mode,Medium,CMS,NR1LT-1413,NR1LT-6524 NR1LT-1164
-Android Auto,CC,NRL-392192 / NRL-406146,Switching MD to AOA mode,Functional,USB / Switching MD to AOA mode,Medium,USB,NR1LT-1413,NR1LT-6525 NR1LT-1164
+Android Auto,CC Huang,NRL-392192 / NRL-406146,Switching MD to AOA mode,Functional,USB / Switching MD to AOA mode,Medium,USB,NR1LT-1413,NR1LT-6525 NR1LT-1164
 Android Auto,孙琦,NRL-392193,Ping timeout,Functional,Android Auto / Ping timeout,Medium,Android Auto,NR1LT-5964,NR1LT-6243
 Android Auto,stanleyKCWu,NRL-392193,Ping timeout,Functional,Core HMI / Ping timeout,Medium,Core HMI,NR1LT-5964,NR1LT-6224
 Android Auto,孙琦,NRL-392194 / NRL-406147,Handling USB disconnections,Functional,Android Auto / Handling USB disconnections,Medium,Android Auto,NR1LT-1414,NR1LT-6526 NR1LT-1165
 Android Auto,weili.chou,NRL-392194 / NRL-406147,Handling USB disconnections,Functional,CMS / Handling USB disconnections,Medium,CMS,NR1LT-1414,NR1LT-6527 NR1LT-1165
 Android Auto,Shane（葉秀軒）,NRL-392194 / NRL-406147,Handling USB disconnections,Functional,Device Manager / Handling USB disconnections,Medium,Device Manager,NR1LT-1414,NR1LT-6528 NR1LT-1165
-Android Auto,CC,NRL-392194 / NRL-406147,Handling USB disconnections,Functional,USB / Handling USB disconnections,Medium,USB,NR1LT-1414,NR1LT-6529 NR1LT-1165
+Android Auto,CC Huang,NRL-392194 / NRL-406147,Handling USB disconnections,Functional,USB / Handling USB disconnections,Medium,USB,NR1LT-1414,NR1LT-6529 NR1LT-1165
 Android Auto,stanleyKCWu,NRL-392194 / NRL-406147,Handling USB disconnections,Functional,Core HMI / Handling USB disconnections,Medium,Core HMI,NR1LT-1414,NR1LT-6530 NR1LT-1165
-Android Auto,CC,NRL-392195,USB-IF Certification,Functional,USB / USB-IF Certification,Medium,USB,NR1LT-5965,NR1LT-6244
+Android Auto,CC Huang,NRL-392195,USB-IF Certification,Functional,USB / USB-IF Certification,Medium,USB,NR1LT-5965,NR1LT-6244
 Android Auto,孙琦,NRL-392196,Connection and launch process,Functional,Android Auto / Connection and launch process,Medium,Android Auto,NR1LT-5966,NR1LT-6245
 Android Auto,weili.chou,NRL-392196,Connection and launch process,Functional,CMS / Connection and launch process,Medium,CMS,NR1LT-5966,NR1LT-6246
 Android Auto,孙文奇,NRL-392196,Connection and launch process,Functional,Bluetooth / Connection and launch process,Medium,Bluetooth,NR1LT-5966,NR1LT-6247
@@ -502,7 +502,7 @@ Android Auto,Steven,NRL-392198,Authentication,Functional,Security / Authenticati
 Android Auto,孙琦,NRL-392199,Service Discovery Request,Functional,Android Auto / Service Discovery Request,Medium,Android Auto,NR1LT-5969,NR1LT-6254
 Android Auto,weili.chou,NRL-392199,Service Discovery Request,Functional,CMS / Service Discovery Request,Medium,CMS,NR1LT-5969,NR1LT-6255
 Android Auto,Shane（葉秀軒）,NRL-392199,Service Discovery Request,Functional,Device Manager / Service Discovery Request,Medium,Device Manager,NR1LT-5969,NR1LT-6256
-Android Auto,CC,NRL-392199,Service Discovery Request,Functional,USB / Service Discovery Request,Medium,USB,NR1LT-5969,NR1LT-6225
+Android Auto,CC Huang,NRL-392199,Service Discovery Request,Functional,USB / Service Discovery Request,Medium,USB,NR1LT-5969,NR1LT-6225
 Android Auto,stanleyKCWu,NRL-392199,Service Discovery Request,Functional,Core HMI / Service Discovery Request,Medium,Core HMI,NR1LT-5969,NR1LT-6257
 Android Auto,孙琦,NRL-392200,Service Discovery Response,Functional,Android Auto / Service Discovery Response,Medium,Android Auto,NR1LT-5970,NR1LT-6258
 Android Auto,stanleyKCWu,NRL-392200,Service Discovery Response,Functional,Core HMI / Service Discovery Response,Medium,Core HMI,NR1LT-5970,NR1LT-6259
@@ -537,7 +537,7 @@ Android Auto,stanleyKCWu,NRL-392217,Reconnecting AAP,Functional,Core HMI / Recon
 Android Auto,Jesse,NRL-392217,Reconnecting AAP,Functional,Display / Reconnecting AAP,Medium,Display,NR1LT-5987,NR1LT-6283
 Android Auto,孙琦,NRL-392218,Authentication certificates,Functional,Android Auto / Authentication certificates,Medium,Android Auto,NR1LT-5988,NR1LT-6284
 Android Auto,weili.chou,NRL-392218,Authentication certificates,Functional,CMS / Authentication certificates,Medium,CMS,NR1LT-5988,NR1LT-6285
-Android Auto,CC,NRL-392218,Authentication certificates,Functional,USB / Authentication certificates,Medium,USB,NR1LT-5988,NR1LT-6286
+Android Auto,CC Huang,NRL-392218,Authentication certificates,Functional,USB / Authentication certificates,Medium,USB,NR1LT-5988,NR1LT-6286
 Android Auto,Steven,NRL-392218,Authentication certificates,Functional,Security / Authentication certificates,Medium,Security,NR1LT-5988,NR1LT-6287
 Android Auto,,NRL-392219,Authentication sequence,Others.,Documentation / Authentication sequence,Low,,NR1LT-5989,
 Android Auto,孙琦,NRL-392220,Wireless connection,Functional,Android Auto / Wireless connection,Medium,Android Auto,NR1LT-5990,NR1LT-6288
@@ -610,13 +610,13 @@ Android Auto,孙琦,NRL-392258 / NRL-406161 / NRL-406162,Wireless connection pro
 Android Auto,weili.chou,NRL-392258 / NRL-406161 / NRL-406162,Wireless connection process: startup edge cases,Functional,CMS / Wireless connection process: startup edge cases,High,CMS,NR1LT-6014,NR1LT-6322
 Android Auto,Shane（葉秀軒）,NRL-392258 / NRL-406161 / NRL-406162,Wireless connection process: startup edge cases,Functional,Device Manager / Wireless connection process: startup edge cases,High,Device Manager,NR1LT-6014,NR1LT-6323
 Android Auto,孙文奇,NRL-392258 / NRL-406161 / NRL-406162,Wireless connection process: startup edge cases,Functional,Bluetooth / Wireless connection process: startup edge cases,High,Bluetooth,NR1LT-6014,NR1LT-6324
-Android Auto,CC,NRL-392258 / NRL-406161 / NRL-406162,Wireless connection process: startup edge cases,Functional,USB / Wireless connection process: startup edge cases,High,USB,NR1LT-6014,NR1LT-6325
+Android Auto,CC Huang,NRL-392258 / NRL-406161 / NRL-406162,Wireless connection process: startup edge cases,Functional,USB / Wireless connection process: startup edge cases,High,USB,NR1LT-6014,NR1LT-6325
 Android Auto,stanleyKCWu,NRL-392258 / NRL-406161 / NRL-406162,Wireless connection process: startup edge cases,Functional,Core HMI / Wireless connection process: startup edge cases,High,Core HMI,NR1LT-6014,NR1LT-6326
 Android Auto,孙琦,NRL-392259 / NRL-406163,Wireless connection process: handling known MDs,Functional,Android Auto / Wireless connection process: handling known MDs,High,Android Auto,NR1LT-1441,NR1LT-6554
 Android Auto,weili.chou,NRL-392259 / NRL-406163,Wireless connection process: handling known MDs,Functional,CMS / Wireless connection process: handling known MDs,High,CMS,NR1LT-1441,NR1LT-6555
 Android Auto,Shane（葉秀軒）,NRL-392259 / NRL-406163,Wireless connection process: handling known MDs,Functional,Device Manager / Wireless connection process: handling known MDs,High,Device Manager,NR1LT-1441,NR1LT-6556
 Android Auto,孙文奇,NRL-392259 / NRL-406163,Wireless connection process: handling known MDs,Functional,Bluetooth / Wireless connection process: handling known MDs,High,Bluetooth,NR1LT-1441,NR1LT-6557
-Android Auto,CC,NRL-392259 / NRL-406163,Wireless connection process: handling known MDs,Functional,USB / Wireless connection process: handling known MDs,High,USB,NR1LT-1441,NR1LT-6558
+Android Auto,CC Huang,NRL-392259 / NRL-406163,Wireless connection process: handling known MDs,Functional,USB / Wireless connection process: handling known MDs,High,USB,NR1LT-1441,NR1LT-6558
 Android Auto,stanleyKCWu,NRL-392259 / NRL-406163,Wireless connection process: handling known MDs,Functional,Core HMI / Wireless connection process: handling known MDs,High,Core HMI,NR1LT-1441,NR1LT-6559
 Android Auto,Santoshkumar Hiremath,NRL-392259 / NRL-406163,Wireless connection process: handling known MDs,Functional,Power Management / Wireless connection process: handling known MDs,High,Power Management,NR1LT-1441,NR1LT-6560
 Android Auto,,NRL-392260,Wireless connection process: error handling,Others.,Documentation / Wireless connection process: error handling,Low,,NR1LT-6015,
