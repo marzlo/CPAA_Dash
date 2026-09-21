@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-21T09:33:46.264Z",
+  "updated_at": "2026-09-21T09:34:06.866Z",
   "updated_by": "Leyo",
-  "note": "Harman R6 known issue:<br><a href=\"https://pse.is/9mv4rx\" target=\"_blank\" rel=\"noopener noreferrer\">https://pse.is/9mv4rx</a><br><div><ul><li>打藍芽電話時，Android Auto 或語音助理會聽不到聲音，而且聲音會在幾十毫秒內突然變大又變小（突發爆音或聲音不穩）。</li><li>聽音樂和開 CarPlay 導航時，如果突然跳出提示音，駕駛座與副駕座喇叭的聲音會混在一起（聲音分流配置跑掉）。  \n</li><li>聽音樂和打電話時，如果突然跳出 CarPlay 導航，電話聲音會同時跑去駕駛座與副駕座，且駕駛座喇叭會把 CarPlay 導航跟電話混在一起（聲音分流配置跑掉）。</li></ul></div>"
+  "note": "<span style=\"font-weight: bold\">Harman R6 known issue</span>:<br><a href=\"https://pse.is/9mv4rx\" target=\"_blank\" rel=\"noopener noreferrer\">https://pse.is/9mv4rx</a><br><div><ul><li>打藍芽電話時，Android Auto 或語音助理會聽不到聲音，而且聲音會在幾十毫秒內突然變大又變小（突發爆音或聲音不穩）。</li><li>聽音樂和開 CarPlay 導航時，如果突然跳出提示音，駕駛座與副駕座喇叭的聲音會混在一起（聲音分流配置跑掉）。  \n</li><li>聽音樂和打電話時，如果突然跳出 CarPlay 導航，電話聲音會同時跑去駕駛座與副駕座，且駕駛座喇叭會把 CarPlay 導航跟電話混在一起（聲音分流配置跑掉）。</li></ul></div>"
 }
