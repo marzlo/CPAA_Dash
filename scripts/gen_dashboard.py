@@ -382,6 +382,71 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .issue-chip { font-size: 11.5px; padding: 2px 8px; border-radius: 4px; background: var(--page); color: var(--text-secondary); }
   .issue-chip.start { background: color-mix(in srgb, var(--warning) 20%, transparent); color: #8a6200; }
   .issue-chip.stop { background: color-mix(in srgb, var(--critical) 15%, transparent); color: var(--critical); }
+
+  /* Audio 學習手冊 — 架構 + CPAA 稽核問題地圖 */
+  .audio-guide-note { color: var(--muted); font-size: 12.5px; margin: -6px 0 14px; }
+  .audio-arch { display: flex; flex-direction: column; gap: 0; max-width: 460px; margin: 10px 0 16px; }
+  .audio-arch-box {
+    background: var(--page); border: 1px solid var(--border); border-left: 3px solid var(--series-cp);
+    border-radius: 8px; padding: 9px 13px; font-size: 12.8px;
+  }
+  .audio-arch-box.hw { border-left-color: var(--warning); }
+  .audio-arch-box b { display: block; font-size: 13px; }
+  .audio-arch-box span { color: var(--muted); font-size: 11.5px; }
+  .audio-arch-arrow { text-align: center; color: var(--muted); font-size: 12px; padding: 3px 0; }
+  .audio-arch-amp-row { display: flex; gap: 8px; }
+  .audio-arch-amp-row .audio-arch-box { flex: 1; }
+  .audio-vcpu {
+    border: 1px dashed var(--critical); border-radius: 8px; padding: 11px 14px; margin: 4px 0 16px;
+    background: var(--page); font-size: 12px; color: var(--text-secondary); max-width: 460px;
+  }
+  .audio-vcpu b { color: var(--critical); display: block; margin-bottom: 6px; font-size: 12.8px; }
+  .audio-vcpu ul { margin: 6px 0 0; padding-left: 18px; }
+  .audio-vcpu li { margin-bottom: 4px; }
+  .audio-comp { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 7px; background: var(--page); }
+  .audio-comp > summary { list-style: none; cursor: pointer; padding: 9px 13px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; }
+  .audio-comp > summary::-webkit-details-marker { display: none; }
+  .audio-comp > summary::before { content: '▸'; color: var(--muted); font-weight: 400; }
+  .audio-comp[open] > summary::before { content: '▾'; }
+  .audio-comp > summary .comp-id { font-size: 10.5px; font-weight: 400; color: var(--muted); margin-left: auto; font-family: ui-monospace, monospace; }
+  .audio-comp .comp-body { padding: 0 13px 13px 28px; font-size: 12.5px; color: var(--text-secondary); }
+  .audio-comp .comp-body p { margin: 0 0 8px; }
+  .audio-comp .comp-body b { color: var(--text-primary); }
+  .audio-scenario { border-bottom: 1px solid var(--grid); padding: 11px 0; }
+  .audio-scenario:last-child { border-bottom: none; }
+  .audio-scenario .name { font-weight: 600; font-size: 13px; margin-bottom: 5px; }
+  .audio-flow { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; font-size: 11px; font-family: ui-monospace, monospace; margin-bottom: 7px; }
+  .audio-flow .step { background: var(--page); border: 1px solid var(--border); border-radius: 5px; padding: 3px 7px; }
+  .audio-flow .sep { color: var(--muted); }
+  .audio-scenario p { color: var(--text-secondary); font-size: 12.5px; margin: 0; }
+  .audio-concept-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin: 8px 0 4px; }
+  .audio-concept-grid .cc { background: var(--page); border: 1px solid var(--border); border-radius: 8px; padding: 11px 13px; }
+  .audio-concept-grid .cc h4 { margin: 0 0 5px; font-size: 12.8px; color: var(--series-cp); }
+  .audio-concept-grid .cc p { margin: 0; font-size: 12px; color: var(--text-secondary); }
+  .audio-stat-mini { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 14px; }
+  .audio-stat-mini .m { background: var(--page); border: 1px solid var(--border); border-radius: 7px; padding: 7px 11px; font-size: 11.5px; }
+  .audio-stat-mini .m b { font-size: 15px; display: block; font-family: ui-monospace, monospace; }
+  .audio-topic { margin-bottom: 16px; }
+  .audio-topic h4 { font-size: 13px; margin: 0 0 4px; border-bottom: 1px solid var(--grid); padding-bottom: 6px; }
+  .audio-topic .topic-count { font-weight: 400; color: var(--muted); font-size: 11px; }
+  .audio-topic .topic-note { font-size: 11.5px; color: var(--muted); margin: -2px 0 8px; }
+  .audio-issue { border: 1px solid var(--border); border-radius: 7px; margin-bottom: 6px; background: var(--surface-1); }
+  .audio-issue > summary { list-style: none; cursor: pointer; padding: 8px 11px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.4px; }
+  .audio-issue > summary::-webkit-details-marker { display: none; }
+  .audio-issue > summary::before { content: '▸'; color: var(--muted); }
+  .audio-issue[open] > summary::before { content: '▾'; }
+  .audio-issue .num { font-family: ui-monospace, monospace; font-size: 10.5px; color: var(--muted); }
+  .audio-issue .ask { flex: 1; min-width: 170px; font-weight: 500; }
+  .audio-issue .aq-body { padding: 0 11px 11px 24px; font-size: 12.3px; color: var(--text-secondary); }
+  .audio-issue .aq-body .jira { margin-top: 6px; font-family: ui-monospace, monospace; font-size: 10.8px; opacity: .75; }
+  .audio-gloss { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px 16px; font-size: 12.2px; }
+  .audio-gloss .g { padding: 6px 0; border-bottom: 1px solid var(--grid); }
+  .audio-gloss .g b { font-family: ui-monospace, monospace; color: var(--series-cp); }
+  @media (max-width: 640px) {
+    .audio-concept-grid { grid-template-columns: 1fr; }
+    .audio-gloss { grid-template-columns: 1fr 1fr; }
+  }
+
   #panel-Stats section.card { position: relative; }
   #panel-Stats section.card > h2, #panel-Stats section.card h2.drag-title {
     cursor: grab; user-select: none;
@@ -888,6 +953,8 @@ const STRINGS = {
   audio_chip_all: { zh: n => `全部 (${n})`, en: n => `All (${n})` },
   audio_caption: { zh: (n, total) => `共 ${n} 張未完成票 (Audio 未完成總數 ${total} 張)`, en: (n, total) => `${n} not-done tickets shown (out of ${total} not-done Audio tickets total)` },
   audio_group_header_row: { zh: (name, n) => `${name} — 未完成 ${n} 張`, en: (name, n) => `${name} — ${n} not done` },
+  audio_guide_heading: { zh: 'Audio 學習手冊', en: 'Audio learning guide' },
+  audio_guide_caption: { zh: '架構怎麼運作、CPAA 稽核目前卡在哪 — 整理自 SYS3_CFTS019 Audio SYSAD 與 CPAA analysis from Audio Team，點標題展開', en: 'How the architecture works and where the CPAA review stands — from the SYS3_CFTS019 Audio SYSAD and the CPAA analysis from Audio Team workbook; click a title to expand' },
 
   pretest_list_heading: { zh: 'Pretest 清單(Bug 票中 title 含「PCTS」或「Facet」)', en: 'Pretest list (Bug tickets whose title contains "PCTS" or "Facet")' },
   pretest_caption: { zh: n => `共 ${n} 張票 (Pretest 總數 ${PRETEST.length} 張)`, en: n => `${n} tickets shown (out of ${PRETEST.length} Pretest tickets total)` },
@@ -3400,6 +3467,335 @@ const AUDIO_GROUP_COLORS = {
   Other: 'var(--muted)',
 };
 
+// --- Audio 學習手冊：架構 + CPAA 稽核問題地圖 -----------------------------------
+// Static reference material distilled from the SYS3_CFTS019 Audio SYSAD (architecture)
+// and the "CPAA analysis from Audio Team" workbook (China/CP team's live questions).
+// Collapsed by default, same spirit as ISSUE_NOTES above — this is background reading,
+// not a daily number, so it lives at the bottom of the Audio tab.
+const AUDIO_GUIDE_SECTIONS = [
+  {
+    id: 'architecture', tag: '架構',
+    title: '系統架構總覽 — SA6155 + AAOS14',
+    html: `
+      <p>R1L-R 的音訊架構跑在 Qualcomm SA6155、Android Automotive OS 14 上。主要訊號鏈是一條由上而下的軟體→硬體管線；VCPU 則獨立於這條鏈之外，負責跟車輛網路溝通，在系統還沒開機完成時也能單獨讓喇叭發出聲音。</p>
+      <div class="audio-arch">
+        <div class="audio-arch-box"><b>Applications</b><span>媒體／導航／CarPlay·Android Auto／系統提示，只透過標準 API 發出請求</span></div>
+        <div class="audio-arch-arrow">↓ AudioManager / CarAudioManager</div>
+        <div class="audio-arch-box"><b>Framework（Java）</b><span>AudioManager、CarAudioService — focus 歸屬、音量群組</span></div>
+        <div class="audio-arch-arrow">↓ Binder IPC</div>
+        <div class="audio-arch-box"><b>Framework（Native）</b><span>AudioFlinger、AudioPolicyService、VolumeShaper — 混音、路由、ducking</span></div>
+        <div class="audio-arch-arrow">↓ HIDL</div>
+        <div class="audio-arch-box"><b>Extended Audio HAL</b><span>Android 框架與 DSP／Tuner／Amplifier 的硬體抽象層</span></div>
+        <div class="audio-arch-arrow">↓ Qualcomm audio driver</div>
+        <div class="audio-arch-box"><b>ADSP（DSP 子系統）</b><span>即時處理：EQ、DRC、SCV、ECNR</span></div>
+        <div class="audio-arch-arrow">↓ TDM</div>
+        <div class="audio-arch-box hw"><b>Tuner</b><span>DAC、路由，也是 Chime 提示音產生中樞</span></div>
+        <div class="audio-arch-arrow">↓ 類比訊號</div>
+        <div class="audio-arch-box hw"><b>Internal Amplifier</b><span>I²C 控制，內建保護機制</span></div>
+        <div class="audio-arch-arrow">↓</div>
+        <div class="audio-arch-amp-row">
+          <div class="audio-arch-box hw"><b>External Booster AMP</b><span>I²C</span></div>
+          <div class="audio-arch-box hw"><b>External CAN AMP</b><span>CAN，也管 Chime</span></div>
+        </div>
+        <div class="audio-arch-arrow">↓</div>
+        <div class="audio-arch-box hw"><b>車輛喇叭</b></div>
+      </div>
+      <div class="audio-vcpu">
+        <b>VCPU（車輛閘道）— 不做訊號處理，只做協調與控制</b>
+        <ul>
+          <li>開機早期直接觸發 Tuner／外接 CAN 放大器發出安全提示音（Android 框架還沒起來也能響）</li>
+          <li>I²C 控制內建／Booster 放大器（音量、mute、故障監控）</li>
+          <li>CAN 控制外接 CAN 放大器</li>
+          <li>SPI 回傳電源狀態、診斷資訊給 SoC，經 VHAL 曝露給 Android 系統</li>
+        </ul>
+      </div>
+    `,
+  },
+  {
+    id: 'components', tag: '元件',
+    title: '元件深入拆解',
+    html: `
+      <p>每個節點在架構文件裡都有自己的需求、驗證方式與風險說明，點開看細節。重用度普遍是「部分重用」（約 50%），因為喇叭配置、增益、聲學調校每台車都不同。</p>
+      <details class="audio-comp"><summary>Framework（Java）<span class="comp-id">SYSAD-FWK-JAVA</span></summary>
+        <div class="comp-body">
+          <p><b>做什麼：</b>提供 AudioManager／CarAudioManager 等標準 API，管理 audio focus 仲裁、音量群組、車輛情境優先權，並透過 VHAL 取得車輛狀態。</p>
+          <p><b>常見風險：</b>Binder IPC 阻塞會延遲控制指令；focus 仲裁邏輯錯誤會造成非預期的音訊中斷或重疊。</p>
+        </div>
+      </details>
+      <details class="audio-comp"><summary>Framework（Native）<span class="comp-id">SYSAD-FWK-NATIVE</span></summary>
+        <div class="comp-body">
+          <p><b>做什麼：</b>AudioFlinger 做混音與播放；AudioPolicyService 做裝置路由與仲裁；VolumeShaper 實作 ramp up/down、ducking、mute 的平滑過渡。</p>
+          <p><b>為什麼重要：</b>下方 Ducking 主題的問題，最終都會落回這一層的設定（duckAudio、排除清單、focus 判斷）。</p>
+        </div>
+      </details>
+      <details class="audio-comp"><summary>Extended Audio HAL<span class="comp-id">SYSAD-EXT-AUDIOHAL</span></summary>
+        <div class="comp-body">
+          <p><b>做什麼：</b>Android 音訊框架與 Qualcomm audio driver 之間的抽象層，負責音訊裝置列舉、路由設定、DSP 參數配置，並透過 VHAL 與 VCPU 交換車輛相關資訊。</p>
+          <p><b>不做什麼：</b>不直接跟放大器硬體對話——放大器控制一律經由 VCPU 閘道。</p>
+        </div>
+      </details>
+      <details class="audio-comp"><summary>ADSP（DSP 子系統）<span class="comp-id">SYSAD-ADSP</span></summary>
+        <div class="comp-body">
+          <p><b>做什麼：</b>即時執行 EQ、Balance/Fade、SCV、ECNR/NS 等聲音後製，透過 TDM 把處理好的 PCM 傳給 Tuner。</p>
+          <p><b>對應到問題：</b>ECNR 主題的問題幾乎都圍繞這裡——ECNR 同一時間只能配置一種情境，是 Mic 並行擷取限制的根本原因。</p>
+        </div>
+      </details>
+      <details class="audio-comp"><summary>Tuner<span class="comp-id">SYSAD-TUNER</span></summary>
+        <div class="comp-body">
+          <p><b>做什麼：</b>接收 DSP 的多聲道 PCM，做數位轉類比，並負責 chime 提示音的內部音調產生——這讓開機早期也能靠 VCPU 直接觸發響鈴。</p>
+          <p><b>常見風險：</b>電源時序不對會造成靜音、爆音或延遲出聲；VCPU 控制通訊失敗會讓早期安全提示音發不出來。</p>
+        </div>
+      </details>
+      <details class="audio-comp"><summary>Internal / External Amplifiers<span class="comp-id">SYSAD-*-AMP</span></summary>
+        <div class="comp-body">
+          <p><b>做什麼：</b>Internal AMP 接收 Tuner 類比輸出並放大驅動喇叭（I²C 控制）；External CAN AMP 額外負責 chime 音效產生（CAN 控制）；External Booster AMP 走 I²C，不含 chime 功能。</p>
+          <p><b>對應到問題：</b>Aux 120/121 的歸屬跟 External CAN AMP 的 AudioSourceClassifier 設定有關。</p>
+        </div>
+      </details>
+      <details class="audio-comp"><summary>VCPU（車輛閘道）<span class="comp-id">SYSAD-VCPU</span></summary>
+        <div class="comp-body">
+          <p><b>做什麼：</b>車輛網路與資訊娛樂系統之間的閘道，負責電源狀態訊號、放大器配置轉發（I²C/CAN）、診斷通訊，並在開機早期獨立觸發安全提示音。</p>
+          <p><b>對應到問題：</b>Ducking／Mic 主題裡標「等待 Harman」的項目，幾乎都指向 VCPU 這一側的設定還沒到位。重用率標示為 0%（R1L 沒有 VHAL 整合，這是全新設計）。</p>
+        </div>
+      </details>
+    `,
+  },
+  {
+    id: 'scenarios', tag: '情境',
+    title: '六種訊號情境',
+    html: `
+      <p>架構文件用六張循序圖描述音訊系統在不同情境下的行為，這裡用文字流程重現重點。</p>
+      <div class="audio-scenario">
+        <div class="name">① 一般播放路徑</div>
+        <div class="audio-flow"><span class="step">App</span><span class="sep">→</span><span class="step">Framework-Java</span><span class="sep">→</span><span class="step">Framework-Native</span><span class="sep">→</span><span class="step">Audio HAL</span><span class="sep">→</span><span class="step">ADSP</span><span class="sep">→</span><span class="step">Tuner</span><span class="sep">→</span><span class="step">Internal AMP</span><span class="sep">→</span><span class="step">喇叭</span></div>
+        <p>最基本的訊號鏈，走完整條軟體→硬體管線。</p>
+      </div>
+      <div class="audio-scenario">
+        <div class="name">② 開機早期提示音（Boot-Time Chime via VCPU）</div>
+        <div class="audio-flow"><span class="step">VCPU</span><span class="sep">→</span><span class="step">Tuner（音調產生）</span><span class="sep">→</span><span class="step">Internal AMP</span><span class="sep">→</span><span class="step">喇叭</span></div>
+        <p>完全繞過 SoC 與 Android 框架——這就是安全提示音能在系統開機完成「之前」就發出聲音的原因。</p>
+      </div>
+      <div class="audio-scenario">
+        <div class="name">③ 優先提示音／降音蓋過媒體（Ducking）</div>
+        <p>媒體播放中出現更高優先權的提示音時，AudioFlinger／VolumeShaper 會對 Media 執行降音，播完後再回復——這正是下方 Ducking 主題在爭論「哪些情境算、哪些不算」的行為。</p>
+      </div>
+      <div class="audio-scenario">
+        <div class="name">④ SOS／緊急通話音訊路徑</div>
+        <p>緊急通話音訊取得最高優先權 focus，透過既有訊號鏈路由，其餘來源依仲裁矩陣被降音或靜音。</p>
+      </div>
+      <div class="audio-scenario">
+        <div class="name">⑤ 放大器故障 → 限流／靜音 → 復原</div>
+        <p>放大器偵測到過溫、短路等故障時回報診斷狀態，系統進入保護模式，故障排除後依流程復原——仰賴 VCPU 的 I²C/CAN 診斷通訊可靠。</p>
+      </div>
+      <div class="audio-scenario">
+        <div class="name">⑥ 待機 → 喚醒</div>
+        <p>電源狀態轉換（OFF/ACC/RUN/SUSPEND）由 VCPU 協調，各節點需要在正確時序內喚醒，避免爆音、靜音或延遲出聲。</p>
+      </div>
+    `,
+  },
+  {
+    id: 'ducking-focus', tag: '概念',
+    title: 'Ducking／Focus 核心概念先搞懂',
+    html: `
+      <p>下方 CPAA 問題清單裡 Ducking 主題佔比最大，原因是這裡牽涉好幾個容易搞混的概念。搞懂這四組，Ducking 主題的細項幾乎都能一次看懂。</p>
+      <div class="audio-concept-grid">
+        <div class="cc"><h4>MBA 不需要自己的 Focus</h4><p>Main Buffered Audio 不會單獨申請 audio source focus，而是跟著 Main Audio 走；獨立播放時借用 CarPlay Media 的 SourceId。兩者在設定檔裡本來就指向同一條 bus0_media_out、同一個 volume group 0。</p></div>
+        <div class="cc"><h4>duckAudio 是依 zone/reason，不是依頻道</h4><p>setDuck(zoneId, reason, duration, volLevel) 判斷的是情境，不是綁定某個頻道；設定檔裡有一份降音例外清單，只要不在清單上就會被降音。CarPlay 電話/鈴聲/經典 Siri 本來就不在例外清單，早就可以被降音，唯獨 CarPlay Navi 是刻意排除的例外。</p></div>
+        <div class="cc"><h4>Alternate 一律 Mix，降不降音看手機指令</h4><p>Alternate 音訊永遠跟主音訊混音，絕不會 pause 掉主音訊；是否降音完全由手機端送出的 duckAudio 請求決定。MIX_NODUCK 是對的行為，不需要改成 MIX_DUCK（那樣會變成自動降音）。</p></div>
+        <div class="cc"><h4>新 API：requestDuck / requestUnduck</h4><p>已同意把 audioSourceId 拿掉，改成 requestDuck(durationMs, volumeLevelDb) 與 requestUnduck() 兩個參數。復原走事件驅動：Projection 斷線／崩潰觸發 binderDied 自動 unduck，不需要額外的逾時或查詢介面。</p></div>
+      </div>
+    `,
+  },
+  {
+    id: 'issues', tag: '30 項',
+    title: 'CPAA 稽核問題地圖',
+    html: `
+      <p>依主題整理 China/CP 團隊目前提出、MD／TS 正在處理中的 30 個問題（24 項是內部結構化拆解，另外 6 項 Android Auto 問題是額外追加的）。</p>
+      <div class="audio-stat-mini">
+        <div class="m"><b style="color:var(--good)">18</b>TS 已接受／結案</div>
+        <div class="m"><b style="color:#8a6200">7</b>等待 MD 回饋</div>
+        <div class="m"><b style="color:var(--critical)">3</b>卡在 Harman 依賴</div>
+        <div class="m"><b>2</b>程式碼完成／等 Build</div>
+        <div class="m"><b>30</b>總計</div>
+      </div>
+
+      <div class="audio-topic">
+        <h4>Audio Link <span class="topic-count">2 項</span></h4>
+        <p class="topic-note">音訊路由表本身的參數確認，以及 Android Auto 那 6 個子項的統整入口。</p>
+        <details class="audio-issue"><summary><span class="num">01</span><span class="ask">Audio Link 訊號表與參數是否理解正確？</span><span class="badge progress">等待 MD 回饋</span></summary>
+          <div class="aq-body">R6 build 上 CarPlay 電話／鈴聲／經典 Siri／替代音訊完全無聲音（-895），R5 build 卻正常。其他 CarPlay 音訊路徑（媒體、eSiri、Siri、alternate、alert）都正常。FW 正在追查 R6 迴歸原因。<div class="jira">Jira: NR1LT-3385</div></div>
+        </details>
+        <details class="audio-issue"><summary><span class="num">02</span><span class="ask">AndroidAuto 表格裡 6 個「需澄清」項目要不要修改？</span><span class="badge done">TS 已接受</span></summary>
+          <div class="aq-body">這 6 個子項就是下方 Android Auto 主題第 25–30 項，這裡只是統整入口。AA VR 已於 0921 完成驗證。<div class="jira">Jira: NR1LT-3329 / NR1LT-3330</div></div>
+        </details>
+      </div>
+
+      <div class="audio-topic">
+        <h4>Audio Focus <span class="topic-count">2 項</span></h4>
+        <details class="audio-issue"><summary><span class="num">03</span><span class="ask">MBA 是否真的需要獨立的 audio source focus？</span><span class="badge done">TS 已接受</span></summary>
+          <div class="aq-body">結論：不需要，MBA 跟著 Main Audio 走，獨立播放時借用 CarPlay Media 的 SourceId 即可，因為兩者都指向同一條 bus0_media_out／volume group 0。App 端提出延伸疑問：若 focus 動態選擇，但 CARPLAY_BUFFERED_AUDIO 又設計成永遠走 media 路徑，兩種設計會不會衝突，待 FW 確認。</div>
+        </details>
+        <details class="audio-issue"><summary><span class="num">04</span><span class="ask">能否提供新舊音訊仲裁矩陣，供比對認證影響？</span><span class="badge done">TS 已接受</span></summary>
+          <div class="aq-body">完整的 36×36 仲裁矩陣（AudioStateMachine）屬於 MD 服務範疇不能整份釋出，但可匯出成可讀表格供比對，個別疑問也可逐案回覆。</div>
+        </details>
+      </div>
+
+      <div class="audio-topic">
+        <h4>Resource Management <span class="topic-count">2 項</span></h4>
+        <details class="audio-issue"><summary><span class="num">05</span><span class="ask">Aux Out 的 focus 能否直接沿用 Alternate Audio 的邏輯？</span><span class="badge todo">等待 Harman</span></summary>
+          <div class="aq-body">邏輯可沿用，但要先等 Harman 定義好 AUX 音源與對應 bus 才能真正接上。<div class="jira">Jira: NR1LT-2860</div></div>
+        </details>
+        <details class="audio-issue"><summary><span class="num">06</span><span class="ask">MBA 能否完全不做特殊的 SourceId 處理？</span><span class="badge done">TS 已接受</span></summary>
+          <div class="aq-body">與第 3 項一致：不需要獨立 focus 或特殊 SourceId 處理，直接沿用 Main Audio 或 CarPlay Media 即可。</div>
+        </details>
+      </div>
+
+      <div class="audio-topic">
+        <h4>Ducking <span class="topic-count">9 項 · 最大宗</span></h4>
+        <p class="topic-note">建議先讀上方「Ducking／Focus 核心概念」再看這裡的細項。</p>
+        <details class="audio-issue"><summary><span class="num">07</span><span class="ask">系統是否已支援 Main Audio 整體的降音，不只 Media 頻道？</span><span class="badge done">已結案</span></summary>
+          <div class="aq-body">確認 CarPlay 電話／鈴聲／經典 Siri 各自都有獨立 bus、也都不在降音例外清單，本來就可以被降音；唯獨 CarPlay Navi 是刻意排除的例外。不需要改 Harman 設定或 App 端邏輯。<div class="jira">Jira: NR1LT-4791 / NR1LT-2881</div></div>
+        </details>
+        <details class="audio-issue"><summary><span class="num">08</span><span class="ask">Aux 120/121 這兩個編號還有沒有在用？</span><span class="badge todo">等待 Harman</span></summary>
+          <div class="aq-body">120（AuxOut）保留給 eSiri 輸出用，121（AuxIn）已確認不需要。兩者都還沒對應到 Harman 實際 bus，等 Harman 定義 AUX 音源後才能接上並移除 121。<div class="jira">Jira: NR1LT-2860</div></div>
+        </details>
+        <details class="audio-issue"><summary><span class="num">09</span><span class="ask">F6 ACTION_WAIT 對 Projection client 端代表什麼？</span><span class="badge done">TS 已接受</span></summary>
+          <div class="aq-body">對應「延後直到更高優先權來源釋放」，不是拒絕（拒絕是另一個值 ACTION_DENY）；client 應耐心等待後續 callback。</div>
+        </details>
+        <details class="audio-issue"><summary><span class="num">10</span><span class="ask">CarPlay App 能否明確指定 Alternate 的路由？</span><span class="badge done">TS 已接受</span></summary>
+          <div class="aq-body">Alternate routing 設定屬於車機端負責，MD 會提供對應的 volume group、car_audio_configuration.xml 與 context mapping。</div>
+        </details>
+        <details class="audio-issue"><summary><span class="num">11</span><span class="ask">Alternate 跟 CarPlay Navi 需要不同行為嗎？</span><span class="badge done">TS 已接受</span></summary>
+          <div class="aq-body">確認 CarPlay Navi 是 Alternate 的子集，共用同一條 bus13_carplay_navi_out、同一個 stream（CP_NAVI），一個 AudioSource 無法承載兩種降音行為。沒找到 R10 規範要求兩者必須不同；SetupRequest 跟 duckAudio 時序太接近，App 端目前也無法可靠分辨。</div>
+        </details>
+        <details class="audio-issue"><summary><span class="num">12</span><span class="ask">Harman MIX_DUCK 的改動能否提前跟 Phase 1 並行？</span><span class="badge done">已結案</span></summary>
+          <div class="aq-body">確認目前 MIX_NODUCK 是對的：Alternate 啟用時 HAL 不自動降音，降音改由手機端 duckAudio 觸發；MIX_DUCK 會變成自動降音，不需要改 Harman 設定。<div class="jira">Jira: NR1LT-4791 / NR1LT-2881</div></div>
+        </details>
+        <details class="audio-issue"><summary><span class="num">13</span><span class="ask">Pause vs Mix：Alternate 該混音還是暫停主音訊？</span><span class="badge progress">程式碼已完成，等 Build</span></summary>
+          <div class="aq-body">結論：Alternate 一律跟主音訊混音、絕不 pause；是否降音只看手機端有沒有送出 duckAudio。原本區分情境的 source ID 68/69 建議只留一個（68，NODUCK 結尾）。程式碼已完成，等待 engineering build 與 PR（卡在 VPN 問題）。<div class="jira">Jira: NR1LT-2860 / NR1LT-4791 / NR1LT-2881</div></div>
+        </details>
+        <details class="audio-issue"><summary><span class="num">14</span><span class="ask">Unduck 的 timeout 該從哪裡算？Projection crash 怎麼處理？</span><span class="badge done">已結案</span></summary>
+          <div class="aq-body">durationMs 是 duck/fade 動作本身的持續時間，不是 timeout 概念。復原是事件驅動：binderDied 觸發 unduck，session 中斷／斷線也會清除降音狀態，不需要額外的 isDucking 查詢介面。</div>
+        </details>
+        <details class="audio-issue"><summary><span class="num">15</span><span class="ask">requestDuck 的簽章要不要拿掉 audioSourceId？</span><span class="badge progress">程式碼已完成，等 Build</span></summary>
+          <div class="aq-body">同意改為 requestDuck(durationMs, volumeLevelDb) 與 requestUnduck()，拿掉 audioSourceId，貼齊 CarPlay 規格。全新 API，不影響既有功能。<div class="jira">Jira: NR1LT-4791 / NR1LT-2881</div></div>
+        </details>
+      </div>
+
+      <div class="audio-topic">
+        <h4>Volume <span class="topic-count">2 項</span></h4>
+        <details class="audio-issue"><summary><span class="num">16</span><span class="ask">MBA 跟 Main Audio 混音時，音量該怎麼跟著走？</span><span class="badge progress">接受現況，保留調整空間</span></summary>
+          <div class="aq-body">Harman 確認 MBA 音量本來就跟著同類型的 Main Audio 走，且已在其他專案通過 CarPlay 認證。雙方同意接受現況（MBA 固定在 media bus），但保留未來若有認證或車廠需求時請 Harman 支援調整的空間。<div class="jira">Jira: NR1LT-2860</div></div>
+        </details>
+        <details class="audio-issue"><summary><span class="num">17</span><span class="ask">App 端維持跟舊案一致的做法夠嗎？</span><span class="badge done">已結案</span></summary>
+          <div class="aq-body">Focus 邏輯完全比照舊實作，加上新的 duck 指令；5 個不同取樣率的電話 bus 合併成 48kHz 一條；MBA 44.1kHz→48kHz 轉換交給 App 端做（延遲較低）。</div>
+        </details>
+      </div>
+
+      <div class="audio-topic">
+        <h4>Mic <span class="topic-count">1 項</span></h4>
+        <details class="audio-issue"><summary><span class="num">18</span><span class="ask">eSiri、經典 Siri、CarPlay 電話、eCall 等麥克風使用者能否同時擷取？</span><span class="badge todo">等待 Harman</span></summary>
+          <div class="aq-body">唯一真的會同時出現的情境是 eSiri + CarPlay 電話。真正的限制在 ECNR——同一時間只能針對一種情境配置，Harman 確認通話中無法重新配置 ECNR，因此就算兩個串流都開，第二個也只會收到靜音。麥克風目前仍是單一資源、以優先權方式輪替。<div class="jira">Jira: NR1LT-2860 / NR1LT-593</div></div>
+        </details>
+      </div>
+
+      <div class="audio-topic">
+        <h4>ECNR <span class="topic-count">5 項</span></h4>
+        <details class="audio-issue"><summary><span class="num">19</span><span class="ask">目前 ECNR 情境使用的介面與參數是否正確？</span><span class="badge done">TS 已接受</span></summary>
+          <div class="aq-body">確認與現況及觀察到的 Siri 流程一致。ECNR 參數由 MD 與 Harman 負責，CarPlay App 端只需關注 bus id。</div>
+        </details>
+        <details class="audio-issue"><summary><span class="num">20</span><span class="ask">CarPlay 鈴聲／Navi 到底會不會啟用 ECNR？</span><span class="badge progress">等待 MD 回饋</span></summary>
+          <div class="aq-body">確認鈴聲與導航不需要 ECNR；文件提到的 SSE_CP_Ring.scd／SSE_CP_Navi.scd 其實是測試用的占位檔名，並不存在，會從流程文件移除。但這兩條 bus 在還沒先啟用對應音源前打開會沒有聲音（跟音訊路徑接通有關），仍在跟 Harman 協調。<div class="jira">Jira: NR1LT-2860 / NR1LT-593</div></div>
+        </details>
+        <details class="audio-issue"><summary><span class="num">21</span><span class="ask">新加入的 eSiri，ECNR 該用哪些參數？</span><span class="badge progress">等待 MD 回饋</span></summary>
+          <div class="aq-body">目前流程使用 SSE_CP_Siri.scd 搭配 Siri_WIFI_UL/Siri_WIFI_DL，eSiri 上行對應 bus8_esiri_ul_in、16kHz。收尾動作跟第 20 項一樣，卡在兩個占位 scd 檔的處理進度。<div class="jira">Jira: NR1LT-2860</div></div>
+        </details>
+        <details class="audio-issue"><summary><span class="num">22</span><span class="ask">CP 端保留的 SCD 副本是否多餘、能否刪除？</span><span class="badge done">TS 已接受</span></summary>
+          <div class="aq-body">SCD 檔已隨系統映像檔完整整合，依變體不同內容也不同；App 只需傳檔名，由 HAL 自己載入對應版本，CP 端保留的副本應該刪除。</div>
+        </details>
+        <details class="audio-issue"><summary><span class="num">23</span><span class="ask">Apple 新增的 updateVocoderInfo() 需要新的 App→FW→HAL 介面嗎？</span><span class="badge progress">等待確認</span></summary>
+          <div class="aq-body">Harman 確認 ECNR 在通話中無法重新啟動，取樣率在通話一開始就固定；vocoder 中途改變時 App 端重新取樣到固定值即可，不需要新介面。是否真的需要把這個參數往下傳給 ECNR，還要再跟 Cerence 與 Harman 確認。<div class="jira">Jira: NR1LT-2860 / NR1LT-593</div></div>
+        </details>
+      </div>
+
+      <div class="audio-topic">
+        <h4>Performance <span class="topic-count">1 項</span></h4>
+        <details class="audio-issue"><summary><span class="num">24</span><span class="ask">100ms Setup/Teardown 與全程無爆音要求，系統準備好了嗎？</span><span class="badge done">TS 已接受</span></summary>
+          <div class="aq-body">CarPlay 音源已有專屬防爆音處理（16ms ramp）；DSP 從 setup request 到就緒約 40–65ms，在 100ms 預算內。待辦：內部 setup timeout 目前 250ms 需調整；Teardown 時間尚未量測；全生命週期無爆音驗證留到認證階段。</div>
+        </details>
+      </div>
+
+      <div class="audio-topic">
+        <h4>Android Auto <span class="topic-count">6 項</span></h4>
+        <p class="topic-note">語音辨識（VR）錄音的擷取路徑、focus 處理，以及幾個「舊案怎麼做、為什麼要改」的追問。</p>
+        <details class="audio-issue"><summary><span class="num">25</span><span class="ask">AUDIOFOCUS_LOSS_TRANSIENT 跟某行 log 是否真的相關？</span><span class="badge done">TS 已接受</span></summary>
+          <div class="aq-body">澄清該行 log 跟 AA VR 錄音問題無關；真正要處理的是 AUDIOFOCUS_LOSS_TRANSIENT 分支，需加上提早 return 避免暫時性媒體 focus 遺失中斷正在進行的 AA 語音，判斷依據改用 AA 語音狀態。</div>
+        </details>
+        <details class="audio-issue"><summary><span class="num">26</span><span class="ask">AA VR 上行的擷取來源參數該用什麼？</span><span class="badge progress">等待 MD 回饋</span></summary>
+          <div class="aq-body">Harman 確認 AA VR 上行需要用 AAudio（而非 Java AudioRecord），因擷取表指定 1ch/16kHz、低延遲、AAudio 介面，範圍只限 AA VR 上行。App 端反映現行與前代都在 Java layer，改 native 需大幅改動，且未見明確認證條款，希望提供依據。<div class="jira">Jira: NR1LT-3329 / NR1LT-3330</div></div>
+        </details>
+        <details class="audio-issue"><summary><span class="num">27</span><span class="ask">改用 AAudio 等於方案變更，為什麼不能留在 Java layer？</span><span class="badge progress">等待 MD 回饋</span></summary>
+          <div class="aq-body">與第 26 項同一議題的延伸提問。AAudio 需求來自 Harman 擷取表規格，非 MD 自訂；App 端持保留態度，等待更明確依據。<div class="jira">Jira: NR1LT-3329 / NR1LT-3330</div></div>
+        </details>
+        <details class="audio-issue"><summary><span class="num">28</span><span class="ask">VR 結束時停止 asp，是否需要修改？</span><span class="badge done">TS 已接受</span></summary>
+          <div class="aq-body">CP 表示可以接受現行做法，維持現狀。</div>
+        </details>
+        <details class="audio-issue"><summary><span class="num">29</span><span class="ask">要求修改 AA 內部邏輯的理由是什麼？能否先忽略？</span><span class="badge done">TS 已接受，暫緩</span></summary>
+          <div class="aq-body">修改理由是實測到的 focus 洩漏——8 次 VR focus 請求只有 3 次釋放，沒被釋放的 VR 來源會一直佔用最高優先權；這不只影響 Android Auto，CarPlay 的鈴聲／通話也有一樣狀況。獨立於錄音問題之外，暫時維持現狀。</div>
+        </details>
+        <details class="audio-issue"><summary><span class="num">30</span><span class="ask">舊案就是這樣做，改動的具體 bug 或設計依據是什麼？</span><span class="badge done">TS 已接受，暫緩</span></summary>
+          <div class="aq-body">可先維持現行實作，項目保持開啟。量測顯示麥克風請求到第一次讀取間約 290ms 間隔，每次辨識開頭都被切掉一小段，預期會在延遲與生命週期驗證階段重新浮現。</div>
+        </details>
+      </div>
+    `,
+  },
+  {
+    id: 'glossary', tag: '備查',
+    title: '縮寫詞彙表',
+    html: `
+      <p>摘自架構文件 3.1 節，看不懂縮寫時回來查。</p>
+      <div class="audio-gloss">
+        <div class="g"><b>SOC</b> System on Chip</div>
+        <div class="g"><b>AMP</b> Amplifier</div>
+        <div class="g"><b>HFP</b> Hands-Free Profile</div>
+        <div class="g"><b>PCM</b> Pulse Code Modulation</div>
+        <div class="g"><b>DSP</b> Digital Signal Processor</div>
+        <div class="g"><b>BT</b> Bluetooth</div>
+        <div class="g"><b>EQ</b> Equalization</div>
+        <div class="g"><b>A2B</b> Automotive Audio Bus</div>
+        <div class="g"><b>A2DP</b> Advanced Audio Distribution Profile</div>
+        <div class="g"><b>ADSP</b> Audio Digital Signal Processor</div>
+        <div class="g"><b>AEC</b> Acoustic Echo Cancellation</div>
+        <div class="g"><b>ANC</b> Active Noise Cancellation</div>
+        <div class="g"><b>DAC</b> Digital-to-Analog Converter</div>
+        <div class="g"><b>ECNR</b> Echo Cancellation and Noise Reduction</div>
+        <div class="g"><b>HAL</b> Hardware Abstraction Layer</div>
+        <div class="g"><b>HMI</b> Human Machine Interface</div>
+        <div class="g"><b>I2C</b> Inter-Integrated Circuit</div>
+        <div class="g"><b>TDM</b> Time Division Multiplexing</div>
+        <div class="g"><b>VCPU</b> Vehicle Control Processing Unit</div>
+        <div class="g"><b>DRC</b> Dynamic Range Control</div>
+        <div class="g"><b>SCV</b> Speed Controlled Volume</div>
+        <div class="g"><b>VHAL</b> Vehicle Hardware Abstraction Layer</div>
+        <div class="g"><b>SYSAD</b> System Architectural Design</div>
+        <div class="g"><b>SYSRS</b> System Requirements</div>
+        <div class="g"><b>MBA</b> Main Buffered Audio</div>
+      </div>
+    `,
+  },
+];
+
+function renderAudioGuide() {
+  const el = document.getElementById('audioGuide');
+  if (!el) return;
+  el.innerHTML = AUDIO_GUIDE_SECTIONS.map(sec => `
+    <details class="issue-entry" id="guide-${esc(sec.id)}">
+      <summary>${esc(sec.title)}<span class="issue-date">${esc(sec.tag)}</span></summary>
+      <div class="issue-body">${sec.html}</div>
+    </details>
+  `).join('');
+}
+
 function renderAudioPanel() {
   const panel = document.getElementById('panel-Audio');
   const done = AUDIO.filter(r => r.done).length;
@@ -3457,9 +3853,15 @@ function renderAudioPanel() {
         </table>
       </div>
     </section>
+    <section class="card">
+      <h2>${esc(t('audio_guide_heading'))}</h2>
+      <p class="caption">${esc(t('audio_guide_caption'))}</p>
+      <div id="audioGuide"></div>
+    </section>
   `;
 
   AUDIO_TAB_NOTES.mount();
+  renderAudioGuide();
 
   const groupSel = document.getElementById('audioGroupFilter');
   const search = document.getElementById('audioSearch');
