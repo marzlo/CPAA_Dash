@@ -466,6 +466,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
                                        border: 1px solid var(--grid); border-radius: 4px; }
   .notes-editor img { cursor: pointer; }
   .notes-editor img.img-selected { outline: 2px solid var(--series-cp); outline-offset: 2px; }
+  /* An author `display` beats the UA rule behind [hidden], so hiding these needs to be
+     spelled out — otherwise the panel stays on screen after the editor closes. */
+  .img-tools[hidden], .img-handle[hidden] { display: none !important; }
   .img-tools { position: absolute; z-index: 40; display: flex; align-items: center; gap: 6px;
                background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
                padding: 6px 10px; box-shadow: 0 6px 18px rgba(0,0,0,.14); font-size: 12px; }
