@@ -41,6 +41,14 @@ except FileNotFoundError:
 
 DATA["audio_notes"] = AUDIO_NOTES
 
+try:
+    with open("bug_notes.json", encoding="utf-8") as f:
+        BUG_NOTES = json.load(f)
+except FileNotFoundError:
+    BUG_NOTES = {"updated_at": None, "updated_by": None, "body": ""}
+
+DATA["bug_notes"] = BUG_NOTES
+
 # Requirement -> SWE1/SWE2 -> SWE3 traceability, built from the STLA SWRA analysis
 # report plus a Jira link lookup. Optional: without the file the Traceability tab
 # simply says the data hasn't been generated yet.
@@ -453,6 +461,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .notes-html li { margin-bottom: 4px; }
   .notes-html p { margin: 0 0 6px; }
   .notes-html a { color: var(--series-cp); }
+  /* Pasted screenshots: never wider than the column, and clearly a block of their own. */
+  .notes-html img, .notes-editor img { display: block; max-width: 100%; height: auto; margin: 6px 0;
+                                       border: 1px solid var(--grid); border-radius: 4px; }
   .notes-editor {
     min-height: 150px; max-height: 320px; overflow-y: auto; background: var(--surface-1);
     border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 13px;
@@ -730,6 +741,8 @@ const STRINGS = {
   notes_risk_internal_heading: { zh: 'Risk (Internal)', en: 'Risk (Internal)' },
   audio_notes_heading: { zh: 'Audio 備註(可編輯)', en: 'Audio notes (editable)' },
   audio_notes_caption: { zh: '這一頁的自由筆記:進度、卡點、跟 Harman／MDI 的待辦。與統計數據頁的專案總覽用同一組編輯工具與同一把 token', en: 'Free-text notes for this tab — progress, blockers, open items with Harman/MDI. Same editor and same token as the project overview on the Stats tab' },
+  bug_notes_heading: { zh: 'Bug 備註(可編輯)', en: 'Bug notes (editable)' },
+  bug_notes_caption: { zh: '這一頁的自由筆記:本週重點票、卡在誰身上、與 RD／QA 約定的事項。與統計數據頁的專案總覽用同一組編輯工具與同一把 token', en: 'Free-text notes for this tab — key tickets this week, who things are blocked on, agreements with RD/QA. Same editor and same token as the project overview on the Stats tab' },
   notes_empty: { zh: '尚未填寫,點擊「編輯」開始撰寫', en: 'Not filled in yet — click Edit to add notes' },
   notes_meta: { zh: (at, who) => `最後更新:${String(at).slice(0, 10)} by ${who}`, en: (at, who) => `Last updated ${String(at).slice(0, 10)} by ${who}` },
   notes_meta_never: { zh: '尚未儲存過任何內容', en: 'Nothing saved yet' },
@@ -741,7 +754,10 @@ const STRINGS = {
   notes_token_prompt: { zh: '請貼上具備此 repo 寫入權限的 GitHub Personal Access Token(僅會存在你自己瀏覽器裡,不會傳給任何第三方):', en: 'Paste a GitHub Personal Access Token with write access to this repo (stored only in your own browser, never sent anywhere else):' },
   notes_name_prompt: { zh: '你的名字(會顯示在「最後更新」旁):', en: 'Your name (shown next to "last updated"):' },
   notes_saved_msg: { zh: '已儲存!其他人重新整理頁面後,大約 1 分鐘內就會看到最新內容。', en: 'Saved! Others will see the update within about a minute after refreshing the page.' },
-  notes_indent_hint: { zh: '提示:Tab 縮排(建立子項目)、Shift+Tab 取消縮排;貼上的格式會自動保留,連結存檔後可直接點擊', en: 'Tip: Tab indents (makes a sub-item), Shift+Tab outdents. Pasted formatting is kept, and links become clickable once saved' },
+  notes_indent_hint: { zh: '提示:Tab 縮排(建立子項目)、Shift+Tab 取消縮排;貼上的格式會自動保留,連結存檔後可直接點擊。截圖可以直接貼進來,會自動縮到長邊 1400px 並隨內容一起存檔', en: 'Tip: Tab indents (makes a sub-item), Shift+Tab outdents. Pasted formatting is kept, and links become clickable once saved. Screenshots can be pasted straight in — they are scaled to 1400px on the long edge and saved with the note' },
+  notes_img_too_big: { zh: '這張圖片即使縮小後仍超過 1.5 MB,沒有貼上。請先裁切,或改貼一個連結', en: 'This image is still over 1.5 MB after scaling, so it was not inserted. Crop it first, or paste a link instead' },
+  notes_img_failed: { zh: '這張圖片讀不進來。請先用截圖工具存成 PNG／JPG 檔,再從檔案貼上', en: 'That image could not be read. Save it as a PNG/JPG file first, then paste from the file' },
+  notes_body_too_big: { zh: total => `內容有 ${total} MB,超過 3 MB 的上限——存下去會讓每個看這個頁面的人都下載這麼多。請刪掉幾張圖,或改貼連結`, en: total => `The note is ${total} MB, over the 3 MB limit — saving it would make everyone who opens this page download that much. Remove an image or two, or link to them instead` },
   notes_tb_bold: { zh: '粗體', en: 'Bold' },
   notes_tb_italic: { zh: '斜體', en: 'Italic' },
   notes_tb_underline: { zh: '底線', en: 'Underline' },
@@ -1142,13 +1158,13 @@ function renderNoteTree(node) {
 // that looks like markup is rendered instead — through a strict allowlist, because the
 // dashboard is public and notes are written by whoever holds the edit token.
 const NOTES_ALLOWED_TAGS = { UL: 1, OL: 1, LI: 1, BR: 1, P: 1, DIV: 1, SPAN: 1, B: 1, STRONG: 1,
-                             I: 1, EM: 1, U: 1, S: 1, A: 1, CODE: 1, SMALL: 1 };
+                             I: 1, EM: 1, U: 1, S: 1, A: 1, CODE: 1, SMALL: 1, IMG: 1 };
 // These are removed outright — keeping their text would dump code onto the page.
 const NOTES_DROPPED_TAGS = { SCRIPT: 1, STYLE: 1, IFRAME: 1, OBJECT: 1, EMBED: 1, NOSCRIPT: 1, TEMPLATE: 1, LINK: 1, META: 1 };
 const NOTES_ALLOWED_STYLE = /^(color|background-color|font-weight|font-style|text-decoration)$/;
 
 function looksLikeNotesHtml(raw) {
-  return /<(ul|ol|li|br|p|div|span|b|strong|i|em|u|a)\b[^>]*>/i.test(raw || '');
+  return /<(ul|ol|li|br|p|div|span|b|strong|i|em|u|a|img)\b[^>]*>/i.test(raw || '');
 }
 
 // Keeps the allowed tags, drops every other tag but keeps its text, and strips all
@@ -1187,6 +1203,12 @@ function sanitizeNotesHtml(raw) {
         } else if (name === 'href' && child.tagName === 'A' && /^https?:\/\//i.test(attr.value)) {
           child.setAttribute('target', '_blank');
           child.setAttribute('rel', 'noopener noreferrer');
+        } else if (child.tagName === 'IMG' && name === 'src') {
+          // A pasted screenshot arrives as a blob: URL that dies with the tab, so only
+          // a self-contained data: image or a real https: one is worth keeping.
+          if (!/^(data:image\/(png|jpeg|gif|webp);base64,|https:\/\/)/i.test(attr.value)) child.remove();
+        } else if (child.tagName === 'IMG' && name === 'alt') {
+          /* keep */
         } else {
           child.removeAttribute(attr.name);
         }
@@ -1196,6 +1218,51 @@ function sanitizeNotesHtml(raw) {
   };
   walk(root);
   return root.innerHTML;
+}
+
+// Pasted screenshots arrive as blobs that vanish when the tab closes, so they are
+// inlined as data: URIs instead. A raw 4K screenshot is several MB and would then be
+// baked into dashboard.html for every visitor, so it is scaled down and re-encoded
+// first — WebP where the browser has it, JPEG otherwise.
+const NOTES_IMG_MAX_EDGE = 1400;
+const NOTES_IMG_MAX_BYTES = 1500000;    // per image, after re-encoding
+const NOTES_BODY_MAX_BYTES = 3000000;   // whole note — guards the page weight
+
+function notesImageToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('read failed'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('decode failed'));
+      img.onload = () => {
+        const scale = Math.min(1, NOTES_IMG_MAX_EDGE / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        let out = '';
+        try { out = canvas.toDataURL('image/webp', 0.85); } catch (e) { out = ''; }
+        if (!/^data:image\/webp/.test(out)) out = canvas.toDataURL('image/jpeg', 0.85);
+        // A small original (an icon, a already-compressed jpg) can beat the re-encode.
+        if (scale === 1 && typeof reader.result === 'string' && reader.result.length < out.length) out = reader.result;
+        resolve(out);
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Inlined images make a note heavy, and the note is baked into dashboard.html for
+// every visitor — so refuse to save one that would blow the page up, and say by how
+// much rather than failing silently at the API.
+function notesTooBig(totalChars) {
+  if (totalChars <= NOTES_BODY_MAX_BYTES) return false;
+  alert(t('notes_body_too_big', (totalChars / 1000000).toFixed(1)));
+  return true;
 }
 
 // Turns bare http(s) URLs sitting in text into real links, without touching text that
@@ -1321,6 +1388,20 @@ function attachNotesEditor(ed) {
   // Paste through the same allowlist the renderer uses, so Word/Outlook/Confluence
   // markup arrives as plain bullets, colours and links — not a wall of mso styles.
   ed.addEventListener('paste', e => {
+    // A screenshot on the clipboard comes through as a file, not as markup.
+    const files = [...(e.clipboardData.files || [])].filter(f => /^image\//.test(f.type));
+    if (files.length) {
+      e.preventDefault();
+      notesActiveEditor = ed;
+      files.forEach(file => {
+        notesImageToDataUrl(file).then(url => {
+          if (url.length > NOTES_IMG_MAX_BYTES) { alert(t('notes_img_too_big')); return; }
+          ed.focus();
+          document.execCommand('insertHTML', false, `<img src="${esc(url)}" alt="">`);
+        }).catch(() => alert(t('notes_img_failed')));
+      });
+      return;
+    }
     const html = e.clipboardData.getData('text/html');
     const text = e.clipboardData.getData('text/plain');
     if (!html && !text) return;
@@ -1391,110 +1472,149 @@ function renderOverviewNotesBlock() {
 // Actions/Pages rebuild delay entirely) and re-renders if nothing is being
 // edited right now. Safe to call repeatedly; silently keeps the baked-in
 // fallback on any failure (offline, blocked network, local file:// testing).
-// --- Audio tab notes -----------------------------------------------------------
-// Same editor, sanitizer and token as the project overview, but a single free-text
-// box in its own file, so the two can be edited independently without either side
-// overwriting the other's commit.
-const GITHUB_AUDIO_NOTES_PATH = 'audio_notes.json';
-const GITHUB_RAW_AUDIO_NOTES_URL = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/${GITHUB_AUDIO_NOTES_PATH}`;
-const AUDIO_NOTES = Object.assign({ updated_at: null, updated_by: null, body: '' }, RAW.audio_notes || {});
-let audioNotesEditing = false;
+// --- Per-tab free-text notes -----------------------------------------------------
+// The project overview on the Stats tab is a multi-column block in overview_notes.json;
+// these are single boxes, one per tab, each in its own file. Separate files matter:
+// two people editing the Bug and Audio notes at the same time then commit to different
+// paths instead of racing for the same one. Everything else — the toolbar, the HTML
+// sanitizer, the token — is shared with the overview notes.
+function makeTabNotes(cfg) {
+  const rawUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/${cfg.path}`;
+  const notes = Object.assign({ updated_at: null, updated_by: null, body: '' }, cfg.initial || {});
+  let editing = false;
+  const el = suffix => document.getElementById(cfg.id + suffix);
 
-function renderAudioNotesBlock() {
-  const metaEl = document.getElementById('audioNotesMeta');
-  const boxEl = document.getElementById('audioNotesBox');
-  const editBtn = document.getElementById('audioNotesEditBtn');
-  const saveBtn = document.getElementById('audioNotesSaveBtn');
-  if (!boxEl) return;
-
-  metaEl.textContent = AUDIO_NOTES.updated_at
-    ? t('notes_meta', AUDIO_NOTES.updated_at, AUDIO_NOTES.updated_by || t('notes_meta_unknown'))
-    : t('notes_meta_never');
-
-  if (audioNotesEditing) {
-    boxEl.innerHTML = notesToolbarHtml() +
-      `<div class="notes-editor" contenteditable="true" data-key="body">${notesValueToHtml(AUDIO_NOTES.body)}</div>` +
-      `<p class="caption" style="margin:8px 0 0;">${esc(t('notes_indent_hint'))}</p>`;
-    notesActiveEditor = null;
-    boxEl.querySelectorAll('.notes-editor[data-key]').forEach(attachNotesEditor);
-    wireNotesToolbar();
-    editBtn.textContent = t('cancel_button');
-    saveBtn.textContent = t('save_button');
-    saveBtn.hidden = false;
-  } else {
-    boxEl.innerHTML = renderIndentedList(AUDIO_NOTES.body) ||
-      `<div class="notes-empty">${esc(t('notes_empty'))}</div>`;
-    editBtn.textContent = t('edit_button');
-    saveBtn.hidden = true;
+  function render() {
+    const box = el('Box');
+    if (!box) return;   // the tab hasn't been rendered yet
+    el('Meta').textContent = notes.updated_at
+      ? t('notes_meta', notes.updated_at, notes.updated_by || t('notes_meta_unknown'))
+      : t('notes_meta_never');
+    if (editing) {
+      box.innerHTML = notesToolbarHtml() +
+        `<div class="notes-editor" contenteditable="true" data-key="body">${notesValueToHtml(notes.body)}</div>` +
+        `<p class="caption" style="margin:8px 0 0;">${esc(t('notes_indent_hint'))}</p>`;
+      notesActiveEditor = null;
+      box.querySelectorAll('.notes-editor[data-key]').forEach(attachNotesEditor);
+      wireNotesToolbar();
+      el('EditBtn').textContent = t('cancel_button');
+      el('SaveBtn').textContent = t('save_button');
+      el('SaveBtn').hidden = false;
+    } else {
+      box.innerHTML = renderIndentedList(notes.body) || `<div class="notes-empty">${esc(t('notes_empty'))}</div>`;
+      el('EditBtn').textContent = t('edit_button');
+      el('SaveBtn').hidden = true;
+    }
   }
-}
 
-async function refreshAudioNotesFromGithub() {
-  try {
-    const resp = await fetch(GITHUB_RAW_AUDIO_NOTES_URL + '?t=' + Date.now(), { cache: 'no-store' });
-    if (!resp.ok) return;
-    const fresh = await resp.json();
-    if (fresh && typeof fresh === 'object') {
-      Object.assign(AUDIO_NOTES, fresh);
-      if (!audioNotesEditing) renderAudioNotesBlock();
-    }
-  } catch (e) { /* offline, blocked network, or file:// testing — keep the baked-in fallback */ }
-}
-
-async function saveAudioNotes() {
-  const token = getGithubToken(false);
-  if (!token) return;
-
-  const ed = document.querySelector('#audioNotesBox .notes-editor[data-key="body"]');
-  const html = ed ? sanitizeNotesHtml(ed.innerHTML).trim() : '';
-  const who = (prompt(t('notes_name_prompt'), AUDIO_NOTES.updated_by || '') || AUDIO_NOTES.updated_by || '').trim();
-  const payload = {
-    updated_at: new Date().toISOString(),
-    updated_by: who,
-    body: html === '<br>' ? '' : html,
-  };
-
-  const saveBtn = document.getElementById('audioNotesSaveBtn');
-  saveBtn.disabled = true;
-  saveBtn.textContent = t('saving_button');
-  try {
-    const apiBase = `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_AUDIO_NOTES_PATH}`;
-    const getResp = await fetch(apiBase, { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' } });
-    let sha;
-    if (getResp.ok) {
-      sha = (await getResp.json()).sha;
-    } else if (getResp.status !== 404) {
-      throw new Error('GET ' + getResp.status);
-    }
-    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
-    const putResp = await fetch(apiBase, {
-      method: 'PUT',
-      headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: 'Update audio notes via dashboard', content: b64, sha, branch: 'main' }),
-    });
-    if (!putResp.ok) {
-      const errBody = await putResp.text();
-      throw new Error('PUT ' + putResp.status + ': ' + errBody.slice(0, 200));
-    }
+  async function refresh() {
     try {
-      await fetch(`https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/refresh-dashboard.yml/dispatches`, {
-        method: 'POST',
-        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ref: 'main' }),
-      });
-    } catch (e) { /* commit already succeeded — a manual/scheduled run will pick it up */ }
-
-    Object.assign(AUDIO_NOTES, payload);
-    audioNotesEditing = false;
-    renderAudioNotesBlock();
-    alert(t('notes_saved_msg'));
-  } catch (err) {
-    alert(t('notes_save_error', String((err && err.message) || err)));
-  } finally {
-    saveBtn.disabled = false;
-    saveBtn.textContent = t('save_button');
+      const resp = await fetch(rawUrl + '?t=' + Date.now(), { cache: 'no-store' });
+      if (!resp.ok) return;
+      const fresh = await resp.json();
+      if (fresh && typeof fresh === 'object') {
+        Object.assign(notes, fresh);
+        if (!editing) render();
+      }
+    } catch (e) { /* offline, blocked network, or file:// testing — keep the baked-in copy */ }
   }
+
+  async function save() {
+    const token = getGithubToken(false);
+    if (!token) return;
+    const ed = el('Box').querySelector('.notes-editor[data-key="body"]');
+    const html = ed ? sanitizeNotesHtml(ed.innerHTML).trim() : '';
+    const who = (prompt(t('notes_name_prompt'), notes.updated_by || '') || notes.updated_by || '').trim();
+    const payload = {
+      updated_at: new Date().toISOString(),
+      updated_by: who,
+      body: html === '<br>' ? '' : html,
+    };
+    if (notesTooBig(payload.body.length)) return;
+    const saveBtn = el('SaveBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = t('saving_button');
+    try {
+      const apiBase = `https://api.github.com/repos/${GITHUB_REPO}/contents/${cfg.path}`;
+      const getResp = await fetch(apiBase, { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' } });
+      let sha;
+      if (getResp.ok) {
+        sha = (await getResp.json()).sha;
+      } else if (getResp.status !== 404) {
+        throw new Error('GET ' + getResp.status);
+      }
+      const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+      const putResp = await fetch(apiBase, {
+        method: 'PUT',
+        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: cfg.commitMessage, content: b64, sha, branch: 'main' }),
+      });
+      if (!putResp.ok) {
+        const errBody = await putResp.text();
+        throw new Error('PUT ' + putResp.status + ': ' + errBody.slice(0, 200));
+      }
+      try {
+        await fetch(`https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/refresh-dashboard.yml/dispatches`, {
+          method: 'POST',
+          headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ref: 'main' }),
+        });
+      } catch (e) { /* commit already succeeded — a manual/scheduled run will pick it up */ }
+      Object.assign(notes, payload);
+      editing = false;
+      render();
+      alert(t('notes_saved_msg'));
+    } catch (err) {
+      alert(t('notes_save_error', String((err && err.message) || err)));
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = t('save_button');
+    }
+  }
+
+  return {
+    // Card markup for the tab's innerHTML; mount() wires it once that HTML is in place.
+    cardHtml() {
+      return `
+    <section class="card">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+        <div>
+          <h2 style="margin:0;">${esc(t(cfg.headingKey))}</h2>
+          <p class="caption" id="${cfg.id}Meta" style="margin:4px 0 0;"></p>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button type="button" class="btn small" id="${cfg.id}TokenBtn" title="${esc(t('notes_change_token'))}">🔑</button>
+          <button type="button" class="btn" id="${cfg.id}EditBtn"></button>
+          <button type="button" class="btn primary" id="${cfg.id}SaveBtn" hidden></button>
+        </div>
+      </div>
+      <p class="caption">${esc(t(cfg.captionKey))}</p>
+      <div id="${cfg.id}Box"></div>
+    </section>`;
+    },
+    mount() {
+      editing = false;
+      render();
+      el('EditBtn').addEventListener('click', () => { editing = !editing; render(); });
+      el('SaveBtn').addEventListener('click', save);
+      el('TokenBtn').addEventListener('click', () => getGithubToken(true));
+      // Pick up anything someone else saved since this page was built.
+      refresh();
+    },
+  };
 }
+
+const AUDIO_TAB_NOTES = makeTabNotes({
+  id: 'audioNotes', path: 'audio_notes.json', initial: RAW.audio_notes,
+  headingKey: 'audio_notes_heading', captionKey: 'audio_notes_caption',
+  commitMessage: 'Update audio notes via dashboard',
+});
+
+const BUG_TAB_NOTES = makeTabNotes({
+  id: 'bugNotes', path: 'bug_notes.json', initial: RAW.bug_notes,
+  headingKey: 'bug_notes_heading', captionKey: 'bug_notes_caption',
+  commitMessage: 'Update bug notes via dashboard',
+});
 
 async function refreshOverviewNotesFromGithub() {
   try {
@@ -1538,6 +1658,7 @@ async function saveOverviewNotes() {
   // above is all it takes for its content to be saved too.
   const payload = { updated_at: new Date().toISOString(), updated_by: who };
   overviewNotesColumns().forEach(c => { payload[c.key] = draft[c.key] || ''; });
+  if (notesTooBig(overviewNotesColumns().reduce((n, c) => n + payload[c.key].length, 0))) return;
 
   const saveBtn = document.getElementById('overviewNotesSaveBtn');
   saveBtn.disabled = true;
@@ -2795,6 +2916,7 @@ function renderBugPanel() {
   const total = BUGS.length;
   const pct = total ? Math.round(done / total * 100) : 0;
   panel.innerHTML = `
+    ${BUG_TAB_NOTES.cardHtml()}
     <div class="stat-row" id="bugPriorityTiles"></div>
     <section class="card">
       <h2>${esc(t('bug_subfeature_heading'))}</h2>
@@ -2869,6 +2991,8 @@ function renderBugPanel() {
       </div>
     </section>
   `;
+
+  BUG_TAB_NOTES.mount();
 
   const featureSel = document.getElementById('bugFeatureFilter');
   const statusSel = document.getElementById('bugStatusFilter');
@@ -3120,21 +3244,7 @@ function renderAudioPanel() {
   }).filter(g => g.total > 0);
 
   panel.innerHTML = `
-    <section class="card">
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
-        <div>
-          <h2 style="margin:0;">${esc(t('audio_notes_heading'))}</h2>
-          <p class="caption" id="audioNotesMeta" style="margin:4px 0 0;"></p>
-        </div>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <button type="button" class="btn small" id="audioNotesTokenBtn" title="${esc(t('notes_change_token'))}">🔑</button>
-          <button type="button" class="btn" id="audioNotesEditBtn"></button>
-          <button type="button" class="btn primary" id="audioNotesSaveBtn" hidden></button>
-        </div>
-      </div>
-      <p class="caption">${esc(t('audio_notes_caption'))}</p>
-      <div id="audioNotesBox"></div>
-    </section>
+    ${AUDIO_TAB_NOTES.cardHtml()}
     <div class="stat-row">
       <div class="stat-tile">
         <div class="label">${esc(t('audio_not_done_count'))}</div>
@@ -3179,16 +3289,7 @@ function renderAudioPanel() {
     </section>
   `;
 
-  audioNotesEditing = false;
-  renderAudioNotesBlock();
-  document.getElementById('audioNotesEditBtn').addEventListener('click', () => {
-    audioNotesEditing = !audioNotesEditing;
-    renderAudioNotesBlock();
-  });
-  document.getElementById('audioNotesSaveBtn').addEventListener('click', saveAudioNotes);
-  document.getElementById('audioNotesTokenBtn').addEventListener('click', () => getGithubToken(true));
-  // Pick up anything someone else saved since this page was built.
-  refreshAudioNotesFromGithub();
+  AUDIO_TAB_NOTES.mount();
 
   const groupSel = document.getElementById('audioGroupFilter');
   const search = document.getElementById('audioSearch');
