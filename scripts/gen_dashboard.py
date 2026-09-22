@@ -464,6 +464,19 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   /* Pasted screenshots: never wider than the column, and clearly a block of their own. */
   .notes-html img, .notes-editor img { display: block; max-width: 100%; height: auto; margin: 6px 0;
                                        border: 1px solid var(--grid); border-radius: 4px; }
+  .notes-editor img { cursor: pointer; }
+  .notes-editor img.img-selected { outline: 2px solid var(--series-cp); outline-offset: 2px; }
+  .img-tools { position: absolute; z-index: 40; display: flex; align-items: center; gap: 6px;
+               background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+               padding: 6px 10px; box-shadow: 0 6px 18px rgba(0,0,0,.14); font-size: 12px; }
+  .img-tools .lbl { color: var(--muted); }
+  .img-tools .val { color: var(--text-secondary); font-variant-numeric: tabular-nums; min-width: 34px; }
+  .img-tools input[type=range] { width: 110px; accent-color: var(--series-cp); }
+  .img-handle { position: absolute; z-index: 41; width: 16px; height: 16px; box-sizing: border-box;
+                background: var(--series-cp); border: 2px solid var(--surface-1); border-radius: 3px;
+                cursor: nwse-resize; touch-action: none; }
+  .img-handle.dragging { transform: scale(1.15); }
+  @media (max-width: 560px) { .img-tools { flex-wrap: wrap; max-width: calc(100vw - 32px); } }
   .notes-editor {
     min-height: 150px; max-height: 320px; overflow-y: auto; background: var(--surface-1);
     border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 13px;
@@ -754,8 +767,12 @@ const STRINGS = {
   notes_token_prompt: { zh: '請貼上具備此 repo 寫入權限的 GitHub Personal Access Token(僅會存在你自己瀏覽器裡,不會傳給任何第三方):', en: 'Paste a GitHub Personal Access Token with write access to this repo (stored only in your own browser, never sent anywhere else):' },
   notes_name_prompt: { zh: '你的名字(會顯示在「最後更新」旁):', en: 'Your name (shown next to "last updated"):' },
   notes_saved_msg: { zh: '已儲存!其他人重新整理頁面後,大約 1 分鐘內就會看到最新內容。', en: 'Saved! Others will see the update within about a minute after refreshing the page.' },
-  notes_indent_hint: { zh: '提示:Tab 縮排(建立子項目)、Shift+Tab 取消縮排;貼上的格式會自動保留,連結存檔後可直接點擊。截圖可以直接貼進來,會自動縮到長邊 1400px 並隨內容一起存檔', en: 'Tip: Tab indents (makes a sub-item), Shift+Tab outdents. Pasted formatting is kept, and links become clickable once saved. Screenshots can be pasted straight in — they are scaled to 1400px on the long edge and saved with the note' },
+  notes_indent_hint: { zh: '提示:Tab 縮排(建立子項目)、Shift+Tab 取消縮排;貼上的格式會自動保留,連結存檔後可直接點擊。截圖可以直接貼進來,會自動縮到長邊 1400px 並隨內容一起存檔;點圖片後可拖曳右下角的方塊,或用下方的百分比調整大小', en: 'Tip: Tab indents (makes a sub-item), Shift+Tab outdents. Pasted formatting is kept, and links become clickable once saved. Screenshots can be pasted straight in — they are scaled to 1400px on the long edge and saved with the note. Click an image, then drag the corner square or use the percentage controls to resize it' },
   notes_img_too_big: { zh: '這張圖片即使縮小後仍超過 1.5 MB,沒有貼上。請先裁切,或改貼一個連結', en: 'This image is still over 1.5 MB after scaling, so it was not inserted. Crop it first, or paste a link instead' },
+  notes_img_size: { zh: '大小', en: 'Size' },
+  notes_img_delete: { zh: '刪除', en: 'Remove' },
+  notes_img_drag: { zh: '拖曳右下角可調整大小', en: 'Drag this corner to resize' },
+  notes_img_hint: { zh: '點圖片可以調整顯示大小', en: 'Click an image, then drag the corner square or use the percentage controls to resize it' },
   notes_img_failed: { zh: '這張圖片讀不進來。請先用截圖工具存成 PNG／JPG 檔,再從檔案貼上', en: 'That image could not be read. Save it as a PNG/JPG file first, then paste from the file' },
   notes_body_too_big: { zh: total => `內容有 ${total} MB,超過 3 MB 的上限——存下去會讓每個看這個頁面的人都下載這麼多。請刪掉幾張圖,或改貼連結`, en: total => `The note is ${total} MB, over the 3 MB limit — saving it would make everyone who opens this page download that much. Remove an image or two, or link to them instead` },
   notes_tb_bold: { zh: '粗體', en: 'Bold' },
@@ -1161,7 +1178,10 @@ const NOTES_ALLOWED_TAGS = { UL: 1, OL: 1, LI: 1, BR: 1, P: 1, DIV: 1, SPAN: 1, 
                              I: 1, EM: 1, U: 1, S: 1, A: 1, CODE: 1, SMALL: 1, IMG: 1 };
 // These are removed outright — keeping their text would dump code onto the page.
 const NOTES_DROPPED_TAGS = { SCRIPT: 1, STYLE: 1, IFRAME: 1, OBJECT: 1, EMBED: 1, NOSCRIPT: 1, TEMPLATE: 1, LINK: 1, META: 1 };
-const NOTES_ALLOWED_STYLE = /^(color|background-color|font-weight|font-style|text-decoration)$/;
+const NOTES_ALLOWED_STYLE = /^(color|background-color|font-weight|font-style|text-decoration|width|height|max-width)$/;
+// Sizes only ever come from the image resizer, so they stay plain numbers — no calc(),
+// no var(), nothing that could reach outside the note.
+const NOTES_SIZE_VALUE = /^\s*(auto|\d{1,4}(\.\d+)?(px|%))\s*$/i;
 
 function looksLikeNotesHtml(raw) {
   return /<(ul|ol|li|br|p|div|span|b|strong|i|em|u|a|img)\b[^>]*>/i.test(raw || '');
@@ -1197,7 +1217,9 @@ function sanitizeNotesHtml(raw) {
         if (name === 'style') {
           const safe = attr.value.split(';').map(d => d.trim()).filter(d => {
             const prop = (d.split(':')[0] || '').trim().toLowerCase();
-            return NOTES_ALLOWED_STYLE.test(prop) && !/url\s*\(|expression/i.test(d);
+            if (!NOTES_ALLOWED_STYLE.test(prop)) return false;
+            if (/^(width|height|max-width)$/.test(prop) && !NOTES_SIZE_VALUE.test(d.slice(d.indexOf(':') + 1))) return false;
+            return !/url\s*\(|expression/i.test(d);
           }).join('; ');
           if (safe) child.setAttribute('style', safe); else child.removeAttribute('style');
         } else if (name === 'href' && child.tagName === 'A' && /^https?:\/\//i.test(attr.value)) {
@@ -1377,7 +1399,150 @@ function clearNotesColor(ed) {
   });
 }
 
+// --- Resizing a pasted image ---------------------------------------------------
+// Clicking an image in the editor opens a small panel under it: presets, a slider, and
+// a delete button. The panel lives on <body> rather than inside the editor, so it never
+// ends up in the saved HTML; the size is written as an inline width percentage, which
+// keeps the image responsive on a narrow screen instead of pinning it to a pixel width.
+let notesImgPanel = null;
+let notesImgHandle = null;
+let notesImgTarget = null;
+
+function hideNotesImageTools() {
+  if (notesImgPanel) notesImgPanel.hidden = true;
+  if (notesImgHandle) notesImgHandle.hidden = true;
+  if (notesImgTarget) notesImgTarget.classList.remove('img-selected');
+  notesImgTarget = null;
+}
+
+function notesImageWidthPct(img, ed) {
+  const declared = (img.style.width || '').trim();
+  if (declared.endsWith('%')) return Math.round(parseFloat(declared));
+  const avail = ed.clientWidth || 1;
+  return Math.max(5, Math.min(100, Math.round(img.getBoundingClientRect().width / avail * 100)));
+}
+
+// The panel sits under the image and the drag handle on its bottom-right corner; both
+// are body-positioned, so they follow the image as it resizes or the page scrolls.
+function positionNotesImageTools() {
+  if (!notesImgTarget || !notesImgPanel || notesImgPanel.hidden) return;
+  const r = notesImgTarget.getBoundingClientRect();
+  notesImgPanel.style.top = (r.bottom + window.scrollY + 12) + 'px';
+  notesImgPanel.style.left = (r.left + window.scrollX) + 'px';
+  if (notesImgHandle) {
+    notesImgHandle.style.top = (r.bottom + window.scrollY - 8) + 'px';
+    notesImgHandle.style.left = (r.right + window.scrollX - 8) + 'px';
+  }
+}
+
+function syncNotesImagePanel(pct) {
+  if (!notesImgPanel) return;
+  notesImgPanel.querySelector('#notesImgRange').value = pct;
+  notesImgPanel.querySelector('#notesImgVal').textContent = pct + '%';
+}
+
+// Width is stored as a percentage of the editor, not a pixel count, so the image still
+// shrinks with the column on a narrow screen instead of overflowing it.
+function setNotesImageWidth(pct) {
+  if (!notesImgTarget) return;
+  notesImgTarget.style.width = pct + '%';
+  notesImgTarget.style.height = 'auto';
+  syncNotesImagePanel(pct);
+  positionNotesImageTools();
+}
+
+function buildNotesImagePanel() {
+  const panel = document.createElement('div');
+  panel.className = 'img-tools';
+  panel.id = 'notesImgTools';
+  panel.hidden = true;
+  panel.innerHTML =
+    `<span class="lbl">${esc(t('notes_img_size'))}</span>` +
+    [25, 50, 75, 100].map(n => `<button type="button" class="btn small" data-pct="${n}">${n}%</button>`).join('') +
+    `<input type="range" id="notesImgRange" min="5" max="100" step="1" aria-label="${esc(t('notes_img_size'))}">` +
+    `<span class="val" id="notesImgVal"></span>` +
+    `<button type="button" class="btn small" data-img-del>${esc(t('notes_img_delete'))}</button>`;
+  // mousedown would blur the editor and drop the caret before the click lands.
+  panel.addEventListener('mousedown', e => { if (e.target.tagName !== 'INPUT') e.preventDefault(); });
+  panel.addEventListener('click', e => {
+    const preset = e.target.closest('[data-pct]');
+    if (preset) { setNotesImageWidth(+preset.dataset.pct); return; }
+    if (e.target.closest('[data-img-del]') && notesImgTarget) {
+      const img = notesImgTarget;
+      hideNotesImageTools();
+      img.remove();
+    }
+  });
+  panel.querySelector('#notesImgRange').addEventListener('input', e => setNotesImageWidth(+e.target.value));
+  document.body.appendChild(panel);
+  return panel;
+}
+
+function buildNotesImageHandle() {
+  const handle = document.createElement('div');
+  handle.className = 'img-handle';
+  handle.id = 'notesImgHandle';
+  handle.title = t('notes_img_drag');
+  handle.hidden = true;
+  handle.addEventListener('pointerdown', e => {
+    if (!notesImgTarget) return;
+    e.preventDefault();                       // don't start a text selection
+    const img = notesImgTarget;
+    const ed = img.closest('.notes-editor');
+    const r = img.getBoundingClientRect();
+    const startX = e.clientX, startY = e.clientY;
+    const startW = r.width, startH = r.height;
+    const aspect = startH ? startW / startH : 1;
+    const avail = (ed && ed.clientWidth) || startW || 1;
+    handle.setPointerCapture(e.pointerId);
+    handle.classList.add('dragging');
+    // Average the width the horizontal and the vertical movement each imply, so the
+    // handle answers to a diagonal drag rather than only to sideways motion.
+    const move = ev => {
+      const fromX = startW + (ev.clientX - startX);
+      const fromY = (startH + (ev.clientY - startY)) * aspect;
+      const pct = Math.max(5, Math.min(100, Math.round((fromX + fromY) / 2 / avail * 100)));
+      setNotesImageWidth(pct);
+    };
+    const up = () => {
+      handle.classList.remove('dragging');
+      try { handle.releasePointerCapture(e.pointerId); } catch (err) { /* already released */ }
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', up);
+      handle.removeEventListener('pointercancel', up);
+    };
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', up);
+    handle.addEventListener('pointercancel', up);
+  });
+  document.body.appendChild(handle);
+  return handle;
+}
+
+function selectNotesImage(img, ed) {
+  if (!notesImgPanel) notesImgPanel = buildNotesImagePanel();
+  if (!notesImgHandle) notesImgHandle = buildNotesImageHandle();
+  if (notesImgTarget && notesImgTarget !== img) notesImgTarget.classList.remove('img-selected');
+  notesImgTarget = img;
+  img.classList.add('img-selected');
+  syncNotesImagePanel(notesImageWidthPct(img, ed));
+  notesImgPanel.hidden = false;
+  notesImgHandle.hidden = false;
+  positionNotesImageTools();
+}
+
+document.addEventListener('click', e => {
+  if (e.target.closest('.img-tools') || e.target.closest('.img-handle') || e.target.closest('.notes-editor img')) return;
+  hideNotesImageTools();
+});
+window.addEventListener('resize', hideNotesImageTools);
+window.addEventListener('scroll', positionNotesImageTools, { passive: true });
+
 function attachNotesEditor(ed) {
+  ed.addEventListener('click', e => {
+    const img = e.target.closest('img');
+    if (img && ed.contains(img)) selectNotesImage(img, ed);
+  });
   ed.addEventListener('focus', () => { notesActiveEditor = ed; });
   // Tab indents inside lists instead of leaving the field.
   ed.addEventListener('keydown', e => {
@@ -1435,6 +1600,7 @@ function wireNotesToolbar() {
 }
 
 function renderOverviewNotesBlock() {
+  hideNotesImageTools();
   const metaEl = document.getElementById('overviewNotesMeta');
   const gridEl = document.getElementById('overviewNotesGrid');
   const editBtn = document.getElementById('overviewNotesEditBtn');
@@ -1487,6 +1653,7 @@ function makeTabNotes(cfg) {
   function render() {
     const box = el('Box');
     if (!box) return;   // the tab hasn't been rendered yet
+    hideNotesImageTools();
     el('Meta').textContent = notes.updated_at
       ? t('notes_meta', notes.updated_at, notes.updated_by || t('notes_meta_unknown'))
       : t('notes_meta_never');
