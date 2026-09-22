@@ -30,20 +30,16 @@ except FileNotFoundError:
 
 DATA["overview_notes"] = OVERVIEW_NOTES
 
-# Single free-text note box for the Bug tab. Kept in its own file (rather than as
-# another key inside overview_notes.json) so its save path can never clobber the
-# Project Overview notes, and vice versa.
+# Free-text notes for the Audio tab, edited in the browser and committed back to
+# audio_notes.json by the same token/flow the overview notes use. Optional: without
+# the file the tab just shows an empty, still-editable box.
 try:
-    with open("bug_notes.json", encoding="utf-8") as f:
-        BUG_NOTES = json.load(f)
+    with open("audio_notes.json", encoding="utf-8") as f:
+        AUDIO_NOTES = json.load(f)
 except FileNotFoundError:
-    BUG_NOTES = {
-        "updated_at": None,
-        "updated_by": None,
-        "note": "",
-    }
+    AUDIO_NOTES = {"updated_at": None, "updated_by": None, "body": ""}
 
-DATA["bug_notes"] = BUG_NOTES
+DATA["audio_notes"] = AUDIO_NOTES
 
 # Requirement -> SWE1/SWE2 -> SWE3 traceability, built from the STLA SWRA analysis
 # report plus a Jira link lookup. Optional: without the file the Traceability tab
@@ -457,7 +453,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .notes-html li { margin-bottom: 4px; }
   .notes-html p { margin: 0 0 6px; }
   .notes-html a { color: var(--series-cp); }
-  .notes-html img { max-width: 100%; border-radius: 6px; margin: 4px 0; display: block; }
   .notes-editor {
     min-height: 150px; max-height: 320px; overflow-y: auto; background: var(--surface-1);
     border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 13px;
@@ -467,7 +462,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .notes-editor ul, .notes-editor ol { margin: 0; padding-left: 18px; }
   .notes-editor li { margin-bottom: 4px; }
   .notes-editor a { color: var(--series-cp); }
-  .notes-editor img { max-width: 100%; border-radius: 6px; margin: 4px 0; display: block; }
   .notes-toolbar {
     grid-column: 1/-1; display: flex; gap: 4px; flex-wrap: wrap; align-items: center;
     padding: 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--page);
@@ -622,7 +616,6 @@ const TRACE = RAW.traceability || null;
 const TRACE_NOTES = Object.assign({ updated_at: null, updated_by: null, confirmed: {}, comments: {}, owners: {} },
                                   RAW.traceability_notes || {});
 const OVERVIEW_NOTES = RAW.overview_notes || { updated_at: null, updated_by: null, development_status: '', certification_status: '', risk: '' };
-const BUG_NOTES = Object.assign({ updated_at: null, updated_by: null, note: '' }, RAW.bug_notes || {});
 const FEATURE_COLORS = { "CarPlay": "var(--series-cp)", "Android Auto": "var(--series-aa)", "iPod": "var(--series-ipod)" };
 
 // ---- i18n ----------------------------------------------------------------
@@ -721,10 +714,11 @@ const STRINGS = {
 
   bug_priority_bug_total: { zh: 'Bug 總數', en: 'Total Bugs' },
   bug_label_heading: { zh: 'Label 分佈(僅未完成 Bug)', en: 'Label breakdown (not-done Bugs only)' },
-  bug_note_heading: { zh: 'Bug 備註', en: 'Bug notes' },
+  bug_subfeature_heading: { zh: 'Sub-feature 分佈(僅未完成 Bug,依 CarPlay/Android Auto/iPod 分欄)', en: 'Sub-feature breakdown (not-done Bugs only, split by CarPlay/Android Auto/iPod)' },
   bug_assignee_heading: { zh: 'Assignee 分佈(僅未完成 Bug,依組織分欄)', en: 'Assignee breakdown (not-done Bugs only, split by team)' },
   bug_list_heading: { zh: 'Bug 清單(依 Feature / Label 分類篩選)', en: 'Bug list (filter by feature / label category)' },
   bug_label_caption: { zh: t => `在 ${t} 張未完成的 Bug 票中,依標籤分類的票數(每張票只計入一類,依 ASW-R2 → ASW-R3(不含CPAA 0830) → CPAA0830 → 三者皆無 的優先順序判斷)`, en: t => `Ticket counts by label category, out of ${t} not-done Bugs (each ticket counted once, priority order: ASW-R2 → ASW-R3 (excl. CPAA 0830) → CPAA0830 → none of the above)` },
+  bug_subfeature_caption: { zh: (total, feature) => `在 ${total} 張未完成的 ${feature} Bug 中,依功能子分類(cpaa-feature-taxonomy)統計的票數;無法明確對應到子分類的票歸在「未分類」`, en: (total, feature) => `Ticket counts by sub-feature (cpaa-feature-taxonomy), out of ${total} not-done ${feature} Bugs; tickets that can't be clearly matched fall under "Uncategorized"` },
   bug_assignee_caption: { zh: t => `在 ${t} 張未完成 Bug 中,依 assignee 統計的票數`, en: t => `Ticket counts by assignee, out of ${t} not-done Bugs` },
   top_assignee_heading: { zh: '目前 Bug 數最多的 Assignee(前 10 名)', en: 'Top 10 assignees by open bug count' },
   top_assignee_caption: { zh: total => `在 ${total} 張未完成 Bug 中,票數最多的前 10 位 assignee,點擊可跳轉至 Bug 頁籤查看清單`, en: total => `Top 10 assignees by not-done bug count (out of ${total}) — click a row to jump to the Bug tab` },
@@ -734,6 +728,8 @@ const STRINGS = {
   notes_cert_heading: { zh: 'Certification status', en: 'Certification status' },
   notes_risk_heading: { zh: 'Risk (External)', en: 'Risk (External)' },
   notes_risk_internal_heading: { zh: 'Risk (Internal)', en: 'Risk (Internal)' },
+  audio_notes_heading: { zh: 'Audio 備註(可編輯)', en: 'Audio notes (editable)' },
+  audio_notes_caption: { zh: '這一頁的自由筆記:進度、卡點、跟 Harman／MDI 的待辦。與統計數據頁的專案總覽用同一組編輯工具與同一把 token', en: 'Free-text notes for this tab — progress, blockers, open items with Harman/MDI. Same editor and same token as the project overview on the Stats tab' },
   notes_empty: { zh: '尚未填寫,點擊「編輯」開始撰寫', en: 'Not filled in yet — click Edit to add notes' },
   notes_meta: { zh: (at, who) => `最後更新:${String(at).slice(0, 10)} by ${who}`, en: (at, who) => `Last updated ${String(at).slice(0, 10)} by ${who}` },
   notes_meta_never: { zh: '尚未儲存過任何內容', en: 'Nothing saved yet' },
@@ -745,7 +741,7 @@ const STRINGS = {
   notes_token_prompt: { zh: '請貼上具備此 repo 寫入權限的 GitHub Personal Access Token(僅會存在你自己瀏覽器裡,不會傳給任何第三方):', en: 'Paste a GitHub Personal Access Token with write access to this repo (stored only in your own browser, never sent anywhere else):' },
   notes_name_prompt: { zh: '你的名字(會顯示在「最後更新」旁):', en: 'Your name (shown next to "last updated"):' },
   notes_saved_msg: { zh: '已儲存!其他人重新整理頁面後,大約 1 分鐘內就會看到最新內容。', en: 'Saved! Others will see the update within about a minute after refreshing the page.' },
-  notes_indent_hint: { zh: '提示:Tab 縮排(建立子項目)、Shift+Tab 取消縮排;貼上的格式會自動保留,連結存檔後可直接點擊;也可以直接貼上圖片(例如截圖)', en: 'Tip: Tab indents (makes a sub-item), Shift+Tab outdents. Pasted formatting is kept, links become clickable once saved, and you can paste an image (e.g. a screenshot) directly' },
+  notes_indent_hint: { zh: '提示:Tab 縮排(建立子項目)、Shift+Tab 取消縮排;貼上的格式會自動保留,連結存檔後可直接點擊', en: 'Tip: Tab indents (makes a sub-item), Shift+Tab outdents. Pasted formatting is kept, and links become clickable once saved' },
   notes_tb_bold: { zh: '粗體', en: 'Bold' },
   notes_tb_italic: { zh: '斜體', en: 'Italic' },
   notes_tb_underline: { zh: '底線', en: 'Underline' },
@@ -834,7 +830,6 @@ const STRINGS = {
   trace_collapse_hint: { zh: '點標題可收合', en: 'click to collapse' },
   trace_detail_heading: { zh: '明細清單(依 Owner 分組)', en: 'Detail by owner' },
   trace_detail_caption: { zh: '每個需求列出對應的 SWE1 與 SWE2 票,SWE2 後面接的是它關聯到的 SWE3 票與狀態', en: 'Each requirement lists its SWE1 and SWE2 tickets; each SWE2 is followed by the SWE3 it links to, with status' },
-  trace_filter_all_feature: { zh: '全部功能(CarPlay/Android Auto)', en: 'All features (CarPlay/Android Auto)' },
   trace_filter_all_owner: { zh: '全部 Owner', en: 'All owners' },
   trace_filter_gap: { zh: '只看缺 SWE3 的 SWE2', en: 'Only SWE2 without SWE3' },
   trace_filter_has: { zh: '只看已有 SWE3 的 SWE2', en: 'Only SWE2 with SWE3' },
@@ -1147,17 +1142,13 @@ function renderNoteTree(node) {
 // that looks like markup is rendered instead — through a strict allowlist, because the
 // dashboard is public and notes are written by whoever holds the edit token.
 const NOTES_ALLOWED_TAGS = { UL: 1, OL: 1, LI: 1, BR: 1, P: 1, DIV: 1, SPAN: 1, B: 1, STRONG: 1,
-                             I: 1, EM: 1, U: 1, S: 1, A: 1, CODE: 1, SMALL: 1, IMG: 1 };
+                             I: 1, EM: 1, U: 1, S: 1, A: 1, CODE: 1, SMALL: 1 };
 // These are removed outright — keeping their text would dump code onto the page.
 const NOTES_DROPPED_TAGS = { SCRIPT: 1, STYLE: 1, IFRAME: 1, OBJECT: 1, EMBED: 1, NOSCRIPT: 1, TEMPLATE: 1, LINK: 1, META: 1 };
 const NOTES_ALLOWED_STYLE = /^(color|background-color|font-weight|font-style|text-decoration)$/;
-// Pasted images are re-encoded to a data: URI (see attachNotesEditor) rather than
-// uploaded anywhere, so this is the only <img src> the sanitizer ever needs to allow
-// — a remote http(s) src would let anyone embed tracking pixels on a public page.
-const NOTES_IMG_SRC = /^data:image\/(png|jpe?g|gif|webp);base64,/i;
 
 function looksLikeNotesHtml(raw) {
-  return /<(ul|ol|li|br|p|div|span|b|strong|i|em|u|a|img)\b[^>]*>/i.test(raw || '');
+  return /<(ul|ol|li|br|p|div|span|b|strong|i|em|u|a)\b[^>]*>/i.test(raw || '');
 }
 
 // Keeps the allowed tags, drops every other tag but keeps its text, and strips all
@@ -1185,10 +1176,6 @@ function sanitizeNotesHtml(raw) {
         child.replaceWith(doc.createTextNode(child.textContent || ''));
         return;
       }
-      if (child.tagName === 'IMG' && !NOTES_IMG_SRC.test(child.getAttribute('src') || '')) {
-        child.remove();
-        return;
-      }
       [...child.attributes].forEach(attr => {
         const name = attr.name.toLowerCase();
         if (name === 'style') {
@@ -1197,8 +1184,6 @@ function sanitizeNotesHtml(raw) {
             return NOTES_ALLOWED_STYLE.test(prop) && !/url\s*\(|expression/i.test(d);
           }).join('; ');
           if (safe) child.setAttribute('style', safe); else child.removeAttribute('style');
-        } else if (name === 'src' && child.tagName === 'IMG') {
-          // kept as-is — already validated above
         } else if (name === 'href' && child.tagName === 'A' && /^https?:\/\//i.test(attr.value)) {
           child.setAttribute('target', '_blank');
           child.setAttribute('rel', 'noopener noreferrer');
@@ -1335,17 +1320,7 @@ function attachNotesEditor(ed) {
   });
   // Paste through the same allowlist the renderer uses, so Word/Outlook/Confluence
   // markup arrives as plain bullets, colours and links — not a wall of mso styles.
-  // A pasted image (e.g. a screenshot copied straight from the clipboard) has no
-  // text/html part at all — it arrives as a clipboard file — so that's checked first.
   ed.addEventListener('paste', e => {
-    const items = e.clipboardData && e.clipboardData.items;
-    const imageItem = items && [...items].find(it => it.kind === 'file' && /^image\//.test(it.type));
-    if (imageItem) {
-      e.preventDefault();
-      const file = imageItem.getAsFile();
-      if (file) insertNotesImage(ed, file);
-      return;
-    }
     const html = e.clipboardData.getData('text/html');
     const text = e.clipboardData.getData('text/plain');
     if (!html && !text) return;
@@ -1353,34 +1328,6 @@ function attachNotesEditor(ed) {
     const clean = html ? sanitizeNotesHtml(html) : esc(text).replace(/\n/g, '<br>');
     document.execCommand('insertHTML', false, clean);
   });
-}
-
-// Pasted images are downscaled and re-encoded as JPEG before insertion, rather than
-// kept at native size/format — the note is stored as one JSON value fetched by every
-// viewer on every page load (see saveOverviewNotes), so an unscaled multi-MB
-// screenshot would bloat that fetch for everyone, not just whoever pasted it.
-const NOTES_MAX_IMG_WIDTH = 900;
-const NOTES_IMG_QUALITY = 0.82;
-
-function insertNotesImage(ed, file) {
-  const reader = new FileReader();
-  reader.onload = () => {
-    const img = new Image();
-    img.onload = () => {
-      const scale = Math.min(1, NOTES_MAX_IMG_WIDTH / img.width);
-      const w = Math.max(1, Math.round(img.width * scale));
-      const h = Math.max(1, Math.round(img.height * scale));
-      const canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      const dataUrl = canvas.toDataURL('image/jpeg', NOTES_IMG_QUALITY);
-      ed.focus();
-      document.execCommand('insertHTML', false, `<img src="${dataUrl}">`);
-    };
-    img.src = reader.result;
-  };
-  reader.readAsDataURL(file);
 }
 
 function wireNotesToolbar() {
@@ -1444,6 +1391,111 @@ function renderOverviewNotesBlock() {
 // Actions/Pages rebuild delay entirely) and re-renders if nothing is being
 // edited right now. Safe to call repeatedly; silently keeps the baked-in
 // fallback on any failure (offline, blocked network, local file:// testing).
+// --- Audio tab notes -----------------------------------------------------------
+// Same editor, sanitizer and token as the project overview, but a single free-text
+// box in its own file, so the two can be edited independently without either side
+// overwriting the other's commit.
+const GITHUB_AUDIO_NOTES_PATH = 'audio_notes.json';
+const GITHUB_RAW_AUDIO_NOTES_URL = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/${GITHUB_AUDIO_NOTES_PATH}`;
+const AUDIO_NOTES = Object.assign({ updated_at: null, updated_by: null, body: '' }, RAW.audio_notes || {});
+let audioNotesEditing = false;
+
+function renderAudioNotesBlock() {
+  const metaEl = document.getElementById('audioNotesMeta');
+  const boxEl = document.getElementById('audioNotesBox');
+  const editBtn = document.getElementById('audioNotesEditBtn');
+  const saveBtn = document.getElementById('audioNotesSaveBtn');
+  if (!boxEl) return;
+
+  metaEl.textContent = AUDIO_NOTES.updated_at
+    ? t('notes_meta', AUDIO_NOTES.updated_at, AUDIO_NOTES.updated_by || t('notes_meta_unknown'))
+    : t('notes_meta_never');
+
+  if (audioNotesEditing) {
+    boxEl.innerHTML = notesToolbarHtml() +
+      `<div class="notes-editor" contenteditable="true" data-key="body">${notesValueToHtml(AUDIO_NOTES.body)}</div>` +
+      `<p class="caption" style="margin:8px 0 0;">${esc(t('notes_indent_hint'))}</p>`;
+    notesActiveEditor = null;
+    boxEl.querySelectorAll('.notes-editor[data-key]').forEach(attachNotesEditor);
+    wireNotesToolbar();
+    editBtn.textContent = t('cancel_button');
+    saveBtn.textContent = t('save_button');
+    saveBtn.hidden = false;
+  } else {
+    boxEl.innerHTML = renderIndentedList(AUDIO_NOTES.body) ||
+      `<div class="notes-empty">${esc(t('notes_empty'))}</div>`;
+    editBtn.textContent = t('edit_button');
+    saveBtn.hidden = true;
+  }
+}
+
+async function refreshAudioNotesFromGithub() {
+  try {
+    const resp = await fetch(GITHUB_RAW_AUDIO_NOTES_URL + '?t=' + Date.now(), { cache: 'no-store' });
+    if (!resp.ok) return;
+    const fresh = await resp.json();
+    if (fresh && typeof fresh === 'object') {
+      Object.assign(AUDIO_NOTES, fresh);
+      if (!audioNotesEditing) renderAudioNotesBlock();
+    }
+  } catch (e) { /* offline, blocked network, or file:// testing — keep the baked-in fallback */ }
+}
+
+async function saveAudioNotes() {
+  const token = getGithubToken(false);
+  if (!token) return;
+
+  const ed = document.querySelector('#audioNotesBox .notes-editor[data-key="body"]');
+  const html = ed ? sanitizeNotesHtml(ed.innerHTML).trim() : '';
+  const who = (prompt(t('notes_name_prompt'), AUDIO_NOTES.updated_by || '') || AUDIO_NOTES.updated_by || '').trim();
+  const payload = {
+    updated_at: new Date().toISOString(),
+    updated_by: who,
+    body: html === '<br>' ? '' : html,
+  };
+
+  const saveBtn = document.getElementById('audioNotesSaveBtn');
+  saveBtn.disabled = true;
+  saveBtn.textContent = t('saving_button');
+  try {
+    const apiBase = `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_AUDIO_NOTES_PATH}`;
+    const getResp = await fetch(apiBase, { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' } });
+    let sha;
+    if (getResp.ok) {
+      sha = (await getResp.json()).sha;
+    } else if (getResp.status !== 404) {
+      throw new Error('GET ' + getResp.status);
+    }
+    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+    const putResp = await fetch(apiBase, {
+      method: 'PUT',
+      headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'Update audio notes via dashboard', content: b64, sha, branch: 'main' }),
+    });
+    if (!putResp.ok) {
+      const errBody = await putResp.text();
+      throw new Error('PUT ' + putResp.status + ': ' + errBody.slice(0, 200));
+    }
+    try {
+      await fetch(`https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/refresh-dashboard.yml/dispatches`, {
+        method: 'POST',
+        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ref: 'main' }),
+      });
+    } catch (e) { /* commit already succeeded — a manual/scheduled run will pick it up */ }
+
+    Object.assign(AUDIO_NOTES, payload);
+    audioNotesEditing = false;
+    renderAudioNotesBlock();
+    alert(t('notes_saved_msg'));
+  } catch (err) {
+    alert(t('notes_save_error', String((err && err.message) || err)));
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = t('save_button');
+  }
+}
+
 async function refreshOverviewNotesFromGithub() {
   try {
     const resp = await fetch(GITHUB_RAW_NOTES_URL + '?t=' + Date.now(), { cache: 'no-store' });
@@ -1521,115 +1573,6 @@ async function saveOverviewNotes() {
     Object.assign(OVERVIEW_NOTES, payload);
     overviewNotesEditing = false;
     renderOverviewNotesBlock();
-    alert(t('notes_saved_msg'));
-  } catch (err) {
-    alert(t('notes_save_error', String((err && err.message) || err)));
-  } finally {
-    saveBtn.disabled = false;
-    saveBtn.textContent = t('save_button');
-  }
-}
-
-// --- Editable single note box on the Bug tab --------------------------------
-// Same rich-text editor/sanitizer as the Project Overview notes above, but with
-// only one field, and stored in its own bug_notes.json file rather than as an
-// extra key inside overview_notes.json — so saving this note can never clobber
-// the Project Overview notes (or vice versa), and neither save path needs to
-// know about the other file's shape.
-const GITHUB_BUG_NOTES_PATH = 'bug_notes.json';
-const GITHUB_RAW_BUG_NOTES_URL = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/${GITHUB_BUG_NOTES_PATH}`;
-let bugNoteEditing = false;
-
-function renderBugNoteBlock() {
-  const metaEl = document.getElementById('bugNoteMeta');
-  const gridEl = document.getElementById('bugNoteGrid');
-  const editBtn = document.getElementById('bugNoteEditBtn');
-  const saveBtn = document.getElementById('bugNoteSaveBtn');
-  if (!metaEl || !gridEl || !editBtn || !saveBtn) return;
-
-  metaEl.textContent = BUG_NOTES.updated_at
-    ? t('notes_meta', BUG_NOTES.updated_at, BUG_NOTES.updated_by || t('notes_meta_unknown'))
-    : t('notes_meta_never');
-
-  if (bugNoteEditing) {
-    gridEl.innerHTML = notesToolbarHtml() + `
-      <div class="notes-col">
-        <div class="notes-editor" contenteditable="true" data-key="note">${notesValueToHtml(BUG_NOTES.note)}</div>
-      </div>
-    ` + `<p class="caption" style="grid-column:1/-1; margin:8px 0 0;">${esc(t('notes_indent_hint'))}</p>`;
-    notesActiveEditor = null;
-    gridEl.querySelectorAll('.notes-editor[data-key]').forEach(attachNotesEditor);
-    wireNotesToolbar();
-    editBtn.textContent = t('cancel_button');
-    saveBtn.textContent = t('save_button');
-    saveBtn.hidden = false;
-  } else {
-    const body = renderIndentedList(BUG_NOTES.note) || `<div class="notes-empty">${esc(t('notes_empty'))}</div>`;
-    gridEl.innerHTML = `<div class="notes-col">${body}</div>`;
-    editBtn.textContent = t('edit_button');
-    saveBtn.hidden = true;
-  }
-}
-
-// Mirrors refreshOverviewNotesFromGithub: fetches bug_notes.json straight from
-// GitHub so a save is visible to every viewer within moments, and silently
-// keeps the baked-in fallback on any failure.
-async function refreshBugNoteFromGithub() {
-  try {
-    const resp = await fetch(GITHUB_RAW_BUG_NOTES_URL + '?t=' + Date.now(), { cache: 'no-store' });
-    if (!resp.ok) return;
-    const fresh = await resp.json();
-    if (fresh && typeof fresh === 'object') {
-      Object.assign(BUG_NOTES, fresh);
-      if (!bugNoteEditing) renderBugNoteBlock();
-    }
-  } catch (e) { /* offline, blocked network, or file:// testing — keep the baked-in fallback */ }
-}
-
-async function saveBugNote() {
-  const token = getGithubToken(false);
-  if (!token) return;
-
-  const ed = document.querySelector('#bugNoteGrid .notes-editor[data-key="note"]');
-  const html = sanitizeNotesHtml(ed ? ed.innerHTML : '').trim();
-  const noteValue = html === '<br>' ? '' : html;
-  const who = (prompt(t('notes_name_prompt'), BUG_NOTES.updated_by || '') || BUG_NOTES.updated_by || '').trim();
-  const payload = { updated_at: new Date().toISOString(), updated_by: who, note: noteValue };
-
-  const saveBtn = document.getElementById('bugNoteSaveBtn');
-  saveBtn.disabled = true;
-  saveBtn.textContent = t('saving_button');
-  try {
-    const apiBase = `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_BUG_NOTES_PATH}`;
-    const getResp = await fetch(apiBase, { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' } });
-    let sha;
-    if (getResp.ok) {
-      sha = (await getResp.json()).sha;
-    } else if (getResp.status !== 404) {
-      throw new Error('GET ' + getResp.status);
-    }
-    const contentStr = JSON.stringify(payload, null, 2);
-    const b64 = btoa(unescape(encodeURIComponent(contentStr)));
-    const putResp = await fetch(apiBase, {
-      method: 'PUT',
-      headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: 'Update bug tab note via dashboard', content: b64, sha, branch: 'main' }),
-    });
-    if (!putResp.ok) {
-      const errBody = await putResp.text();
-      throw new Error('PUT ' + putResp.status + ': ' + errBody.slice(0, 200));
-    }
-    try {
-      await fetch(`https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/refresh-dashboard.yml/dispatches`, {
-        method: 'POST',
-        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ref: 'main' }),
-      });
-    } catch (e) { /* commit already succeeded — a manual/scheduled run will pick it up */ }
-
-    Object.assign(BUG_NOTES, payload);
-    bugNoteEditing = false;
-    renderBugNoteBlock();
     alert(t('notes_saved_msg'));
   } catch (err) {
     alert(t('notes_save_error', String((err && err.message) || err)));
@@ -2853,19 +2796,25 @@ function renderBugPanel() {
   const pct = total ? Math.round(done / total * 100) : 0;
   panel.innerHTML = `
     <div class="stat-row" id="bugPriorityTiles"></div>
-    <section class="card" id="bugNoteCard">
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
-        <div>
-          <h2 style="margin:0;">${esc(t('bug_note_heading'))}</h2>
-          <p class="caption" id="bugNoteMeta" style="margin:4px 0 0;"></p>
+    <section class="card">
+      <h2>${esc(t('bug_subfeature_heading'))}</h2>
+      <div style="display:flex; gap:24px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:280px;">
+          <h3 style="margin:0 0 4px; font-size:14px;">CarPlay</h3>
+          <p class="caption" id="bugSubFeatureBarsCaption-CarPlay"></p>
+          <div id="bugSubFeatureBars-CarPlay"></div>
         </div>
-        <div style="display:flex; gap:8px; flex-shrink:0; flex-wrap:wrap;">
-          <button type="button" class="btn small" id="bugNoteTokenBtn" title="${esc(t('notes_change_token'))}">🔑</button>
-          <button type="button" class="btn" id="bugNoteEditBtn"></button>
-          <button type="button" class="btn primary" id="bugNoteSaveBtn" hidden></button>
+        <div style="flex:1; min-width:280px;">
+          <h3 style="margin:0 0 4px; font-size:14px;">Android Auto</h3>
+          <p class="caption" id="bugSubFeatureBarsCaption-AndroidAuto"></p>
+          <div id="bugSubFeatureBars-AndroidAuto"></div>
+        </div>
+        <div style="flex:1; min-width:280px;">
+          <h3 style="margin:0 0 4px; font-size:14px;">iPod</h3>
+          <p class="caption" id="bugSubFeatureBarsCaption-iPod"></p>
+          <div id="bugSubFeatureBars-iPod"></div>
         </div>
       </div>
-      <div class="notes-grid" id="bugNoteGrid" style="grid-template-columns:1fr;"></div>
     </section>
     <section class="card">
       <h2>${esc(t('bug_assignee_heading'))}</h2>
@@ -3063,15 +3012,49 @@ function renderBugPanel() {
     tbody.closest('section.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  bugNoteEditing = false;
-  renderBugNoteBlock();
-  document.getElementById('bugNoteEditBtn').addEventListener('click', () => {
-    bugNoteEditing = !bugNoteEditing;
-    renderBugNoteBlock();
-  });
-  document.getElementById('bugNoteSaveBtn').addEventListener('click', saveBugNote);
-  document.getElementById('bugNoteTokenBtn').addEventListener('click', () => getGithubToken(true));
-  refreshBugNoteFromGithub();
+  function jumpToBugSubFeature(feature, fullSubFeature) {
+    featureSel.value = feature;
+    subFeatureSel.value = fullSubFeature;
+    assigneeSel.value = '';
+    severitySel.value = '';
+    prioritySel.value = '';
+    statusSel.value = 'not-done';
+    ageSel.value = '';
+    search.value = '';
+    renderBugTable();
+    tbody.closest('section.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function renderBugSubFeatureBars() {
+    SUBFEATURE_GROUPS.forEach(group => {
+      const el = document.getElementById('bugSubFeatureBars-' + group.elId);
+      const notDone = BUGS.filter(r => !r.done && r.feature === group.feature);
+      const total = notDone.length;
+      document.getElementById('bugSubFeatureBarsCaption-' + group.elId).textContent =
+        t('bug_subfeature_caption', total, group.feature);
+      const counts = {};
+      notDone.forEach(r => { counts[r.subFeature] = (counts[r.subFeature] || 0) + 1; });
+      const rows = Object.keys(counts)
+        .map(name => ({ name: subFeatureDisplay(name), fullName: name, count: counts[name] }))
+        .sort((a, b) => b.count - a.count);
+      el.innerHTML = '';
+      rows.forEach(row => {
+        const pct = total ? Math.round(row.count / total * 100) : 0;
+        const color = row.fullName === '未分類' ? 'var(--muted)' : group.color;
+        const div = document.createElement('div');
+        div.className = 'bar-row bar-row-pct bar-row-clickable';
+        div.title = t('jump_tooltip', row.name);
+        div.innerHTML = `
+          <div class="name wide" title="${esc(row.name)}">${esc(row.name)}</div>
+          <div class="pct-value" style="color:${color}">${pct}%</div>
+          <div class="bar-count">${row.count}</div>
+        `;
+        div.addEventListener('click', () => jumpToBugSubFeature(group.feature, row.fullName));
+        el.appendChild(div);
+      });
+    });
+  }
+  renderBugSubFeatureBars();
 
   function renderBugAssigneeBars() {
     const container = document.getElementById('bugAssigneeBarsContainer');
@@ -3137,6 +3120,21 @@ function renderAudioPanel() {
   }).filter(g => g.total > 0);
 
   panel.innerHTML = `
+    <section class="card">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+        <div>
+          <h2 style="margin:0;">${esc(t('audio_notes_heading'))}</h2>
+          <p class="caption" id="audioNotesMeta" style="margin:4px 0 0;"></p>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button type="button" class="btn small" id="audioNotesTokenBtn" title="${esc(t('notes_change_token'))}">🔑</button>
+          <button type="button" class="btn" id="audioNotesEditBtn"></button>
+          <button type="button" class="btn primary" id="audioNotesSaveBtn" hidden></button>
+        </div>
+      </div>
+      <p class="caption">${esc(t('audio_notes_caption'))}</p>
+      <div id="audioNotesBox"></div>
+    </section>
     <div class="stat-row">
       <div class="stat-tile">
         <div class="label">${esc(t('audio_not_done_count'))}</div>
@@ -3180,6 +3178,17 @@ function renderAudioPanel() {
       </div>
     </section>
   `;
+
+  audioNotesEditing = false;
+  renderAudioNotesBlock();
+  document.getElementById('audioNotesEditBtn').addEventListener('click', () => {
+    audioNotesEditing = !audioNotesEditing;
+    renderAudioNotesBlock();
+  });
+  document.getElementById('audioNotesSaveBtn').addEventListener('click', saveAudioNotes);
+  document.getElementById('audioNotesTokenBtn').addEventListener('click', () => getGithubToken(true));
+  // Pick up anything someone else saved since this page was built.
+  refreshAudioNotesFromGithub();
 
   const groupSel = document.getElementById('audioGroupFilter');
   const search = document.getElementById('audioSearch');
@@ -3608,10 +3617,6 @@ function renderTraceabilityPanel() {
     return;
   }
   const rows = TRACE.rows;
-  // Rows from before the "feature" column existed (or from a report that isn't
-  // CarPlay/Android Auto/iPod) still fall back to "CarPlay" in build_traceability.py,
-  // so this is never empty even on data that predates multi-report support.
-  const traceFeatures = [...new Set(rows.map(r => r.feature || 'CarPlay'))].sort();
   const totals = traceTotals(rows);
   // Slices and the owner summary both depend on the current overrides, so they are
   // recomputed (by refreshOwnerStats) every time an owner is edited or the notes file
@@ -3710,8 +3715,6 @@ function renderTraceabilityPanel() {
       </div>
       <datalist id="traceOwnerNames">${traceOwnerNameOptions(owners, assignees)}</datalist>
       <div class="filters">
-        <select id="traceFeatureFilter"><option value="">${esc(t('trace_filter_all_feature'))}</option>${
-          traceFeatures.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join('')}</select>
         <select id="traceOwnerFilter"><option value="">${esc(t('trace_filter_all_owner'))}</option>${
           owners.map(o => `<option value="${esc(o.owner)}">${esc(o.owner)}</option>`).join('')}</select>
         <select id="traceAssigneeFilter"><option value="">${esc(t('trace_filter_all_assignee'))}</option>${
@@ -3732,7 +3735,6 @@ function renderTraceabilityPanel() {
     </section>
   `;
 
-  const featureSel = document.getElementById('traceFeatureFilter');
   const ownerSel = document.getElementById('traceOwnerFilter');
   ownerSel.dataset.names = JSON.stringify(owners.map(o => o.owner));
   const assigneeSel = document.getElementById('traceAssigneeFilter');
@@ -3762,14 +3764,13 @@ function renderTraceabilityPanel() {
 
   function matches(s) {
     const r = s.r;
-    if (featureSel.value && (r.feature || 'CarPlay') !== featureSel.value) return false;
     if (ownerSel.value && s.owner !== ownerSel.value) return false;
     if (assigneeSel.value && !s.swe2.some(x => assigneeOf(x) === assigneeSel.value)) return false;
     if (confirmSel.value === 'yes' && !TRACE_NOTES.confirmed[s.rid]) return false;
     if (confirmSel.value === 'no' && TRACE_NOTES.confirmed[s.rid]) return false;
     const q = search.value.trim().toLowerCase();
     if (q) {
-      const hay = [r.reqid, r.title, r.sub, r.feature, ...s.swe1.map(x => x.k + ' ' + x.t),
+      const hay = [r.reqid, r.title, r.sub, ...s.swe1.map(x => x.k + ' ' + x.t),
                    ...s.swe2.map(x => x.k + ' ' + x.t)].join(' ').toLowerCase();
       if (!hay.includes(q)) return false;
     }
@@ -3836,7 +3837,7 @@ function renderTraceabilityPanel() {
               <div class="trace-req-head">
                 <span class="rid">${esc(r.reqid)}</span>
                 <span class="rtitle">${esc(r.title)}</span>
-                <span class="rmeta">${esc([r.feature, r.prio, r.sub].filter(Boolean).join(' · '))}</span>
+                <span class="rmeta">${esc([r.prio, r.sub].filter(Boolean).join(' · '))}</span>
                 ${s.owner !== r.owner ? `<span class="rmoved">${esc(t('trace_moved_from', r.owner))}</span>` : ''}
                 <label class="trace-confirm${conf ? ' on' : ''}">
                   <input type="checkbox" data-confirm="${rid}"${conf ? ' checked' : ''}>
@@ -3891,7 +3892,7 @@ function renderTraceabilityPanel() {
     renderGroups(openOwner);
   }
 
-  [featureSel, ownerSel, assigneeSel, gapSel, confirmSel].forEach(el => el.addEventListener('change', () => renderGroups()));
+  [ownerSel, assigneeSel, gapSel, confirmSel].forEach(el => el.addEventListener('change', () => renderGroups()));
   saveBtn.addEventListener('click', () => saveTraceNotes(saveBtn));
   document.getElementById('traceTokenBtn').addEventListener('click', () => { getGithubToken(true); traceUserName(true); });
   search.addEventListener('input', () => renderGroups());
@@ -4164,44 +4165,16 @@ function renderPretestPanel() {
   }
 }
 
-// Each tab gets its own URL hash (e.g. #Bug, #Traceability) so a tab can be
-// bookmarked or shared directly, and the browser's back/forward buttons move
-// between tabs too. The hash is the single source of truth for which tab is
-// active: clicking a tab button just changes the hash, and a "hashchange"
-// listener (which also fires on load, on a shared link, and on back/forward)
-// is what actually switches the visible panel.
 function initTabs() {
   const buttons = document.querySelectorAll('nav.tabs button');
-  const validTabs = [...buttons].map(b => b.dataset.tab);
-
-  function activateTab(tabId) {
-    if (!validTabs.includes(tabId)) return;
-    buttons.forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    const panel = document.getElementById('panel-' + tabId);
-    if (panel) panel.classList.add('active');
-  }
-
   buttons.forEach(btn => {
     btn.addEventListener('click', () => {
-      if (decodeURIComponent(location.hash.slice(1)) === btn.dataset.tab) {
-        // Hash already matches (e.g. re-clicking the active tab) — hashchange
-        // won't fire, so activate directly.
-        activateTab(btn.dataset.tab);
-      } else {
-        location.hash = btn.dataset.tab;
-      }
+      buttons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
     });
   });
-
-  window.addEventListener('hashchange', () => {
-    activateTab(decodeURIComponent(location.hash.slice(1)));
-  });
-
-  const initialTab = decodeURIComponent(location.hash.slice(1));
-  if (validTabs.includes(initialTab)) activateTab(initialTab);
-  // No hash (or an unrecognized one): keep the "active" class already baked
-  // into the HTML (Stats), so the default-tab behavior is unchanged.
 }
 
 document.getElementById('refreshDataBtn').addEventListener('click', refreshLatestData);
