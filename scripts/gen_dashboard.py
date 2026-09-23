@@ -5212,16 +5212,69 @@ function renderPretestPanel() {
   }
 }
 
+// --- Tabs, each with its own URL -------------------------------------------------
+// The tab lives in the hash (…/#Bug), so a link opens on that tab and Back/Forward
+// walk between tabs. A hash that doesn't name a tab is ignored rather than fought
+// over — the Audio handbook has its own #ag-… section anchors.
+function tabNames() {
+  return [...document.querySelectorAll('nav.tabs button')].map(b => b.dataset.tab);
+}
+
+function tabFromHash() {
+  let raw = (location.hash || '').replace(/^#/, '');
+  try { raw = decodeURIComponent(raw); } catch (e) { /* malformed escape — use it as-is */ }
+  return tabNames().includes(raw) ? raw : null;
+}
+
+function showTab(tab) {
+  const btn = document.querySelector(`nav.tabs button[data-tab="${CSS.escape(tab)}"]`);
+  const panel = document.getElementById('panel-' + tab);
+  if (!btn || !panel) return false;
+  document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  panel.classList.add('active');
+  return true;
+}
+
+// pushState throws on file:// and wherever the History API is blocked, so fall back to
+// setting the hash directly — that still gives the tab a URL, just always a new entry.
+function writeTabToUrl(tab, replace) {
+  try {
+    history[replace ? 'replaceState' : 'pushState']({ tab }, '', '#' + tab);
+  } catch (e) {
+    if (location.hash.replace(/^#/, '') !== tab) location.hash = tab;
+  }
+}
+
 function initTabs() {
-  const buttons = document.querySelectorAll('nav.tabs button');
-  buttons.forEach(btn => {
+  document.querySelectorAll('nav.tabs button').forEach(btn => {
     btn.addEventListener('click', () => {
-      buttons.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-      document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+      const tab = btn.dataset.tab;
+      if (!showTab(tab)) return;
+      if (tabFromHash() !== tab) writeTabToUrl(tab, false);
     });
   });
+
+  const follow = () => { const tab = tabFromHash(); if (tab) showTab(tab); };
+  window.addEventListener('popstate', follow);   // Back / Forward
+  window.addEventListener('hashchange', follow); // someone edited or pasted the URL
+
+  // The handbook's section links stay in-page; letting them into the hash would drop
+  // the tab from the URL and strand a reload on the default tab.
+  document.addEventListener('click', e => {
+    const a = e.target.closest('.aguide a[href^="#"]');
+    if (!a) return;
+    const target = document.getElementById(a.getAttribute('href').slice(1));
+    if (!target) return;
+    e.preventDefault();
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  const initial = tabFromHash();
+  if (initial) showTab(initial);
+  // Always leave the current tab in the URL, so it can just be copied out of the bar.
+  writeTabToUrl(initial || document.querySelector('nav.tabs button.active').dataset.tab, true);
 }
 
 document.getElementById('refreshDataBtn').addEventListener('click', refreshLatestData);
