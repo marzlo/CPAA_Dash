@@ -49,6 +49,17 @@ except FileNotFoundError:
 
 DATA["bug_notes"] = BUG_NOTES
 
+# Per-ticket comment threads for the Bug list, keyed by Jira key. Kept in their own
+# file so the nightly rebuild can replace dashboard_data.json without touching
+# anything a human wrote. Saved from the browser via the GitHub Contents API.
+try:
+    with open("bug_comments.json", encoding="utf-8") as f:
+        BUG_COMMENTS = json.load(f)
+except FileNotFoundError:
+    BUG_COMMENTS = {"updated_at": None, "updated_by": None, "comments": {}}
+
+DATA["bug_comments"] = BUG_COMMENTS
+
 # Requirement -> SWE1/SWE2 -> SWE3 traceability, built from the STLA SWRA analysis
 # report plus a Jira link lookup. Optional: without the file the Traceability tab
 # simply says the data hasn't been generated yet.
@@ -281,11 +292,28 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .cmt-item { font-size: 12px; }
   .cmt-item .who { color: var(--muted); font-size: 11px; margin-left: 6px; }
   .cmt-item .body { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .cmt-item .del {
+    background: none; border: none; cursor: pointer; color: var(--muted);
+    font-size: 12px; line-height: 1; padding: 0 2px; margin-left: 4px; visibility: hidden;
+  }
+  .cmt-item:hover .del { visibility: visible; }
+  .cmt-item .del:hover { color: var(--series-aa); }
   .cmt-form { display: flex; gap: 6px; align-items: flex-start; }
   .cmt-form textarea {
     flex: 1; min-height: 46px; resize: vertical; font-family: inherit; font-size: 12px;
     background: var(--surface-1); border: 1px solid var(--border); border-radius: 6px;
     padding: 6px 8px; color: var(--text-primary);
+  }
+  /* The Bug list reuses the comment panel, but inside a table row of its own rather
+     than under a line — so no left indent, and it spans the full width. */
+  td.cmt-cell { padding: 0 !important; background: var(--page); }
+  td.cmt-cell .cmt-box { margin: 0; border-left: none; border-right: none; border-radius: 0; }
+  td.cmt-col { width: 1%; white-space: nowrap; }
+  th.cmt-col { width: 1%; }
+  .cmt-status { font-size: 12px; color: var(--muted); margin-left: 8px; align-self: center; }
+  .filters label.chk {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 13px;
+    color: var(--text-secondary); cursor: pointer;
   }
   .trace-save-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
   .trace-save-row .meta { font-size: 12px; color: var(--muted); }
@@ -853,6 +881,8 @@ const TRACE = RAW.traceability || null;
 const TRACE_NOTES = Object.assign({ updated_at: null, updated_by: null, confirmed: {}, comments: {}, owners: {} },
                                   RAW.traceability_notes || {});
 const OVERVIEW_NOTES = RAW.overview_notes || { updated_at: null, updated_by: null, development_status: '', certification_status: '', risk: '' };
+const BUG_COMMENTS = Object.assign({ updated_at: null, updated_by: null, comments: {} },
+                                   RAW.bug_comments || {});
 const FEATURE_COLORS = { "CarPlay": "var(--series-cp)", "Android Auto": "var(--series-aa)", "iPod": "var(--series-ipod)" };
 
 // ---- i18n ----------------------------------------------------------------
@@ -1056,6 +1086,13 @@ const STRINGS = {
   trace_filter_confirm_any: { zh: '全部確認狀態', en: 'Any confirmation state' },
   trace_filter_confirm_no: { zh: '只看未確認', en: 'Only unconfirmed' },
   trace_filter_confirm_yes: { zh: '只看已確認', en: 'Only confirmed' },
+  bug_comment_col: { zh: '留言', en: 'Notes' },
+  bug_comment_only: { zh: '只看有留言', en: 'Commented only' },
+  bug_comment_saving: { zh: '儲存中…', en: 'Saving…' },
+  bug_comment_saved: { zh: '已儲存', en: 'Saved' },
+  bug_comment_delete_confirm: { zh: '刪除這則留言?', en: 'Delete this comment?' },
+  bug_comment_delete_title: { zh: '刪除這則留言', en: 'Delete this comment' },
+  bug_comment_need_token: { zh: '要留言得先填 GitHub token(右上角的鑰匙按鈕)', en: 'Posting a comment needs a GitHub token — use the key button at the top right' },
   trace_comment_add: { zh: '送出', en: 'Post' },
   trace_comment_placeholder: { zh: '對這張票留言…', en: 'Comment on this ticket…' },
   trace_comment_empty: { zh: '還沒有留言', en: 'No comments yet' },
@@ -1535,6 +1572,168 @@ function linkifyNotes(html) {
   return root.innerHTML;
 }
 
+// --- Notes colours vs. the theme -------------------------------------------------
+// A note is written once but read in both themes. Text pasted out of a mail client or
+// a wiki brings its own inline colour along — usually near-black, which simply
+// disappears against the dark background — and even a deliberately picked colour (a
+// red "Mitigation plan") can be too dark to read there. The stored HTML is never
+// touched: the colours are adapted on the way to the screen, re-adapted when the theme
+// is toggled, and the author's original is kept on the element so a note that goes
+// through the editor comes back out unchanged.
+const NOTES_COLOR_CTX = (() => {
+  try { return document.createElement('canvas').getContext('2d'); } catch (e) { return null; }
+})();
+const NOTES_COLOR_CACHE = new Map();
+
+// Resolves anything CSS accepts — #abc, rgb(), 'black', 'windowtext' — to [r,g,b].
+// A canvas keeps its previous fillStyle when handed something invalid, so setting it
+// twice from different starting points is what tells a real colour from a typo.
+function notesParseColor(value) {
+  const key = String(value == null ? '' : value).trim().toLowerCase();
+  if (!key || key === 'inherit' || key === 'currentcolor' || key === 'transparent') return null;
+  if (NOTES_COLOR_CACHE.has(key)) return NOTES_COLOR_CACHE.get(key);
+  let out = null;
+  if (NOTES_COLOR_CTX) {
+    try {
+      NOTES_COLOR_CTX.fillStyle = '#000000';
+      NOTES_COLOR_CTX.fillStyle = key;
+      const first = NOTES_COLOR_CTX.fillStyle;
+      NOTES_COLOR_CTX.fillStyle = '#ffffff';
+      NOTES_COLOR_CTX.fillStyle = key;
+      if (first === NOTES_COLOR_CTX.fillStyle) {
+        let m = /^#([0-9a-f]{6})$/i.exec(first);
+        if (m) {
+          out = [0, 2, 4].map(i => parseInt(m[1].slice(i, i + 2), 16));
+        } else if ((m = /^rgba?\(([^)]+)\)$/i.exec(first))) {
+          const p = m[1].split(/[\s,\/]+/).filter(Boolean).map(parseFloat);
+          if (p.length >= 3 && p.slice(0, 3).every(n => !isNaN(n)) && !(p.length > 3 && p[3] === 0)) {
+            out = p.slice(0, 3);
+          }
+        }
+      }
+    } catch (e) { out = null; }
+  }
+  NOTES_COLOR_CACHE.set(key, out);
+  return out;
+}
+
+function notesLum(rgb) {
+  const f = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  return 0.2126 * f(rgb[0]) + 0.7152 * f(rgb[1]) + 0.0722 * f(rgb[2]);
+}
+function notesContrast(a, b) {
+  const l1 = notesLum(a), l2 = notesLum(b);
+  return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+}
+// Black, white and every grey between them carry no meaning of their own — whoever
+// typed them meant "normal text", so they give way to the theme's own colour.
+function notesIsNeutral(rgb) {
+  return Math.max(rgb[0], rgb[1], rgb[2]) - Math.min(rgb[0], rgb[1], rgb[2]) <= 32;
+}
+function notesRgbToHsl(rgb) {
+  const r = rgb[0] / 255, g = rgb[1] / 255, b = rgb[2] / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2;
+  if (max === min) return [0, 0, l];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h;
+  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+  else if (max === g) h = ((b - r) / d + 2) / 6;
+  else h = ((r - g) / d + 4) / 6;
+  return [h, s, l];
+}
+function notesHslToRgb(h, s, l) {
+  if (!s) { const v = l * 255; return [v, v, v]; }
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  const chan = tc => {
+    if (tc < 0) tc += 1;
+    if (tc > 1) tc -= 1;
+    if (tc < 1 / 6) return p + (q - p) * 6 * tc;
+    if (tc < 1 / 2) return q;
+    if (tc < 2 / 3) return p + (q - p) * (2 / 3 - tc) * 6;
+    return p;
+  };
+  return [chan(h + 1 / 3) * 255, chan(h) * 255, chan(h - 1 / 3) * 255];
+}
+function notesRgbCss(rgb) {
+  return 'rgb(' + rgb.map(n => Math.max(0, Math.min(255, Math.round(n)))).join(', ') + ')';
+}
+
+// Keeps the hue the author picked and moves only its lightness, until it reads against
+// whatever it actually sits on.
+function notesReadableColor(rgb, against) {
+  const TARGET = 4.5;
+  if (notesContrast(rgb, against) >= TARGET) return notesRgbCss(rgb);
+  const hsl = notesRgbToHsl(rgb);
+  const lighten = notesLum(against) < 0.4;
+  // Fully saturated ink glares on a dark background, so lift the lightness and take a
+  // little of the saturation off with it.
+  const sat = lighten ? Math.min(hsl[1], 0.75) : hsl[1];
+  let best = rgb, bestC = notesContrast(rgb, against);
+  for (let i = 1; i <= 25; i++) {
+    const nl = lighten ? Math.min(1, hsl[2] + i * 0.04) : Math.max(0, hsl[2] - i * 0.04);
+    const cand = notesHslToRgb(hsl[0], sat, nl);
+    const c = notesContrast(cand, against);
+    if (c > bestC) { bestC = c; best = cand; }
+    if (c >= TARGET) return notesRgbCss(cand);
+  }
+  return notesRgbCss(best);
+}
+
+// Read off the page rather than off data-theme, so it stays right whichever way the
+// theme was decided — the toggle, the OS setting, or a future third option.
+function notesPageBg() {
+  for (const el of [document.body, document.documentElement]) {
+    const c = el && notesParseColor(getComputedStyle(el).backgroundColor);
+    if (c) return c;
+  }
+  return [255, 255, 255];
+}
+
+function adaptNotesColors(root, pageBg) {
+  root.querySelectorAll('[style]').forEach(el => {
+    if (el.dataset.ncFg === undefined) el.dataset.ncFg = el.style.color || '';
+    if (el.dataset.ncBg === undefined) el.dataset.ncBg = el.style.backgroundColor || '';
+    const fg = notesParseColor(el.dataset.ncFg);
+    const bg = notesParseColor(el.dataset.ncBg);
+    let onBg = null;
+    if (el.dataset.ncBg) {
+      // A pasted white (or black) block behind the text is the other half of the same
+      // problem; the theme's own background already does that job.
+      if (!bg || notesIsNeutral(bg)) el.style.backgroundColor = '';
+      else { el.style.backgroundColor = el.dataset.ncBg; onBg = bg; }
+    }
+    if (fg) {
+      if (notesIsNeutral(fg) && !onBg) el.style.color = '';
+      else el.style.color = notesReadableColor(fg, onBg || pageBg);
+    } else if (onBg) {
+      // A highlight the author kept, with no ink colour of its own: inherited light
+      // text on a light highlight would vanish.
+      el.style.color = notesLum(onBg) > 0.45 ? '#15171a' : '#f2f4f7';
+    }
+  });
+}
+
+// Re-run after every notes render and whenever the theme changes.
+function applyNotesTheme() {
+  const bg = notesPageBg();
+  document.querySelectorAll('.notes-html, .notes-editor').forEach(el => adaptNotesColors(el, bg));
+}
+
+// The editor shows the adapted colours too, so what goes back to GitHub is read from a
+// copy with the author's originals put back: the theme someone happened to be in must
+// not rewrite their note.
+function notesEditorHtml(ed) {
+  if (!ed) return '';
+  const clone = ed.cloneNode(true);
+  clone.querySelectorAll('[data-nc-fg], [data-nc-bg]').forEach(el => {
+    if (el.dataset.ncFg !== undefined) el.style.color = el.dataset.ncFg;
+    if (el.dataset.ncBg !== undefined) el.style.backgroundColor = el.dataset.ncBg;
+  });
+  return sanitizeNotesHtml(clone.innerHTML).trim();
+}
+
 function renderIndentedList(raw) {
   if (looksLikeNotesHtml(raw)) {
     const html = linkifyNotes(sanitizeNotesHtml(raw));
@@ -1846,6 +2045,7 @@ function renderOverviewNotesBlock() {
     editBtn.textContent = t('edit_button');
     saveBtn.hidden = true;
   }
+  applyNotesTheme();
 }
 
 // Fetches the latest overview_notes.json straight from GitHub (bypassing the
@@ -1886,6 +2086,7 @@ function makeTabNotes(cfg) {
       el('EditBtn').textContent = t('edit_button');
       el('SaveBtn').hidden = true;
     }
+    applyNotesTheme();
   }
 
   async function refresh() {
@@ -1904,7 +2105,7 @@ function makeTabNotes(cfg) {
     const token = getGithubToken(false);
     if (!token) return;
     const ed = el('Box').querySelector('.notes-editor[data-key="body"]');
-    const html = ed ? sanitizeNotesHtml(ed.innerHTML).trim() : '';
+    const html = notesEditorHtml(ed);
     const who = (prompt(t('notes_name_prompt'), notes.updated_by || '') || notes.updated_by || '').trim();
     const payload = {
       updated_at: new Date().toISOString(),
@@ -2030,7 +2231,7 @@ async function saveOverviewNotes() {
 
   const draft = {};
   document.querySelectorAll('#overviewNotesGrid .notes-editor[data-key]').forEach(ed => {
-    const html = sanitizeNotesHtml(ed.innerHTML).trim();
+    const html = notesEditorHtml(ed);
     draft[ed.dataset.key] = html === '<br>' ? '' : html;
   });
   const who = (prompt(t('notes_name_prompt'), OVERVIEW_NOTES.updated_by || '') || OVERVIEW_NOTES.updated_by || '').trim();
@@ -3918,6 +4119,109 @@ function renderMissingTable() {
   `).join('') : `<tr><td colspan="8" class="empty-state">${esc(t('empty_state'))}</td></tr>`;
 }
 
+// --- Per-ticket comments on the Bug list -----------------------------------------
+// Free-text notes against a Jira key — "reproduced on R6", "waiting on Harman", the
+// things that never make it into Jira itself. They live in their own file because
+// dashboard_data.json is overwritten wholesale by the nightly rebuild.
+//
+// Each post and each delete is committed on its own, with the GET immediately before
+// the PUT: two people commenting on different tickets then merge instead of
+// overwriting each other, which a "save everything at the end" button cannot promise.
+const GITHUB_BUG_COMMENTS_PATH = 'bug_comments.json';
+const GITHUB_BUG_COMMENTS_RAW = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/${GITHUB_BUG_COMMENTS_PATH}`;
+
+function bugComments(key) { return BUG_COMMENTS.comments[key] || []; }
+
+// Every comment carries an id so a delete can name exactly one, rather than trusting
+// a position in a list somebody else may have appended to in the meantime.
+function bugCommentId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+async function refreshBugComments() {
+  try {
+    const resp = await fetch(GITHUB_BUG_COMMENTS_RAW + '?t=' + Date.now(), { cache: 'no-store' });
+    if (!resp.ok) return;
+    const fresh = await resp.json();
+    if (!fresh || typeof fresh !== 'object') return;
+    // raw.githubusercontent is CDN-cached, so it can still be serving the pre-commit
+    // copy right after someone posts. Anything older than what we hold is ignored.
+    if (BUG_COMMENTS.updated_at &&
+        (!fresh.updated_at || new Date(fresh.updated_at) < new Date(BUG_COMMENTS.updated_at))) return;
+    BUG_COMMENTS.comments = fresh.comments || {};
+    BUG_COMMENTS.updated_at = fresh.updated_at;
+    BUG_COMMENTS.updated_by = fresh.updated_by;
+  } catch (e) { /* offline, or the file hasn't been created yet */ }
+}
+
+// `apply` is handed the comment map as it currently stands on GitHub and mutates it;
+// whatever it leaves behind is what gets committed.
+async function commitBugComments(apply, statusEl) {
+  const token = getGithubToken(false);
+  if (!token) { alert(t('bug_comment_need_token')); return false; }
+  if (statusEl) statusEl.textContent = t('bug_comment_saving');
+  try {
+    const apiBase = `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_BUG_COMMENTS_PATH}`;
+    const getResp = await fetch(apiBase + '?ref=main&t=' + Date.now(),
+      { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+    let sha, remote = {};
+    if (getResp.ok) {
+      const meta = await getResp.json();
+      sha = meta.sha;
+      try { remote = JSON.parse(decodeURIComponent(escape(atob((meta.content || '').replace(/\n/g, ''))))); }
+      catch (e) { remote = {}; }
+    } else if (getResp.status !== 404) {
+      throw new Error('GET ' + getResp.status);
+    }
+    const comments = Object.assign({}, remote.comments || {});
+    apply(comments);
+    const payload = {
+      updated_at: new Date().toISOString(),
+      updated_by: traceUserName(false) || t('notes_meta_unknown'),
+      comments,
+    };
+    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+    const putResp = await fetch(apiBase, {
+      method: 'PUT',
+      headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'Update bug comments via dashboard', content: b64, sha, branch: 'main' }),
+    });
+    if (!putResp.ok) throw new Error('PUT ' + putResp.status + ': ' + (await putResp.text()).slice(0, 200));
+    BUG_COMMENTS.comments = payload.comments;
+    BUG_COMMENTS.updated_at = payload.updated_at;
+    BUG_COMMENTS.updated_by = payload.updated_by;
+    return true;
+  } catch (err) {
+    if (statusEl) statusEl.textContent = '';
+    alert(t('trace_save_error', String((err && err.message) || err)));
+    return false;
+  }
+}
+
+function bugCommentBtn(key) {
+  const n = bugComments(key).length;
+  return `<button type="button" class="cmt-btn${n ? ' has' : ''}" data-bug-cmt="${esc(key)}" ` +
+         `title="${esc(t('bug_comment_col'))}">💬${n || ''}</button>`;
+}
+
+function bugCommentPanelHtml(key) {
+  const list = bugComments(key);
+  const body = list.length
+    ? list.map(c => `<div class="cmt-item"><span class="body">${esc(c.text)}</span>` +
+        `<span class="who">— ${esc(c.by || '?')} · ${esc((c.at || '').slice(0, 10))}</span>` +
+        (c.id ? `<button type="button" class="del" data-bug-cmt-del="${esc(c.id)}" title="${esc(t('bug_comment_delete_title'))}">✕</button>` : '') +
+        `</div>`).join('')
+    : `<div class="cmt-item" style="color:var(--muted)">${esc(t('trace_comment_empty'))}</div>`;
+  return `<div class="cmt-box" data-bug-cmt-box="${esc(key)}">
+    <div class="cmt-list">${body}</div>
+    <div class="cmt-form">
+      <textarea data-bug-cmt-input="${esc(key)}" placeholder="${esc(t('trace_comment_placeholder'))}"></textarea>
+      <button type="button" class="btn small" data-bug-cmt-post="${esc(key)}">${esc(t('trace_comment_add'))}</button>
+      <span class="cmt-status" data-bug-cmt-status="${esc(key)}"></span>
+    </div>
+  </div>`;
+}
+
 function renderBugPanel() {
   const panel = document.getElementById('panel-Bug');
   const done = BUGS.filter(r => r.done).length;
@@ -3966,10 +4270,12 @@ function renderBugPanel() {
           <option value="30+">${esc(t('bug_age_30_plus'))}</option>
         </select>
         <input type="text" id="bugSearch" placeholder="${esc(t('search_placeholder'))}">
+        <label class="chk"><input type="checkbox" id="bugCommentedOnly">${esc(t('bug_comment_only'))}</label>
       </div>
       <div class="table-wrap">
         <table>
           <thead><tr>
+            <th class="cmt-col" title="${esc(t('bug_comment_col'))}">💬</th>
             <th data-sort="key">Key</th><th data-sort="feature">${esc(t('th_feature'))}</th><th data-sort="subFeature">${esc(t('th_subfeature'))}</th>
             <th data-sort="assignee">${esc(t('th_assignee'))}</th><th data-sort="severity">${esc(t('th_severity'))}</th><th data-sort="priority">${esc(t('th_priority'))}</th><th data-sort="status">${esc(t('th_status'))}</th>
             <th data-sort="summary">${esc(t('th_summary'))}</th>
@@ -3989,6 +4295,7 @@ function renderBugPanel() {
   const severitySel = document.getElementById('bugSeverityFilter');
   const prioritySel = document.getElementById('bugPriorityFilter');
   const ageSel = document.getElementById('bugAgeFilter');
+  const commentedOnly = document.getElementById('bugCommentedOnly');
   const search = document.getElementById('bugSearch');
   const tbody = document.getElementById('bugTbody');
 
@@ -4050,12 +4357,14 @@ function renderBugPanel() {
     if (severitySel.value) rows = rows.filter(r => r.severity === severitySel.value);
     if (prioritySel.value) rows = rows.filter(r => r.priority === prioritySel.value);
     if (ageSel.value) rows = rows.filter(r => ageBucketOf(r.created) === ageSel.value);
+    if (commentedOnly.checked) rows = rows.filter(r => bugComments(r.key).length);
     const q = search.value.toLowerCase();
     if (q) rows = rows.filter(r => r.key.toLowerCase().includes(q) || r.summary.toLowerCase().includes(q));
     rows = sortRows(rows, bugSortState.key, bugSortState.dir);
     document.getElementById('bugMissingCaption').textContent = t('bug_missing_caption', rows.length);
     tbody.innerHTML = rows.length ? rows.map(r => `
-      <tr>
+      <tr data-bug-row="${esc(r.key)}">
+        <td class="cmt-col">${bugCommentBtn(r.key)}</td>
         <td class="key"><a href="${ticketUrl(r.key)}" target="_blank">${r.key}</a>${isNewThisWeek(r.created) ? ` <span class="badge new">${esc(t('new_badge'))}</span>` : ''}</td>
         <td>${esc(r.feature)}</td>
         <td>${esc(subFeatureDisplay(r.subFeature))}</td>
@@ -4065,12 +4374,93 @@ function renderBugPanel() {
         <td>${bugStatusBadge(r)}</td>
         <td>${esc(r.summary)}</td>
       </tr>
-    `).join('') : `<tr><td colspan="8" class="empty-state">${esc(t('empty_state'))}</td></tr>`;
+    `).join('') : `<tr><td colspan="9" class="empty-state">${esc(t('empty_state'))}</td></tr>`;
   }
-  [featureSel, statusSel, subFeatureSel, assigneeSel, severitySel, prioritySel, ageSel].forEach(el => el.addEventListener('change', renderBugTable));
+
+  // --- the comment thread that opens under a row ---------------------------------
+  function bugCmtStatus(key, msg) {
+    const el = tbody.querySelector(`[data-bug-cmt-status="${CSS.escape(key)}"]`);
+    if (!el) return;
+    el.textContent = msg;
+    if (msg) setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 1800);
+  }
+
+  // Redraws the open thread and the 💬 badge for one ticket, leaving the rest of the
+  // table (and anybody's half-typed comment on another row) alone.
+  function refreshBugCommentUi(key) {
+    tbody.querySelectorAll(`[data-bug-cmt-box="${CSS.escape(key)}"]`).forEach(box => {
+      box.outerHTML = bugCommentPanelHtml(key);
+    });
+    const n = bugComments(key).length;
+    tbody.querySelectorAll(`[data-bug-cmt="${CSS.escape(key)}"]`).forEach(b => {
+      b.textContent = '💬' + (n || '');
+      b.classList.toggle('has', !!n);
+    });
+  }
+
+  tbody.addEventListener('click', async e => {
+    const toggle = e.target.closest('[data-bug-cmt]');
+    if (toggle) {
+      const tr = toggle.closest('tr');
+      const next = tr.nextElementSibling;
+      if (next && next.classList.contains('bug-cmt-row')) { next.remove(); return; }
+      const row = document.createElement('tr');
+      row.className = 'bug-cmt-row';
+      row.innerHTML = `<td class="cmt-cell" colspan="9">${bugCommentPanelHtml(tr.dataset.bugRow)}</td>`;
+      tr.after(row);
+      const ta = row.querySelector('textarea');
+      if (ta) ta.focus();
+      return;
+    }
+
+    const post = e.target.closest('[data-bug-cmt-post]');
+    if (post) {
+      const key = post.dataset.bugCmtPost;
+      const box = post.closest('.cmt-box');
+      const input = box.querySelector('textarea');
+      const text = (input.value || '').trim();
+      if (!text) return;
+      const who = traceUserName(false) || t('notes_meta_unknown');
+      const comment = { id: bugCommentId(), text, by: who, at: new Date().toISOString() };
+      post.disabled = true;
+      const ok = await commitBugComments(map => {
+        map[key] = (map[key] || []).concat([comment]);
+      }, box.querySelector('.cmt-status'));
+      post.disabled = false;
+      if (!ok) return;
+      input.value = '';
+      refreshBugCommentUi(key);
+      bugCmtStatus(key, t('bug_comment_saved'));
+      return;
+    }
+
+    const del = e.target.closest('[data-bug-cmt-del]');
+    if (del) {
+      const box = del.closest('.cmt-box');
+      const key = box.dataset.bugCmtBox;
+      const id = del.dataset.bugCmtDel;
+      if (!confirm(t('bug_comment_delete_confirm'))) return;
+      del.disabled = true;
+      const ok = await commitBugComments(map => {
+        const left = (map[key] || []).filter(c => c.id !== id);
+        if (left.length) map[key] = left; else delete map[key];
+      }, box.querySelector('.cmt-status'));
+      if (!ok) { del.disabled = false; return; }
+      refreshBugCommentUi(key);
+      bugCmtStatus(key, t('bug_comment_saved'));
+    }
+  });
+  [featureSel, statusSel, subFeatureSel, assigneeSel, severitySel, prioritySel, ageSel, commentedOnly]
+    .forEach(el => el.addEventListener('change', renderBugTable));
   search.addEventListener('input', renderBugTable);
   attachSortHandlers(tbody.closest('table').querySelector('thead'), bugSortState, renderBugTable);
   renderBugTable();
+
+  // The baked-in copy is as old as the last Pages build, so pick up anything posted
+  // since — but only redraw if this table is still the one on screen.
+  refreshBugComments().then(() => {
+    if (document.getElementById('bugTbody') === tbody) renderBugTable();
+  });
 
   function jumpToBugPriority(priority) {
     prioritySel.value = priority;
@@ -5283,7 +5673,17 @@ document.getElementById('themeToggle').addEventListener('click', () => {
   const root = document.documentElement;
   const cur = root.getAttribute('data-theme');
   root.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+  // Inline colours inside the notes are picked for the theme they are read in.
+  applyNotesTheme();
 });
+
+// Same when nobody touched the toggle and the OS flips the theme under the page.
+try {
+  const scheme = window.matchMedia('(prefers-color-scheme: dark)');
+  const onScheme = () => applyNotesTheme();
+  if (scheme.addEventListener) scheme.addEventListener('change', onScheme);
+  else if (scheme.addListener) scheme.addListener(onScheme);
+} catch (e) { /* matchMedia unavailable */ }
 
 document.getElementById('langToggle').addEventListener('click', () => {
   LANG = LANG === 'zh' ? 'en' : 'zh';
