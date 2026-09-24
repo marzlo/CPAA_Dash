@@ -1429,7 +1429,10 @@ const NOTES_ALLOWED_TAGS = { UL: 1, OL: 1, LI: 1, BR: 1, P: 1, DIV: 1, SPAN: 1, 
                              I: 1, EM: 1, U: 1, S: 1, A: 1, CODE: 1, SMALL: 1, IMG: 1 };
 // These are removed outright — keeping their text would dump code onto the page.
 const NOTES_DROPPED_TAGS = { SCRIPT: 1, STYLE: 1, IFRAME: 1, OBJECT: 1, EMBED: 1, NOSCRIPT: 1, TEMPLATE: 1, LINK: 1, META: 1 };
-const NOTES_ALLOWED_STYLE = /^(color|background-color|font-weight|font-style|text-decoration|width|height|max-width)$/;
+// execCommand('underline') with styleWithCSS on emits `text-decoration-line`, not the
+// `text-decoration` shorthand — so the longhands have to be here too, or the underline
+// is quietly dropped the moment the note is saved.
+const NOTES_ALLOWED_STYLE = /^(color|background-color|font-weight|font-style|text-decoration(-line|-color|-style|-thickness)?|width|height|max-width)$/;
 // Sizes only ever come from the image resizer, so they stay plain numbers — no calc(),
 // no var(), nothing that could reach outside the note.
 const NOTES_SIZE_VALUE = /^\s*(auto|\d{1,4}(\.\d+)?(px|%))\s*$/i;
@@ -1693,8 +1696,18 @@ function notesPageBg() {
 
 function adaptNotesColors(root, pageBg) {
   root.querySelectorAll('[style]').forEach(el => {
-    if (el.dataset.ncFg === undefined) el.dataset.ncFg = el.style.color || '';
-    if (el.dataset.ncBg === undefined) el.dataset.ncBg = el.style.backgroundColor || '';
+    // data-nc-fg holds what the author wrote, data-nc-fg-out what this function last
+    // painted over it. On a first visit the two are set together; on a later one, a
+    // value that no longer matches what we painted means somebody has edited it since
+    // (the colour toolbar writes straight onto an existing span), and THAT edit is the
+    // new original. Without this check, re-adapting — or saving — would quietly put
+    // the old colour back and the edit would look like it never happened.
+    if (el.dataset.ncFg === undefined || el.style.color !== el.dataset.ncFgOut) {
+      el.dataset.ncFg = el.style.color || '';
+    }
+    if (el.dataset.ncBg === undefined || el.style.backgroundColor !== el.dataset.ncBgOut) {
+      el.dataset.ncBg = el.style.backgroundColor || '';
+    }
     const fg = notesParseColor(el.dataset.ncFg);
     const bg = notesParseColor(el.dataset.ncBg);
     let onBg = null;
@@ -1712,6 +1725,10 @@ function adaptNotesColors(root, pageBg) {
       // text on a light highlight would vanish.
       el.style.color = notesLum(onBg) > 0.45 ? '#15171a' : '#f2f4f7';
     }
+    // Read back rather than storing what we meant to set: the CSSOM normalises the
+    // value, and the comparison above only works against the normalised form.
+    el.dataset.ncFgOut = el.style.color;
+    el.dataset.ncBgOut = el.style.backgroundColor;
   });
 }
 
@@ -1728,8 +1745,14 @@ function notesEditorHtml(ed) {
   if (!ed) return '';
   const clone = ed.cloneNode(true);
   clone.querySelectorAll('[data-nc-fg], [data-nc-bg]').forEach(el => {
-    if (el.dataset.ncFg !== undefined) el.style.color = el.dataset.ncFg;
-    if (el.dataset.ncBg !== undefined) el.style.backgroundColor = el.dataset.ncBg;
+    // Only undo what the theme itself painted. A value that has moved on since is the
+    // author's own edit and must be saved as it stands.
+    if (el.dataset.ncFg !== undefined && el.style.color === el.dataset.ncFgOut) {
+      el.style.color = el.dataset.ncFg;
+    }
+    if (el.dataset.ncBg !== undefined && el.style.backgroundColor === el.dataset.ncBgOut) {
+      el.style.backgroundColor = el.dataset.ncBg;
+    }
   });
   return sanitizeNotesHtml(clone.innerHTML).trim();
 }
