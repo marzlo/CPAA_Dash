@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-24T02:45:02.461Z",
+  "updated_at": "2026-09-24T02:57:38.053Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -92,6 +92,14 @@
         "text": "Siri: \"I can search you the way when you finish drive\" 這個現象，\n1. 硬件沒有發聲給手機: 5台車機中只有1台有發送語音訊息給手機，可能是Harman硬件的問題\n2. 有發聲給手機: 這個可能要調查",
         "by": "Leyo",
         "at": "2026-09-24T02:45:01.927Z"
+      }
+    ],
+    "NR1LT-5186": [
+      {
+        "id": "muexysqgrnc6r",
+        "text": "目前正在進行Eng build，預計今日可以結束",
+        "by": "Leyo",
+        "at": "2026-09-24T02:57:37.528Z"
       }
     ]
   }
