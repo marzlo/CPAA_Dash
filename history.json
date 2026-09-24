@@ -1126,7 +1126,7 @@
  "2026-09-24": {
   "bugs": {
    "done": 195,
-   "total": 285
+   "total": 286
   },
   "bugs_by_team": {
    "MDI_System": {
@@ -1147,7 +1147,7 @@
    },
    "TS_CPAA": {
     "done": 144,
-    "total": 160
+    "total": 161
    },
    "TS_FW": {
     "done": 20,
