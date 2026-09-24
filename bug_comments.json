@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-24T02:33:52.115Z",
+  "updated_at": "2026-09-24T02:34:30.245Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -40,6 +40,12 @@
         "text": "9/23 Leyo: Taipei來測試最新的build",
         "by": "Leyo",
         "at": "2026-09-24T02:18:37.925Z"
+      },
+      {
+        "id": "muex51vjhwkwh",
+        "text": "冒煙測試時關注一下",
+        "by": "Leyo",
+        "at": "2026-09-24T02:34:29.695Z"
       }
     ],
     "NR1LT-3330": [
