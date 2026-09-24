@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-24T02:39:40.724Z",
+  "updated_at": "2026-09-24T02:45:02.461Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -86,6 +86,12 @@
         "text": "Subbu要從audio FW角度調查為什麼打電話沒有聲音",
         "by": "Leyo",
         "at": "2026-09-24T02:39:40.204Z"
+      },
+      {
+        "id": "muexilpjf4ybn",
+        "text": "Siri: \"I can search you the way when you finish drive\" 這個現象，\n1. 硬件沒有發聲給手機: 5台車機中只有1台有發送語音訊息給手機，可能是Harman硬件的問題\n2. 有發聲給手機: 這個可能要調查",
+        "by": "Leyo",
+        "at": "2026-09-24T02:45:01.927Z"
       }
     ]
   }
