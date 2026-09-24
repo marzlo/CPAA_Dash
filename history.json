@@ -1125,13 +1125,13 @@
  },
  "2026-09-24": {
   "bugs": {
-   "done": 209,
-   "total": 288
+   "done": 210,
+   "total": 290
   },
   "bugs_by_team": {
    "MDI_System": {
     "done": 0,
-    "total": 15
+    "total": 14
    },
    "MDT_App": {
     "done": 7,
@@ -1146,8 +1146,8 @@
     "total": 15
    },
    "TS_CPAA": {
-    "done": 147,
-    "total": 161
+    "done": 148,
+    "total": 163
    },
    "TS_FW": {
     "done": 20,
@@ -1155,7 +1155,7 @@
    },
    "Unassigned": {
     "done": 1,
-    "total": 1
+    "total": 2
    },
    "Unknown": {
     "done": 3,
