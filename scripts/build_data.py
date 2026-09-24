@@ -88,8 +88,12 @@ NEW_STATUSES = {"To Do", "Blocked", "Reopen", "Need info"}
 INDET_STATUSES = {"In Progress", "Ready for review", "Ready for integration"}
 # "Non-issue" -> treat as done-ish (closed, won't fix) -> count as done for completion purposes? We'll bucket separately.
 
-# Per user request: for Bug tickets only, "Ready for test", "Eng build" and "Monitoring" also count as completed.
-BUG_EXTRA_DONE_STATUSES = {"Ready for test", "Eng build", "Monitoring"}
+# Per user request: for Bug tickets only, "Ready for test", "Eng build", "Monitoring"
+# and "Ready for integration" also count as completed — the fix exists by then, so the
+# ticket is no longer work owed. Note "Ready for integration" is also in
+# INDET_STATUSES: status_category checks extra_done first, so it counts as done for
+# bugs while staying "in progress" for the SWE progress tables, which is intended.
+BUG_EXTRA_DONE_STATUSES = {"Ready for test", "Eng build", "Monitoring", "Ready for integration"}
 
 def status_category(status, extra_done=None):
     if status in DONE_STATUSES:
