@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-24T02:34:30.245Z",
+  "updated_at": "2026-09-24T02:39:40.724Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -78,6 +78,14 @@
         "text": "百全拿最新的build重新驗",
         "by": "Leyo",
         "at": "2026-09-24T02:33:51.663Z"
+      }
+    ],
+    "NR1LT-3385": [
+      {
+        "id": "muexbpgsdlbsm",
+        "text": "Subbu要從audio FW角度調查為什麼打電話沒有聲音",
+        "by": "Leyo",
+        "at": "2026-09-24T02:39:40.204Z"
       }
     ]
   }
