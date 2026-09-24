@@ -1125,7 +1125,7 @@
  },
  "2026-09-24": {
   "bugs": {
-   "done": 194,
+   "done": 195,
    "total": 286
   },
   "bugs_by_team": {
@@ -1134,7 +1134,7 @@
     "total": 15
    },
    "MDT_App": {
-    "done": 7,
+    "done": 8,
     "total": 30
    },
    "MDT_PM": {
