@@ -1175,5 +1175,58 @@
    "done": 93,
    "total": 115
   }
+ },
+ "2026-09-25": {
+  "bugs": {
+   "done": 210,
+   "total": 290
+  },
+  "bugs_by_team": {
+   "MDI_System": {
+    "done": 0,
+    "total": 14
+   },
+   "MDT_App": {
+    "done": 7,
+    "total": 26
+   },
+   "MDT_PM": {
+    "done": 30,
+    "total": 40
+   },
+   "MDT_System": {
+    "done": 1,
+    "total": 15
+   },
+   "TS_CPAA": {
+    "done": 148,
+    "total": 164
+   },
+   "TS_FW": {
+    "done": 20,
+    "total": 21
+   },
+   "Unassigned": {
+    "done": 1,
+    "total": 1
+   },
+   "Unknown": {
+    "done": 3,
+    "total": 9
+   }
+  },
+  "date": "2026-09-25",
+  "swe2": {
+   "done": 314,
+   "total": 1145
+  },
+  "swe3": {
+   "done": 252,
+   "total": 295
+  },
+  "swe5": {
+   "done": 93,
+   "total": 115
+  }
  }
 }
