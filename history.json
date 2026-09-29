@@ -1390,7 +1390,7 @@
  },
  "2026-09-29": {
   "bugs": {
-   "done": 209,
+   "done": 212,
    "total": 290
   },
   "bugs_by_team": {
@@ -1411,7 +1411,7 @@
     "total": 15
    },
    "TS_CPAA": {
-    "done": 157,
+    "done": 160,
     "total": 170
    },
    "TS_FW": {
