@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-29T02:33:29.623Z",
+  "updated_at": "2026-09-29T02:33:32.375Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -114,6 +114,14 @@
         "text": "9/29可以用最新的debug build複驗",
         "by": "Leyo",
         "at": "2026-09-29T02:33:28.977Z"
+      }
+    ],
+    "NR1LT-4911": [
+      {
+        "id": "mum2b2metd48x",
+        "text": "9/29可以用最新的debug build複驗",
+        "by": "Leyo",
+        "at": "2026-09-29T02:33:31.910Z"
       }
     ]
   }
