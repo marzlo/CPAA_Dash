@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-30T02:37:24.324Z",
+  "updated_at": "2026-09-30T02:38:01.378Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -152,6 +152,14 @@
         "text": "9/29 試著加Configuration change，看是否好使",
         "by": "Leyo",
         "at": "2026-09-29T02:40:18.806Z"
+      }
+    ],
+    "NR1LT-5623": [
+      {
+        "id": "munhwosla7vr3",
+        "text": "小subbu說ok，轉回來給立雙驗",
+        "by": "Leyo",
+        "at": "2026-09-30T02:38:00.837Z"
       }
     ]
   }
