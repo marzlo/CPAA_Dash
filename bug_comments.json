@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-30T02:38:01.378Z",
+  "updated_at": "2026-09-30T02:38:52.741Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -160,6 +160,14 @@
         "text": "小subbu說ok，轉回來給立雙驗",
         "by": "Leyo",
         "at": "2026-09-30T02:38:00.837Z"
+      }
+    ],
+    "NR1LT-4811": [
+      {
+        "id": "munhxsev26lom",
+        "text": "今天用最新的build來回歸",
+        "by": "Leyo",
+        "at": "2026-09-30T02:38:52.183Z"
       }
     ]
   }
