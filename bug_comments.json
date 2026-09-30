@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-30T02:38:52.741Z",
+  "updated_at": "2026-09-30T02:51:10.763Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -168,6 +168,14 @@
         "text": "今天用最新的build來回歸",
         "by": "Leyo",
         "at": "2026-09-30T02:38:52.183Z"
+      }
+    ],
+    "NR1LT-5597": [
+      {
+        "id": "munidlt9vcthm",
+        "text": "Performance相關的票，持續追蹤",
+        "by": "Leyo",
+        "at": "2026-09-30T02:51:10.125Z"
       }
     ]
   }
