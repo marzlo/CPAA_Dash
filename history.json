@@ -1443,7 +1443,7 @@
  },
  "2026-09-30": {
   "bugs": {
-   "done": 213,
+   "done": 215,
    "total": 295
   },
   "bugs_by_team": {
@@ -1453,23 +1453,27 @@
    },
    "MDT_App": {
     "done": 7,
-    "total": 28
+    "total": 27
    },
    "MDT_PM": {
-    "done": 17,
-    "total": 27
+    "done": 16,
+    "total": 26
+   },
+   "MDT_Sys_QA": {
+    "done": 1,
+    "total": 1
    },
    "MDT_System": {
     "done": 1,
-    "total": 16
+    "total": 14
    },
    "TS_CPAA": {
-    "done": 160,
-    "total": 174
+    "done": 161,
+    "total": 176
    },
    "TS_FW": {
-    "done": 23,
-    "total": 28
+    "done": 24,
+    "total": 29
    },
    "Unassigned": {
     "done": 1,
