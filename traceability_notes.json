@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-09-24T10:21:48.425Z",
-  "updated_by": "Leyo",
+  "updated_at": "2026-10-01T08:30:08.668Z",
+  "updated_by": "StevenJSHsu",
   "confirmed": {
     "f4c0d095": {
       "by": "Leyo",
@@ -109,6 +109,10 @@
     "3831b1b7": {
       "by": "Leyo",
       "at": "2026-09-24T10:21:44.210Z"
+    },
+    "0f783fd2": {
+      "by": "StevenJSHsu",
+      "at": "2026-10-01T08:26:20.656Z"
     }
   },
   "comments": {
@@ -173,6 +177,13 @@
         "text": "本專案沒有多屏",
         "by": "Leyo",
         "at": "2026-09-24T10:20:57.380Z"
+      }
+    ],
+    "NR1LT-6251": [
+      {
+        "text": "經檢視 Google HUIG 4.1 條文與系統架構邊界，本需求不屬於 KeyInstall / Security 範疇，說明如下：\n呼叫實體與狀態控制歸屬：\n\n條文規範之 GalReceiver::start() 與 GalReceiver::sendPingRequest() 均屬於 Google 原廠 Receiver SDK（ReceiverLib）之 API。\n\n傳輸層建立（AOAP/Wi-Fi TCP）之監聽、200 ms 內發送 VersionRequest、避免重複發送 Ping/VersionRequest，以及發送加密數據包的狀態控制，純屬 AA TS 投影引擎內部通訊狀態機（State Machine）之排程邏輯。KeyInstall 服務並未引入 ReceiverLib，亦不參與任何網路連線與封包發送。\n\n結論：4.1 條文規範之連線時序與 API 調用屬 AA TS 協定層職責。",
+        "by": "StevenJSHsu",
+        "at": "2026-10-01T08:25:30.143Z"
       }
     ]
   },
@@ -256,6 +267,11 @@
       "name": "Justin Chen",
       "by": "Leyo",
       "at": "2026-09-24T10:00:50.743Z"
+    },
+    "NR1LT-6251": {
+      "name": "孙琦",
+      "by": "StevenJSHsu",
+      "at": "2026-10-01T08:25:50.274Z"
     }
   }
 }
