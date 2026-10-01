@@ -328,6 +328,16 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   }
   .cmp-term { background: var(--grid); color: var(--text-secondary); }
   .cmp-tag { border: 1px solid var(--series-cp); color: var(--series-cp); }
+  /* A ticket that is already linked is the settled case — it gets a quiet marker
+     rather than the attention the unmatched ones need. */
+  .cmp-card.is-linked { border-left: 3px solid var(--good); }
+  .cmp-linked {
+    font-size: 11px; line-height: 17px; padding: 0 8px; border-radius: 999px;
+    background: var(--grid); color: var(--text-secondary);
+  }
+  .cmp-sub { font-size: 12px; font-weight: 600; color: var(--muted); margin: 10px 0 6px; }
+  .cmp-rel { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .cmp-rel.blocking { color: var(--good); font-weight: 600; }
   .trace-save-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
   .trace-save-row .meta { font-size: 12px; color: var(--muted); }
   .trace-stats > summary {
@@ -927,13 +937,21 @@ const STRINGS = {
                  en: (n, m) => `Scores each of the ${n} watchlist tickets against all ${m} Bug tickets. The matching runs in your browser every time the page loads, so it always reflects the current Bug list; the Jira data on both sides is refreshed once a day at 09:00 by Actions (or on demand with "Refresh data" at the top right)` },
   cmp_missing: { zh: '還沒有追蹤清單資料。請確認 Actions 已經跑過含 watch_export.csv 的新版流程', en: 'No watchlist data yet — check that Actions has run the updated workflow that produces watch_export.csv' },
   cmp_tile_watch: { zh: '追蹤清單票數', en: 'Watchlist tickets' },
+  cmp_tile_linked: { zh: '已關聯,免比對', en: 'Already linked' },
   cmp_tile_matched: { zh: '有相似 Bug', en: 'With a match' },
-  cmp_tile_unmatched: { zh: '找不到相似的', en: 'No match found' },
+  cmp_tile_unmatched: { zh: '待處理', en: 'Needs attention' },
+  cmp_tile_sub_linked: { zh: '有 is blocked by 關聯', en: 'has an "is blocked by" link' },
+  cmp_tile_sub_todo: { zh: '無關聯也無相似票', en: 'no link, no match' },
+  cmp_linked_badge: { zh: '已關聯,免比對', en: 'Linked — not matched' },
+  cmp_linked_heading: { zh: 'Jira 上已關聯的 work item', en: 'Linked work items in Jira' },
+  cmp_linked_count: { zh: n => `${n} 筆 is blocked by`, en: n => `${n} blocking` },
+  cmp_th_rel: { zh: '關聯', en: 'Link' },
+  cmp_show_linked_matches: { zh: '已關聯的也跑比對', en: 'Match the linked ones too' },
   cmp_tile_sub_threshold: { zh: pct => `門檻 ${pct}% 以上`, en: pct => `at or above ${pct}%` },
   cmp_threshold_label: { zh: '相似度門檻', en: 'Similarity threshold' },
   cmp_topn_label: { zh: '每張最多顯示', en: 'Matches per ticket' },
   cmp_topn_value: { zh: n => `${n} 筆`, en: n => `${n}` },
-  cmp_only_unmatched: { zh: '只看沒有相似票的', en: 'Only unmatched' },
+  cmp_only_unmatched: { zh: '只看待處理的', en: 'Only the ones needing attention' },
   cmp_th_score: { zh: '相似度', en: 'Score' },
   cmp_th_why: { zh: '共同關鍵詞', en: 'Shared terms' },
   cmp_no_match: { zh: '在目前門檻下找不到相似的 Bug 票', en: 'No Bug ticket above the current threshold' },
@@ -3657,7 +3675,18 @@ function compareResults() {
       if (r.score > 0.08) matches.push(Object.assign({ bug: b }, r));
     });
     matches.sort((x, y) => y.score - x.score);
-    return { watch: w, matches };
+    // A ticket that is already blocked by another work item has been triaged by a
+    // person: the counterpart exists and somebody is on it, so guessing at it again
+    // only adds noise. The matches are held back rather than discarded — computing them
+    // costs nothing and the toggle can reveal them.
+    //
+    // Only "is blocked by" counts. "relates to" is the loose end of the scale — one of
+    // these tickets relates to seven others — and treating it as settled would silence
+    // most of the list for no good reason. Those links are still shown as context; they
+    // just don't stop the comparison.
+    const links = w.links || [];
+    const blockedBy = links.filter(l => /blocked by/i.test(l.rel || ''));
+    return { watch: w, matches, links, blockedBy, linked: blockedBy.length > 0 };
   });
   return COMPARE_CACHE;
 }
@@ -3694,6 +3723,7 @@ function renderComparePanel() {
           </select>
         </label>
         <label class="chk"><input type="checkbox" id="cmpUnmatchedOnly">${esc(t('cmp_only_unmatched'))}</label>
+        <label class="chk"><input type="checkbox" id="cmpLinkedMatches">${esc(t('cmp_show_linked_matches'))}</label>
         <button type="button" class="btn small" id="cmpCopyBtn">${esc(t('cmp_export'))}</button>
       </div>
     </section>
@@ -3703,6 +3733,7 @@ function renderComparePanel() {
   const thrSel = document.getElementById('cmpThreshold');
   const topSel = document.getElementById('cmpTopN');
   const unmatchedOnly = document.getElementById('cmpUnmatchedOnly');
+  const linkedMatches = document.getElementById('cmpLinkedMatches');
   const listEl = document.getElementById('cmpList');
   const tilesEl = document.getElementById('cmpTiles');
 
@@ -3711,26 +3742,63 @@ function renderComparePanel() {
     const top = Number(topSel.value);
     return results.map(r => ({
       watch: r.watch,
+      links: r.links,
+      blockedBy: r.blockedBy,
+      linked: r.linked,
+      // Matches are hidden, not discarded, for a ticket that is already linked.
+      showMatches: !r.linked || linkedMatches.checked,
       matches: r.matches.filter(m => m.score >= thr).slice(0, top),
     }));
   }
 
+  function linksTable(links) {
+    // "is blocked by" first — it is the one that decides whether this ticket still
+    // needs looking at, so it should not be buried under five "relates to" rows.
+    const ordered = links.slice().sort((a, b) =>
+      (/blocked by/i.test(b.rel || '') ? 1 : 0) - (/blocked by/i.test(a.rel || '') ? 1 : 0));
+    return `
+      <h3 class="cmp-sub">${esc(t('cmp_linked_heading'))}</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th style="width:130px;">${esc(t('cmp_th_rel'))}</th>
+            <th>Key</th><th>${esc(t('th_status'))}</th><th>${esc(t('th_summary'))}</th>
+          </tr></thead>
+          <tbody>
+            ${ordered.map(l => `
+              <tr>
+                <td class="cmp-rel${/blocked by/i.test(l.rel || '') ? ' blocking' : ''}">${esc(l.rel)}</td>
+                <td class="key"><a href="${ticketUrl(l.key)}" target="_blank" rel="noopener noreferrer">${esc(l.key)}</a></td>
+                <td>${l.status ? `<span class="badge ${/done|non-issue|closed/i.test(l.status) ? 'done' : 'progress'}">${esc(l.status)}</span>` : '—'}</td>
+                <td>${esc(l.summary)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
   function draw() {
     const rows = visible();
-    const matched = rows.filter(r => r.matches.length).length;
+    const linkedCount = rows.filter(r => r.linked).length;
+    const matched = rows.filter(r => !r.linked && r.matches.length).length;
+    const todo = rows.length - linkedCount - matched;
     const thrPct = Number(thrSel.value);
     tilesEl.innerHTML = [
       { label: t('cmp_tile_watch'), value: rows.length, sub: '' },
+      { label: t('cmp_tile_linked'), value: linkedCount, sub: t('cmp_tile_sub_linked') },
       { label: t('cmp_tile_matched'), value: matched, sub: t('cmp_tile_sub_threshold', thrPct) },
-      { label: t('cmp_tile_unmatched'), value: rows.length - matched, sub: t('cmp_tile_sub_threshold', thrPct) },
+      { label: t('cmp_tile_unmatched'), value: todo, sub: t('cmp_tile_sub_todo') },
     ].map(x => `<div class="stat-tile"><div class="label">${esc(x.label)}</div>` +
                `<div class="value">${x.value}</div>` +
                (x.sub ? `<div class="sub">${esc(x.sub)}</div>` : '') + `</div>`).join('');
 
-    const shown = unmatchedOnly.checked ? rows.filter(r => !r.matches.length) : rows;
+    const shown = unmatchedOnly.checked ? rows.filter(r => !r.linked && !r.matches.length) : rows;
     listEl.innerHTML = shown.map(r => {
       const w = r.watch;
-      const body = r.matches.length ? `
+      // Links are worth seeing even when they don't suppress the comparison — a
+      // "relates to" is the context you need to judge whether a match is new.
+      const linksHtml = r.links.length ? linksTable(r.links) : '';
+      const matchesHtml = !r.showMatches ? '' : (r.matches.length ? `
         <div class="table-wrap">
           <table>
             <thead><tr>
@@ -3759,31 +3827,42 @@ function renderComparePanel() {
                 </tr>`).join('')}
             </tbody>
           </table>
-        </div>` : `<div class="empty-state">${esc(t('cmp_no_match'))}</div>`;
+        </div>` : `<div class="empty-state">${esc(t('cmp_no_match'))}</div>`);
+      const count = r.linked
+        ? t('cmp_linked_count', r.blockedBy.length)
+        : t('cmp_match_count', r.matches.length);
       return `
-        <section class="card cmp-card">
+        <section class="card cmp-card${r.linked ? ' is-linked' : ''}">
           <div class="cmp-head">
             <a class="trace-key" href="${ticketUrl(w.key)}" target="_blank" rel="noopener noreferrer">${esc(w.key)}</a>
             ${cmpStatusBadge(w)}
+            ${r.linked ? `<span class="cmp-linked">${esc(t('cmp_linked_badge'))}</span>` : ''}
             <span class="cmp-feat">${esc(w.feature)}${w.subFeature && w.subFeature !== '未分類' ? ' · ' + esc(w.subFeature) : ''}</span>
-            <span class="cmp-count">${esc(t('cmp_match_count', r.matches.length))}</span>
+            <span class="cmp-count">${esc(count)}</span>
           </div>
           <p class="cmp-sum">${esc(w.summary)}</p>
-          ${body}
+          ${linksHtml}
+          ${matchesHtml}
         </section>`;
     }).join('');
   }
 
-  [thrSel, topSel, unmatchedOnly].forEach(el => el.addEventListener('change', draw));
+  [thrSel, topSel, unmatchedOnly, linkedMatches].forEach(el => el.addEventListener('change', draw));
 
   document.getElementById('cmpCopyBtn').addEventListener('click', async () => {
     const rows = visible();
     const text = rows.map(r => {
       const head = `${r.watch.key} [${r.watch.status}] ${r.watch.summary}`;
-      if (!r.matches.length) return head + '\n  - (no match)';
-      return head + '\n' + r.matches
-        .map(m => `  - ${Math.round(m.score * 100)}%  ${m.bug.key} [${m.bug.status}] ${m.bug.summary}`)
-        .join('\n');
+      const lines = [];
+      if (r.linked) {
+        lines.push(...r.links.map(l => `  * ${l.rel}: ${l.key} [${l.status}] ${l.summary}`));
+      }
+      if (r.showMatches) {
+        lines.push(...(r.matches.length
+          ? r.matches.map(m => `  - ${Math.round(m.score * 100)}%  ${m.bug.key} [${m.bug.status}] ${m.bug.summary}`)
+          : ['  - (no match)']));
+      }
+      return head + '\n' + lines.join('\n');
     }).join('\n\n');
     try {
       await navigator.clipboard.writeText(text);

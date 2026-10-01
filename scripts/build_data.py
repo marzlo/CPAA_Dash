@@ -465,7 +465,21 @@ if w_header:
     W_PRIORITY = w_header.index("Priority") if "Priority" in w_header else None
     W_SEVERITY = w_header.index("Custom field (Severity)") if "Custom field (Severity)" in w_header else None
     W_CREATED = w_header.index("Created") if "Created" in w_header else None
+    W_LINKS = w_header.index("Linked Issues") if "Linked Issues" in w_header else None
     W_LABEL_COLS = [i for i, h in enumerate(w_header) if h == "Labels" or (isinstance(h, str) and h.startswith("Labels_"))]
+
+    def links_of(row):
+        # Absent for a CSV produced before fetch_jira.py learned to export links, and
+        # for a hand-made export — treat both as "no links recorded" rather than failing
+        # the whole build.
+        if W_LINKS is None or W_LINKS >= len(row) or not row[W_LINKS]:
+            return []
+        try:
+            parsed = json.loads(row[W_LINKS])
+        except (ValueError, TypeError):
+            return []
+        return parsed if isinstance(parsed, list) else []
+
     for r in w_data:
         summary = r[W_SUMMARY] or ""
         labels = [r[i] for i in W_LABEL_COLS if i < len(r) and r[i]]
@@ -489,8 +503,10 @@ if w_header:
             "priority": (r[W_PRIORITY] if W_PRIORITY is not None else None) or "未標示",
             "severity": (r[W_SEVERITY] if W_SEVERITY is not None else None) or "未標示",
             "created": created_iso(r[W_CREATED]) if W_CREATED is not None else None,
+            "links": links_of(r),
         })
     print("\nTotal watchlist tickets:", len(watch_records))
+    print("Watchlist with linked work items:", sum(1 for r in watch_records if r["links"]))
     w_feat = {}
     for r in watch_records:
         w_feat[r["feature"]] = w_feat.get(r["feature"], 0) + 1

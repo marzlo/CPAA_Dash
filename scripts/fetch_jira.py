@@ -29,7 +29,33 @@ JQL = os.environ.get("JIRA_JQL", "filter=12399")
 OUT_CSV = os.environ.get("OUT_CSV", "jira_export.csv")
 
 SEVERITY_FIELD_ID = "customfield_10230"
-FIELDS = ["issuetype", "summary", "status", "assignee", "labels", "priority", SEVERITY_FIELD_ID, "created"]
+FIELDS = ["issuetype", "summary", "status", "assignee", "labels", "priority", SEVERITY_FIELD_ID,
+          "created", "issuelinks"]
+
+
+def linked_issues(fields):
+    """Flattens Jira's issuelinks into [{key, rel, status, summary}].
+
+    Jira reports a link from whichever end you asked about, so the same relationship
+    appears as "blocks" on one side and "is blocked by" on the other. `rel` is always
+    written from the point of view of the issue being exported, which is the direction a
+    person reading the dashboard expects.
+    """
+    out = []
+    for link in fields.get("issuelinks") or []:
+        ltype = link.get("type") or {}
+        for side, label in (("outwardIssue", ltype.get("outward")), ("inwardIssue", ltype.get("inward"))):
+            other = link.get(side)
+            if not other:
+                continue
+            f = other.get("fields") or {}
+            out.append({
+                "key": other.get("key", ""),
+                "rel": label or "linked",
+                "status": ((f.get("status") or {}).get("name") or ""),
+                "summary": f.get("summary") or "",
+            })
+    return out
 
 _auth = base64.b64encode(f"{JIRA_EMAIL}:{JIRA_API_TOKEN}".encode()).decode()
 _HEADERS = {
@@ -92,6 +118,9 @@ def main():
             "Custom field (Severity)": severity_value,
             "Priority": priority.get("name", ""),
             "Created": f.get("created") or "",
+            # Carried as JSON inside one cell: a link list has no sane flat CSV shape,
+            # and csv's own quoting makes the embedded commas and quotes a non-issue.
+            "Linked Issues": json.dumps(linked_issues(f), ensure_ascii=False),
             "Labels": labels,
         })
 
@@ -99,7 +128,7 @@ def main():
     header = (
         ["Issue Type", "Issue key", "Summary"]
         + ["Labels"] * max_labels
-        + ["Assignee", "Status", "Custom field (Severity)", "Priority", "Created"]
+        + ["Assignee", "Status", "Custom field (Severity)", "Priority", "Created", "Linked Issues"]
     )
 
     with open(OUT_CSV, "w", newline="", encoding="utf-8-sig") as f:
@@ -112,7 +141,7 @@ def main():
                 row["Issue Type"], row["Issue key"], row["Summary"],
                 *label_cells,
                 row["Assignee"], row["Status"], row["Custom field (Severity)"],
-                row["Priority"], row["Created"],
+                row["Priority"], row["Created"], row["Linked Issues"],
             ])
 
     print(f"Wrote {len(parsed)} rows to {OUT_CSV}")
