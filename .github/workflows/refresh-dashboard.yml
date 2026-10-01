@@ -36,6 +36,18 @@ jobs:
           JIRA_JQL: 'filter=12399'
         run: python scripts/fetch_jira.py
 
+      # A second saved filter: the STLA / customer-facing tickets we own. They are
+      # matched against the Bug list on the Compare tab, so they stay in their own file
+      # rather than being merged into jira_export.csv.
+      - name: Fetch the watchlist filter from Jira
+        env:
+          JIRA_SITE: mobiledrivetech.atlassian.net
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_JQL: 'filter=12412'
+          OUT_CSV: 'watch_export.csv'
+        run: python scripts/fetch_jira.py
+
       - name: Build dashboard_data.json
         run: python scripts/build_data.py
 
