@@ -315,6 +315,19 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     display: inline-flex; align-items: center; gap: 5px; font-size: 13px;
     color: var(--text-secondary); cursor: pointer;
   }
+  /* Watchlist ↔ Bug cross-check */
+  .cmp-card { margin-bottom: 14px; }
+  .cmp-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .cmp-feat { font-size: 12px; color: var(--muted); }
+  .cmp-count { font-size: 12px; color: var(--muted); margin-left: auto; }
+  .cmp-sum { margin: 6px 0 10px; font-size: 14px; }
+  .cmp-why { max-width: 260px; }
+  .cmp-term, .cmp-tag {
+    display: inline-block; font-size: 11px; line-height: 16px; padding: 0 6px;
+    border-radius: 999px; margin: 1px 3px 1px 0; white-space: nowrap;
+  }
+  .cmp-term { background: var(--grid); color: var(--text-secondary); }
+  .cmp-tag { border: 1px solid var(--series-cp); color: var(--series-cp); }
   .trace-save-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
   .trace-save-row .meta { font-size: 12px; color: var(--muted); }
   .trace-stats > summary {
@@ -777,6 +790,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <button data-tab="Audio" data-i18n-tab="audio">Audio</button>
   <button data-tab="Pretest" data-i18n-tab="pretest">Pretest</button>
   <button data-tab="Traceability" data-i18n-tab="traceability">Traceability</button>
+  <button data-tab="Compare" data-i18n-tab="compare">Compare</button>
   <button data-tab="Knowledge" data-i18n-tab="knowledge">Knowledge</button>
 </nav>
 <main>
@@ -865,6 +879,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <div class="panel" id="panel-Audio"></div>
   <div class="panel" id="panel-Pretest"></div>
   <div class="panel" id="panel-Traceability"></div>
+  <div class="panel" id="panel-Compare"></div>
   <div class="panel" id="panel-Knowledge"></div>
 
 </main>
@@ -883,6 +898,7 @@ const TRACE_NOTES = Object.assign({ updated_at: null, updated_by: null, confirme
 const OVERVIEW_NOTES = RAW.overview_notes || { updated_at: null, updated_by: null, development_status: '', certification_status: '', risk: '' };
 const BUG_COMMENTS = Object.assign({ updated_at: null, updated_by: null, comments: {} },
                                    RAW.bug_comments || {});
+const WATCH = RAW.watch || [];
 const FEATURE_COLORS = { "CarPlay": "var(--series-cp)", "Android Auto": "var(--series-aa)", "iPod": "var(--series-ipod)" };
 
 // ---- i18n ----------------------------------------------------------------
@@ -905,6 +921,27 @@ const STRINGS = {
   headerUpdatedAt: { zh: d => `最後更新日期:${d}`, en: d => `Last updated: ${d}` },
   tab_overview: { zh: '總覽', en: 'Overview' },
   tab_knowledge: { zh: '知識庫', en: 'Knowledge' },
+  tab_compare: { zh: '對照', en: 'Compare' },
+  cmp_heading: { zh: '追蹤清單 ↔ Bug 清單 對照', en: 'Watchlist ↔ Bug list cross-check' },
+  cmp_caption: { zh: (n, m) => `把追蹤清單的 ${n} 張票，逐一跟 Bug 清單的 ${m} 張票比對相似度。比對是每次開啟頁面時在瀏覽器裡即時算的,所以永遠跟當下的 Bug 清單一致;兩邊的 Jira 資料本身則是每天早上 09:00 由 Actions 更新一次(或按右上角「重新整理資料」手動觸發)`,
+                 en: (n, m) => `Scores each of the ${n} watchlist tickets against all ${m} Bug tickets. The matching runs in your browser every time the page loads, so it always reflects the current Bug list; the Jira data on both sides is refreshed once a day at 09:00 by Actions (or on demand with "Refresh data" at the top right)` },
+  cmp_missing: { zh: '還沒有追蹤清單資料。請確認 Actions 已經跑過含 watch_export.csv 的新版流程', en: 'No watchlist data yet — check that Actions has run the updated workflow that produces watch_export.csv' },
+  cmp_tile_watch: { zh: '追蹤清單票數', en: 'Watchlist tickets' },
+  cmp_tile_matched: { zh: '有相似 Bug', en: 'With a match' },
+  cmp_tile_unmatched: { zh: '找不到相似的', en: 'No match found' },
+  cmp_tile_sub_threshold: { zh: pct => `門檻 ${pct}% 以上`, en: pct => `at or above ${pct}%` },
+  cmp_threshold_label: { zh: '相似度門檻', en: 'Similarity threshold' },
+  cmp_topn_label: { zh: '每張最多顯示', en: 'Matches per ticket' },
+  cmp_topn_value: { zh: n => `${n} 筆`, en: n => `${n}` },
+  cmp_only_unmatched: { zh: '只看沒有相似票的', en: 'Only unmatched' },
+  cmp_th_score: { zh: '相似度', en: 'Score' },
+  cmp_th_why: { zh: '共同關鍵詞', en: 'Shared terms' },
+  cmp_no_match: { zh: '在目前門檻下找不到相似的 Bug 票', en: 'No Bug ticket above the current threshold' },
+  cmp_match_count: { zh: n => `${n} 筆相似`, en: n => `${n} similar` },
+  cmp_same_feature: { zh: '同 Feature', en: 'same feature' },
+  cmp_same_subfeature: { zh: '同 Sub-feature', en: 'same sub-feature' },
+  cmp_export: { zh: '複製比對結果', en: 'Copy result' },
+  cmp_exported: { zh: '已複製', en: 'Copied' },
   tab_stats: { zh: '統計數據', en: 'Stats' },
   tab_bug: { zh: 'Bug', en: 'Bug' },
   tab_audio: { zh: 'Audio', en: 'Audio' },
@@ -3500,6 +3537,265 @@ const ISSUE_NOTES = [
   },
 ];
 
+// --- Watchlist ↔ Bug list cross-check --------------------------------------------
+// Two Jira filters that deliberately stay apart: the watchlist holds the STLA /
+// customer-facing tickets we own, the Bug list holds ThunderSoft's. The question is
+// always "has someone already raised this on the other side?", so the two are matched
+// by text rather than merged.
+//
+// The matching runs here, in the browser, on every page load — it is never baked into
+// dashboard_data.json. That costs nothing (a few thousand comparisons) and means the
+// result can never disagree with the Bug list shown two tabs away.
+const CMP_STOPWORDS = new Set([
+  'the', 'and', 'for', 'with', 'not', 'are', 'was', 'were', 'but', 'from', 'that', 'this',
+  'when', 'then', 'than', 'after', 'before', 'during', 'into', 'onto', 'over', 'under',
+  'all', 'any', 'can', 'cannot', 'does', 'did', 'has', 'have', 'had', 'will', 'shall',
+  'should', 'would', 'its', 'it', 'is', 'be', 'been', 'being', 'on', 'in', 'at', 'to',
+  'of', 'by', 'as', 'or', 'if', 'no', 'an', 'a', 'some', 'via', 'using', 'used', 'use',
+  'issue', 'issues', 'bug', 'problem', 'fail', 'fails', 'failed', 'failure', 'error',
+  'test', 'testing', 'case', 'build', 'version', 'device', 'phone', 'user', 'system',
+  // Build channel, environment, platform and severity tags. These have to be listed
+  // rather than left to IDF: a tag like "daily" appears in only a handful of summaries,
+  // so IDF rates it as highly distinctive and it drags together two tickets whose only
+  // thing in common is which build they were found on.
+  'daily', 'release', 'eng', 'nightly', 'bench', 'vehicle', 'ivi', 'unit',
+  'asw', 'nr1l', 'nr1lt', 'gen1', 'hdcc', 'atl', 'qc6', 'r1l', 'core', 'cpaa', 'teq',
+  'highest', 'high', 'medium', 'low', 'serious', 'major', 'minor', 'critical', 'moderate',
+]);
+
+// Splits a summary into comparable terms. Latin words come out as words; CJK runs come
+// out as character bigrams, so a Chinese summary can still match a Chinese one. Pure
+// noise — TEQ ids, version strings, the （5/5） reproducibility marker — is dropped
+// before tokenising; everything else is left in and allowed to earn (or lose) its
+// weight through IDF below.
+function cmpTokens(summary) {
+  let s = ' ' + String(summary || '').toLowerCase() + ' ';
+  s = s.replace(/teq\d+/g, ' ')
+       .replace(/\basw-?r\d\b/g, ' ')            // ASW-R1 / ASWR2
+       .replace(/\br1l-?r?\b/g, ' ')
+       .replace(/\bpi\d(\.\d+)?\b/g, ' ')        // PI6.3
+       .replace(/\d+\.\d+[\d.]*/g, ' ')          // 00.05.03.01
+       .replace(/[（(]\s*\d+\s*\/\s*\d+\s*[)）]/g, ' ')  // (5/5)
+       .replace(/\b\d+%/g, ' ');
+  const out = new Set();
+  // Latin / alphanumeric words
+  (s.match(/[a-z][a-z0-9_-]{1,}/g) || []).forEach(w => {
+    if (w.length < 2 || CMP_STOPWORDS.has(w)) return;
+    out.add(w);
+  });
+  // CJK bigrams
+  (s.match(/[一-鿿]{2,}/g) || []).forEach(run => {
+    for (let i = 0; i + 1 < run.length; i++) out.add(run.slice(i, i + 2));
+  });
+  return out;
+}
+
+// Inverse document frequency over both lists at once. This is what makes the ritual
+// prefixes harmless: "asw", "r1l", "core", "carplay" appear in most summaries and end
+// up weighing almost nothing, while "ringtone" or "antitheft" weigh a lot — without
+// anybody maintaining a list of words to ignore.
+function cmpBuildIdf(docs) {
+  const df = new Map();
+  docs.forEach(set => set.forEach(tok => df.set(tok, (df.get(tok) || 0) + 1)));
+  const n = docs.length || 1;
+  const idf = new Map();
+  df.forEach((count, tok) => idf.set(tok, Math.log((n + 1) / (count + 0.5))));
+  return idf;
+}
+
+function cmpWeight(set, idf) {
+  let sum = 0;
+  set.forEach(tok => { const w = idf.get(tok) || 0; sum += w * w; });
+  return Math.sqrt(sum);
+}
+
+// Cosine similarity over IDF-weighted terms, nudged up when both sides were classified
+// into the same feature / sub-feature. The nudge is small on purpose: it should break
+// a tie between two equally wordy matches, never manufacture one.
+function cmpScore(a, b, idf, normA, normB) {
+  let dot = 0;
+  const shared = [];
+  const [small, large] = a.tokens.size <= b.tokens.size ? [a.tokens, b.tokens] : [b.tokens, a.tokens];
+  small.forEach(tok => {
+    if (!large.has(tok)) return;
+    const w = idf.get(tok) || 0;
+    dot += w * w;
+    if (w > 0) shared.push({ tok, w });
+  });
+  let score = (normA && normB) ? dot / (normA * normB) : 0;
+  // One rare word in common is a coincidence, not a match — and on a short summary the
+  // cosine of that single word can be high. Two independent terms have to line up
+  // before the score is taken at face value.
+  if (shared.length < 2) score *= 0.5;
+  const sameFeature = a.feature && a.feature === b.feature && a.feature !== 'Other';
+  const sameSub = a.subFeature && a.subFeature === b.subFeature && a.subFeature !== '未分類';
+  if (sameFeature) score += 0.06;
+  if (sameSub) score += 0.06;
+  shared.sort((x, y) => y.w - x.w);
+  return {
+    score: Math.max(0, Math.min(1, score)),
+    sameFeature,
+    sameSub,
+    shared: shared.slice(0, 6).map(x => x.tok),
+  };
+}
+
+let COMPARE_CACHE = null;
+
+// Built once per page load and reused while the thresholds are being played with.
+function compareResults() {
+  if (COMPARE_CACHE) return COMPARE_CACHE;
+  const watch = WATCH.map(w => Object.assign({}, w, { tokens: cmpTokens(w.summary) }));
+  const bugs = BUGS.map(b => Object.assign({}, b, { tokens: cmpTokens(b.summary) }));
+  const idf = cmpBuildIdf(watch.map(x => x.tokens).concat(bugs.map(x => x.tokens)));
+  const bugNorms = bugs.map(b => cmpWeight(b.tokens, idf));
+  COMPARE_CACHE = watch.map(w => {
+    const normW = cmpWeight(w.tokens, idf);
+    const matches = [];
+    bugs.forEach((b, i) => {
+      const r = cmpScore(w, b, idf, normW, bugNorms[i]);
+      if (r.score > 0.08) matches.push(Object.assign({ bug: b }, r));
+    });
+    matches.sort((x, y) => y.score - x.score);
+    return { watch: w, matches };
+  });
+  return COMPARE_CACHE;
+}
+
+function cmpStatusBadge(rec) {
+  if (rec.done) return `<span class="badge done">${esc(rec.status)}</span>`;
+  if (rec.statusCategory === 'indeterminate') return `<span class="badge progress">${esc(rec.status)}</span>`;
+  return `<span class="badge todo">${esc(rec.status)}</span>`;
+}
+
+function renderComparePanel() {
+  const panel = document.getElementById('panel-Compare');
+  if (!panel) return;
+  if (!WATCH.length) {
+    panel.innerHTML = `<section class="card"><h2>${esc(t('cmp_heading'))}</h2>` +
+                      `<div class="empty-state">${esc(t('cmp_missing'))}</div></section>`;
+    return;
+  }
+  const results = compareResults();
+  panel.innerHTML = `
+    <section class="card">
+      <h2>${esc(t('cmp_heading'))}</h2>
+      <p class="caption">${esc(t('cmp_caption', WATCH.length, BUGS.length))}</p>
+      <div class="stat-row" id="cmpTiles"></div>
+      <div class="filters">
+        <label class="chk">${esc(t('cmp_threshold_label'))}
+          <select id="cmpThreshold">
+            ${[10, 15, 20, 25, 30, 40, 50].map(v => `<option value="${v}"${v === 20 ? ' selected' : ''}>${v}%</option>`).join('')}
+          </select>
+        </label>
+        <label class="chk">${esc(t('cmp_topn_label'))}
+          <select id="cmpTopN">
+            ${[3, 5, 10].map(v => `<option value="${v}"${v === 5 ? ' selected' : ''}>${esc(t('cmp_topn_value', v))}</option>`).join('')}
+          </select>
+        </label>
+        <label class="chk"><input type="checkbox" id="cmpUnmatchedOnly">${esc(t('cmp_only_unmatched'))}</label>
+        <button type="button" class="btn small" id="cmpCopyBtn">${esc(t('cmp_export'))}</button>
+      </div>
+    </section>
+    <div id="cmpList"></div>
+  `;
+
+  const thrSel = document.getElementById('cmpThreshold');
+  const topSel = document.getElementById('cmpTopN');
+  const unmatchedOnly = document.getElementById('cmpUnmatchedOnly');
+  const listEl = document.getElementById('cmpList');
+  const tilesEl = document.getElementById('cmpTiles');
+
+  function visible() {
+    const thr = Number(thrSel.value) / 100;
+    const top = Number(topSel.value);
+    return results.map(r => ({
+      watch: r.watch,
+      matches: r.matches.filter(m => m.score >= thr).slice(0, top),
+    }));
+  }
+
+  function draw() {
+    const rows = visible();
+    const matched = rows.filter(r => r.matches.length).length;
+    const thrPct = Number(thrSel.value);
+    tilesEl.innerHTML = [
+      { label: t('cmp_tile_watch'), value: rows.length, sub: '' },
+      { label: t('cmp_tile_matched'), value: matched, sub: t('cmp_tile_sub_threshold', thrPct) },
+      { label: t('cmp_tile_unmatched'), value: rows.length - matched, sub: t('cmp_tile_sub_threshold', thrPct) },
+    ].map(x => `<div class="stat-tile"><div class="label">${esc(x.label)}</div>` +
+               `<div class="value">${x.value}</div>` +
+               (x.sub ? `<div class="sub">${esc(x.sub)}</div>` : '') + `</div>`).join('');
+
+    const shown = unmatchedOnly.checked ? rows.filter(r => !r.matches.length) : rows;
+    listEl.innerHTML = shown.map(r => {
+      const w = r.watch;
+      const body = r.matches.length ? `
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th style="width:120px;">${esc(t('cmp_th_score'))}</th>
+              <th>Key</th><th>${esc(t('th_status'))}</th><th>${esc(t('th_assignee'))}</th>
+              <th>${esc(t('th_summary'))}</th><th>${esc(t('cmp_th_why'))}</th>
+            </tr></thead>
+            <tbody>
+              ${r.matches.map(m => `
+                <tr>
+                  <td>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                      <div class="trace-meter"><div style="width:${Math.round(m.score * 100)}%"></div></div>
+                      <span style="font-variant-numeric:tabular-nums;">${Math.round(m.score * 100)}%</span>
+                    </div>
+                  </td>
+                  <td class="key"><a href="${ticketUrl(m.bug.key)}" target="_blank" rel="noopener noreferrer">${esc(m.bug.key)}</a></td>
+                  <td>${cmpStatusBadge(m.bug)}</td>
+                  <td>${esc(m.bug.assignee)}</td>
+                  <td>${esc(m.bug.summary)}</td>
+                  <td class="cmp-why">
+                    ${m.sameFeature ? `<span class="cmp-tag">${esc(t('cmp_same_feature'))}</span>` : ''}
+                    ${m.sameSub ? `<span class="cmp-tag">${esc(t('cmp_same_subfeature'))}</span>` : ''}
+                    ${m.shared.map(tk => `<span class="cmp-term">${esc(tk)}</span>`).join('')}
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>` : `<div class="empty-state">${esc(t('cmp_no_match'))}</div>`;
+      return `
+        <section class="card cmp-card">
+          <div class="cmp-head">
+            <a class="trace-key" href="${ticketUrl(w.key)}" target="_blank" rel="noopener noreferrer">${esc(w.key)}</a>
+            ${cmpStatusBadge(w)}
+            <span class="cmp-feat">${esc(w.feature)}${w.subFeature && w.subFeature !== '未分類' ? ' · ' + esc(w.subFeature) : ''}</span>
+            <span class="cmp-count">${esc(t('cmp_match_count', r.matches.length))}</span>
+          </div>
+          <p class="cmp-sum">${esc(w.summary)}</p>
+          ${body}
+        </section>`;
+    }).join('');
+  }
+
+  [thrSel, topSel, unmatchedOnly].forEach(el => el.addEventListener('change', draw));
+
+  document.getElementById('cmpCopyBtn').addEventListener('click', async () => {
+    const rows = visible();
+    const text = rows.map(r => {
+      const head = `${r.watch.key} [${r.watch.status}] ${r.watch.summary}`;
+      if (!r.matches.length) return head + '\n  - (no match)';
+      return head + '\n' + r.matches
+        .map(m => `  - ${Math.round(m.score * 100)}%  ${m.bug.key} [${m.bug.status}] ${m.bug.summary}`)
+        .join('\n');
+    }).join('\n\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      const btn = document.getElementById('cmpCopyBtn');
+      btn.textContent = t('cmp_exported');
+      setTimeout(() => { btn.textContent = t('cmp_export'); }, 1500);
+    } catch (e) { /* clipboard blocked (file://, no permission) — nothing to do */ }
+  });
+
+  draw();
+}
+
 function renderKnowledgePanel() {
   const panel = document.getElementById('panel-Knowledge');
   if (!panel) return;
@@ -5721,6 +6017,7 @@ document.getElementById('langToggle').addEventListener('click', () => {
   renderStatsPanel();
   renderBugPanel();
   renderAudioPanel();
+  renderComparePanel();
   renderKnowledgePanel();
   renderPretestPanel();
   renderTraceabilityPanel();
@@ -5744,6 +6041,7 @@ attachSortHandlers(document.getElementById('missingTbody').closest('table').quer
 renderStatsPanel();
 renderBugPanel();
 renderAudioPanel();
+renderComparePanel();
 renderKnowledgePanel();
 renderPretestPanel();
 renderTraceabilityPanel();
