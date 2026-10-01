@@ -47,7 +47,7 @@ TEAM_MAP = {
     'JesseCHHuang(黃昭華)': 'MDT_System', 'KVVD Subrahmanyam': 'MDI_System',
     'FrankYHYang(楊宇翔)': 'MDT_System', 'LeyoYYLin(林沅佑)': 'MDT_PM',
     'SHANE YEH': 'MDT_App', 'Sudha M': 'MDI_System', 'Santoshkumar Hiremath': 'MDI_System',
-    'VincentWang(王志玄)': 'MDT_System', 'CCCJHuang(黃清俊)': 'MDT_System',
+    'VincentWang(王志玄)': 'MDT_App', 'CCCJHuang(黃清俊)': 'MDT_System',
     'BrianYang': 'MDT_App', 'DeanDYJiang(江定遠)': 'MDT_System',
     'StanleyKCWu(吳冠麒)': 'MDT_App', 'yitong.xu_b': 'TS_CPAA',
     'Sithala Kalyan Kumar': 'MDI_System', '姜馨雨': 'TS_CPAA',
@@ -81,10 +81,9 @@ TEAM_MAP = {
     'GavinSYChou': 'MDT_App',
     'RebeccaYFChang(張語棻)': 'MDT_Sys_QA',
 
-    # Added per user confirmation (2026-10-01). Note the map already carries
-    # 'VincentWang(王志玄)': 'MDT_System' — an older spelling of the same person that no
-    # ticket uses any more. The entry below is the name Jira actually exports today, and
-    # the team the user confirmed; the stale line is left alone rather than guessed at.
+    # Added per user confirmation (2026-10-01). 'VincentWang(王志玄)' above is an older
+    # spelling of this same person that no ticket uses any more; it was corrected to
+    # MDT_App too, so whichever spelling an export carries lands in the same team.
     'VincentCHWang(王志玄)': 'MDT_App',
     'K M MOHAMMED HUSSAIN': 'MDT_App',
     'WennyWYLi': 'MDT_App',
@@ -94,6 +93,15 @@ TEAM_MAP = {
     # into Unknown). Team unchanged — this only fixes the string.
     'JohnnyHJLin': 'MDT_App',       # cf. 'JohnnyHJ Lin'
     'StanleyKCWu': 'MDT_App',       # cf. 'StanleyKCWu(吳冠麒)'
+
+    # Added per user confirmation (2026-10-01), clearing the rest of the Unknown bucket.
+    # Kai was given as "MDT_QA"; confirmed with the user as the existing MDT_Sys_QA
+    # rather than a second QA team, so the chart keeps one QA column.
+    'JeffCYTsai(蔡震諺)': 'MDT_App',
+    'AKSHAY HEGDE': 'MDI_System',
+    '王杨阳': 'TS_CPAA',
+    'JosephWDLee': 'MDT_PM',
+    'KaiYKHuang(黃鈺凱)': 'MDT_Sys_QA',
 }
 
 DONE_STATUSES = {"Done"}  # statusCategory 'done'
