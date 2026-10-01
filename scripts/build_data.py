@@ -434,6 +434,69 @@ for r in pretest_records:
     pretest_group_counts[r["pretestGroup"]] = pretest_group_counts.get(r["pretestGroup"], 0) + 1
 print("Pretest group counts:", pretest_group_counts)
 
+# --- Watchlist (a second Jira filter, compared against the Bug list in the browser) ---
+# These are the STLA / customer-facing tickets we own, kept in their own saved filter.
+# They are NOT part of the Bug list: the point is to ask "has ThunderSoft already got a
+# ticket for this?", so both sides have to stay separate and be matched, not merged.
+# The file is optional — without it the Compare tab simply says there is nothing to
+# compare, and every other tab is unaffected.
+WATCH_SRC = os.environ.get("WATCH_CSV_PATH", "watch_export.csv")
+
+def read_jira_csv(path):
+    with open(path, encoding="utf-8-sig", newline="") as f:
+        rows = list(csv.reader(f))
+    if not rows:
+        return None, []
+    return rows[0], [tuple((cell if cell != "" else None) for cell in row) for row in rows[1:]]
+
+watch_records = []
+try:
+    w_header, w_data = read_jira_csv(WATCH_SRC)
+except FileNotFoundError:
+    w_header, w_data = None, []
+    print(f"\nNo {WATCH_SRC} — skipping the watchlist (Compare tab will be empty)")
+
+if w_header:
+    W_KEY = w_header.index("Issue key")
+    W_SUMMARY = w_header.index("Summary")
+    W_STATUS = w_header.index("Status")
+    W_TYPE = w_header.index("Issue Type")
+    W_ASSIGNEE = w_header.index("Assignee") if "Assignee" in w_header else None
+    W_PRIORITY = w_header.index("Priority") if "Priority" in w_header else None
+    W_SEVERITY = w_header.index("Custom field (Severity)") if "Custom field (Severity)" in w_header else None
+    W_CREATED = w_header.index("Created") if "Created" in w_header else None
+    W_LABEL_COLS = [i for i, h in enumerate(w_header) if h == "Labels" or (isinstance(h, str) and h.startswith("Labels_"))]
+    for r in w_data:
+        summary = r[W_SUMMARY] or ""
+        labels = [r[i] for i in W_LABEL_COLS if i < len(r) and r[i]]
+        status = r[W_STATUS]
+        # Scored against the Bug list, so it is classified by exactly the same rules —
+        # otherwise a CarPlay ticket on one side could never match a CarPlay ticket on
+        # the other.
+        cat = status_category(status, extra_done=BUG_EXTRA_DONE_STATUSES)
+        feature = classify_feature_bug(summary)
+        watch_records.append({
+            "key": r[W_KEY],
+            "summary": summary,
+            "issueType": r[W_TYPE],
+            "status": status,
+            "statusCategory": cat,
+            "done": cat == "done",
+            "labels": labels,
+            "feature": feature,
+            "subFeature": classify_subfeature(feature, summary) or "未分類",
+            "assignee": (r[W_ASSIGNEE] if W_ASSIGNEE is not None else None) or "Unassigned",
+            "priority": (r[W_PRIORITY] if W_PRIORITY is not None else None) or "未標示",
+            "severity": (r[W_SEVERITY] if W_SEVERITY is not None else None) or "未標示",
+            "created": created_iso(r[W_CREATED]) if W_CREATED is not None else None,
+        })
+    print("\nTotal watchlist tickets:", len(watch_records))
+    w_feat = {}
+    for r in watch_records:
+        w_feat[r["feature"]] = w_feat.get(r["feature"], 0) + 1
+    print("Watchlist feature counts:", w_feat)
+
 with open("dashboard_data.json", "w", encoding="utf-8") as f:
-    json.dump({"tickets": records, "bugs": bug_records, "audio": audio_records, "pretest": pretest_records}, f, ensure_ascii=False, indent=1)
+    json.dump({"tickets": records, "bugs": bug_records, "audio": audio_records,
+               "pretest": pretest_records, "watch": watch_records}, f, ensure_ascii=False, indent=1)
 print("\nWrote dashboard_data.json")
