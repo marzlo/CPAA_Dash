@@ -80,6 +80,20 @@ TEAM_MAP = {
     # dashboard silently drops the column.
     'GavinSYChou': 'MDT_App',
     'RebeccaYFChang(張語棻)': 'MDT_Sys_QA',
+
+    # Added per user confirmation (2026-10-01). Note the map already carries
+    # 'VincentWang(王志玄)': 'MDT_System' — an older spelling of the same person that no
+    # ticket uses any more. The entry below is the name Jira actually exports today, and
+    # the team the user confirmed; the stale line is left alone rather than guessed at.
+    'VincentCHWang(王志玄)': 'MDT_App',
+    'K M MOHAMMED HUSSAIN': 'MDT_App',
+    'WennyWYLi': 'MDT_App',
+
+    # Same people as two entries above, under the spelling Jira exports (the existing
+    # ones carry a space / the Chinese name, so they never matched and the tickets fell
+    # into Unknown). Team unchanged — this only fixes the string.
+    'JohnnyHJLin': 'MDT_App',       # cf. 'JohnnyHJ Lin'
+    'StanleyKCWu': 'MDT_App',       # cf. 'StanleyKCWu(吳冠麒)'
 }
 
 DONE_STATUSES = {"Done"}  # statusCategory 'done'
