@@ -29,6 +29,12 @@ IDX_ASSIGNEE = header.index("Assignee") if "Assignee" in header else None
 IDX_SEVERITY = header.index("Custom field (Severity)") if "Custom field (Severity)" in header else None
 IDX_PRIORITY = header.index("Priority") if "Priority" in header else None
 IDX_CREATED = header.index("Created") if "Created" in header else None
+# Root Cause Analysis is a free-text field, so the only thing that can be read off it
+# reliably is whether somebody wrote in it. Absent from older CSV exports, hence the
+# None guard — a build from a pre-2026-10 export simply reports "unknown" rather than
+# claiming every bug is missing its analysis.
+IDX_RCA = (header.index("Custom field (Root Cause Analysis)")
+           if "Custom field (Root Cause Analysis)" in header else None)
 LABEL_COLS = [i for i, h in enumerate(header) if h == "Labels" or (isinstance(h, str) and h.startswith("Labels_"))]
 
 # Normalise the "Created" cell to an ISO date string regardless of source: the CSV path
@@ -356,6 +362,8 @@ for r in data:
         "severity": severity,
         "priority": priority,
         "created": created_iso(r[IDX_CREATED]) if IDX_CREATED is not None else None,
+        # True / False when the column exists, None when the export predates it.
+        "hasRca": (bool((r[IDX_RCA] or "").strip()) if IDX_RCA is not None else None),
     }
     rec["labelBucket"] = label_bucket(rec["hasR2"], rec["hasR3"], rec["hasCPAA0830"])
     rec["subFeature"] = classify_subfeature(rec["feature"], summary) or "未分類"

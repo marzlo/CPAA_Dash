@@ -44,6 +44,27 @@ def bugs_by_team(bugs):
     return result
 
 
+def group(bugs, key_of):
+    """Counts by an arbitrary key, skipping groups that are empty on this day."""
+    result = {}
+    for row in bugs:
+        result.setdefault(key_of(row), []).append(row)
+    return {k: counts(v) for k, v in sorted(result.items())}
+
+
+def rca_bucket(row):
+    """Whether the Root Cause Analysis field has anything written in it.
+
+    "unknown" is for rows built from a CSV export that predates the field being
+    collected — it keeps those days visibly separate from days where the answer
+    really is "nobody filled it in".
+    """
+    v = row.get("hasRca")
+    if v is None:
+        return "unknown"
+    return "filled" if v else "empty"
+
+
 def main():
     with open(DATA_PATH, encoding="utf-8") as f:
         data = json.load(f)
@@ -59,6 +80,12 @@ def main():
         "swe5": counts([r for r in tickets if r["swe"] == "SWE5"]),
         "bugs": counts(bugs),
         "bugs_by_team": bugs_by_team(bugs),
+        # Two further breakdowns so the forecast card's actual bars can be split the
+        # same way its forecast bars are. Nothing backfills these: days recorded before
+        # this change have only bugs_by_team, and the card says so rather than drawing
+        # a zero.
+        "bugs_by_rca": group(bugs, rca_bucket),
+        "bugs_by_status": group(bugs, lambda r: r.get("status") or "(none)"),
     }
 
     if os.path.exists(HISTORY_PATH):

@@ -251,6 +251,36 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     padding: 6px 10px; font-size: 13px; color: var(--text-primary);
   }
   .table-wrap { max-height: 480px; overflow: auto; }
+  /* --- Forecast card ----------------------------------------------------------- */
+  .fc-controls { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 14px; }
+  .fc-ctl { display: flex; flex-direction: column; gap: 5px; }
+  .fc-ctl label { font-size: 12px; color: var(--text-secondary); }
+  .fc-ctl .chip-row { margin-bottom: 0; }
+  .fc-ctl input[type=range] { width: 150px; accent-color: var(--series-cp); }
+  .fc-ctl select {
+    background: var(--page); color: var(--text-primary); border: 1px solid var(--border);
+    border-radius: 6px; padding: 5px 8px; font-size: 13px;
+  }
+  .fc-val { font-size: 12px; color: var(--muted); }
+  .fc-legend { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; font-size: 12px;
+               color: var(--text-secondary); margin-bottom: 10px; }
+  .fc-legend span { display: inline-flex; gap: 6px; align-items: center; }
+  .fc-sw { width: 11px; height: 11px; border-radius: 3px; display: inline-block; flex-shrink: 0; }
+  .fc-hatch {
+    background: var(--series-aa);
+    background-image: repeating-linear-gradient(45deg, var(--surface-1) 0 2px, transparent 2px 5px);
+  }
+  .fc-divider { width: 1px; height: 14px; background: var(--grid); display: inline-block; }
+  .fc-chart-host { overflow-x: auto; }
+  .fc-tip {
+    position: fixed; pointer-events: none; opacity: 0; transition: opacity .1s;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; font-size: 12px; color: var(--text-primary); z-index: 60;
+    box-shadow: 0 6px 20px rgba(0,0,0,.18); min-width: 150px;
+  }
+  .fc-tip h4 { margin: 0 0 5px; font-size: 12px; }
+  .fc-tip .r { display: flex; justify-content: space-between; gap: 14px; line-height: 1.6; }
+  .fc-tip .r span { display: inline-flex; gap: 6px; align-items: center; color: var(--text-secondary); }
   .empty-state { color: var(--muted); font-size: 13px; padding: 20px; text-align: center; }
   .trace-confirm {
     display: inline-flex; align-items: center; gap: 5px; font-size: 12px;
@@ -1126,6 +1156,77 @@ const STRINGS = {
   trend_insufficient_body: { zh: '目前累積的快照天數還不夠畫趨勢線。系統會從今天開始每天自動記錄一筆,幾天後這裡就會出現趨勢圖', en: "Not enough daily snapshots yet to draw a trend line. One is recorded automatically every day starting today, so a trend will appear here after a few days" },
   trend_table_toggle: { zh: '顯示資料表格', en: 'Show data table' },
   trend_th_date: { zh: '日期', en: 'Date' },
+
+  fc_heading: { zh: 'Bug 未完成數量預測(實際 vs 情境曲線)', en: 'Not-done Bug forecast (actual vs scenario curve)' },
+  fc_caption: { zh: (a, b, n) => `實際資料 ${a} ~ ${b}(每日快照),今天未完成 ${n} 張。右半邊是依下方三個假設推出來的情境,不是統計外插`,
+                en: (a, b, n) => `Measured ${a} – ${b} (daily snapshots), ${n} open today. The right half is a scenario built from the three assumptions below, not a statistical extrapolation` },
+  fc_insufficient: { zh: '每日快照還不到兩週,畫不出每週的實際值。系統每天會自動記一筆,再過幾天這裡就會出現', en: 'Fewer than two weeks of daily snapshots, so there are no weekly actuals to draw yet. One is recorded automatically every day — this will appear in a few days' },
+
+  fc_dim_label: { zh: '堆疊維度', en: 'Stack by' },
+  fc_dim_status: { zh: '處理狀態', en: 'Status' },
+  fc_dim_rca: { zh: 'Root Cause Analysis', en: 'Root Cause Analysis' },
+  fc_dim_team: { zh: '依 Team', en: 'By team' },
+  fc_rca_filled: { zh: '已填 RCA', en: 'RCA filled in' },
+  fc_rca_empty: { zh: '未填 RCA', en: 'RCA empty' },
+  fc_rca_unknown: { zh: 'RCA 未知(舊資料)', en: 'RCA unknown (older data)' },
+  fc_other: { zh: '其他', en: 'Other' },
+
+  fc_start_label: { zh: '起點:目前每週新增', en: 'Start: arrivals per week today' },
+  fc_peak_label: { zh: '新增高峰落在', en: 'Arrival peak at' },
+  fc_peakrate_label: { zh: '高峰時每週新增', en: 'Arrivals per week at the peak' },
+  fc_zero_label: { zh: '全部解決於', en: 'All cleared by' },
+  fc_reset: { zh: '回預設', en: 'Reset' },
+  fc_per_week: { zh: n => `${n} 張／週`, en: n => `${n} / week` },
+
+  fc_cut_left: { zh: '實際 ←', en: 'actual ←' },
+  fc_cut_right: { zh: '→ 情境', en: '→ scenario' },
+  fc_lg_arr: { zh: '每週新增(■ 實測 → 情境)', en: 'Arrivals / week (■ measured → scenario)' },
+  fc_lg_clo: { zh: '每週消化(■ 實測 → 情境需求)', en: 'Closures / week (■ measured → scenario demand)' },
+  fc_lg_forecast: { zh: '情境(斜紋)', en: 'Scenario (hatched)' },
+  fc_lg_back: { zh: '情境回推', en: 'Scenario back-run' },
+
+  fc_th_week: { zh: '週', en: 'Week' },
+  fc_th_kind: { zh: '類型', en: 'Kind' },
+  fc_th_total: { zh: '合計', en: 'Total' },
+  fc_actual: { zh: '實際', en: 'Actual' },
+  fc_actual_partial: { zh: '實際(本週未完)', en: 'Actual (week still running)' },
+  fc_forecast: { zh: '情境', en: 'Scenario' },
+
+  fc_tip_nosplit: { zh: '這週的快照沒有記這個維度', en: "This week's snapshot doesn't carry this dimension" },
+  fc_tip_back: { zh: '情境回推', en: 'Scenario back-run' },
+  fc_tip_gap: { zh: '差距', en: 'Gap' },
+  fc_tip_arr_real: { zh: '實測新增', en: 'Measured arrivals' },
+  fc_tip_clo_real: { zh: '實測消化', en: 'Measured closures' },
+  fc_tip_arr_plan: { zh: '本週新增', en: 'Arrivals this week' },
+  fc_tip_clo_plan: { zh: '本週需消化', en: 'Closures needed' },
+
+  fc_narr_scenario: {
+    zh: (start, peakWk, peakRate, zeroWk, work, openNow, future) =>
+      `<b>情境</b>:新增從今天的 ${start} 張／週爬到 <b>${peakWk}</b> 的 <b>${peakRate}</b> 張／週,之後遞減到 <b>${zeroWk}</b> 歸零;這段期間要處理的總量是 <b>${work}</b> 張(手上 ${openNow} + 未來新增 ${future})。`,
+    en: (start, peakWk, peakRate, zeroWk, work, openNow, future) =>
+      `<b>Scenario</b>: arrivals climb from today's ${start}/week to <b>${peakRate}</b>/week at <b>${peakWk}</b>, then taper to zero by <b>${zeroWk}</b>. That puts <b>${work}</b> bugs through the queue (${openNow} open now + ${future} still to arrive).` },
+  fc_narr_capacity: {
+    zh: (need, real, ratio) =>
+      `<b>這個情境要求的產能</b>:高峰期每週得消化 <b>${need}</b> 張 — 目前實測是 <b>${real}</b> 張／週${ratio ? `,等於要提升到 <b>${ratio} 倍</b>` : ''}。`,
+    en: (need, real, ratio) =>
+      `<b>Capacity this scenario demands</b>: <b>${need}</b> closures per week at the peak — the measured rate is <b>${real}</b>/week${ratio ? `, so <b>${ratio}×</b> the current pace` : ''}.` },
+  fc_narr_peak: {
+    zh: (wk, n) => `未完成數量會在 <b>${wk}</b> 達到最高 <b>${n}</b> 張,之後下降 — 注意它比新增的高峰晚,因為消化跟不上的那幾週還在累積。`,
+    en: (wk, n) => `The backlog peaks at <b>${n}</b> in <b>${wk}</b> and falls after that — later than the arrival peak, because the weeks where closures lag are still piling up.` },
+  fc_narr_back: {
+    zh: (arr, clo, from, n, mae, dir) =>
+      `<b>回推對照</b>:把這個情境的起點條件(新增 ${arr} 張／週、消化 ${clo} 張／週,也就是產能爬坡的 0.6 起點)往回套到 ${from} 起算,在有實際資料的 ${n} 週裡平均差 <b>${mae}</b> 張(柱子旁的紅／綠數字)。${dir}`,
+    en: (arr, clo, from, n, mae, dir) =>
+      `<b>Back-run check</b>: running this scenario's starting conditions (${arr} arriving, ${clo} closing per week — the 0.6 end of the capacity ramp) from ${from} onward misses the measured weeks by <b>${mae}</b> on average across ${n} weeks (the red/green numbers beside the bars). ${dir}` },
+  fc_narr_bias_high: { zh: '回推偏高,代表實際的消化比這組起點條件快。', en: 'The back-run sits high, so the team actually closed faster than those starting conditions.' },
+  fc_narr_bias_low: { zh: '回推偏低,代表實際的消化比這組起點條件慢。', en: 'The back-run sits low, so the team actually closed slower than those starting conditions.' },
+  fc_narr_bias_ok: { zh: '兩邊大致吻合。', en: 'The two line up closely.' },
+  fc_narr_mix: {
+    zh: d => `情境的柱子依<b>今天</b>的「${d}」比例上色 — 這個模型只推總量,不預測比例怎麼變,所以顏色的佔比是假設不變的。`,
+    en: d => `Scenario bars are coloured by <b>today's</b> ${d} mix — the model projects the total only, so the proportions are held constant rather than predicted.` },
+  fc_narr_nosplit: {
+    zh: d => `灰色的實際柱子代表那幾週的每日快照還沒記「${d}」這個維度,只能顯示總數;這部分無法回溯補資料,往後的快照才會有。`,
+    en: d => `Grey actual bars are weeks whose daily snapshot predates the ${d} breakdown, so only the total is known. That cannot be backfilled — later snapshots will carry it.` },
 
   ov_aging_heading: { zh: '未完成 Bug 的卡住天數 × Priority(點數字可跳到 Bug 清單)', en: 'Not-done Bugs by age × priority (click a number to jump to the Bug list)' },
   aging_matrix_total: { zh: '合計', en: 'Total' },
@@ -4311,6 +4412,11 @@ function renderStatsPanel() {
       <p class="caption" id="bugInflowCaption"></p>
       <div id="bugInflowChartWrap"></div>
     </section>
+    <section class="card" data-card="forecast">
+      <h2>${esc(t('fc_heading'))}</h2>
+      <p class="caption" id="fcCaption"></p>
+      <div id="fcBody"></div>
+    </section>
     <section class="card" data-card="topAssignees">
       <h2>${esc(t('top_assignee_heading'))}</h2>
       <p class="caption" id="topAssigneeCaption"></p>
@@ -4511,10 +4617,628 @@ function renderStatsPanel() {
   })();
 
 
+  renderForecastCard();
+
   // Restore this viewer's card order (if any) and re-arm dragging — renderStatsPanel
   // rebuilds the panel on every language switch, so both have to run again here.
   applyStatsOrder();
   attachStatsReorder();
+}
+
+
+// ===================================================================================
+// Forecast card — weekly not-done Bug count, measured then projected
+// ===================================================================================
+// The projection is a SCENARIO, not a regression: arrivals climb to a peak (the
+// integration push), then taper to nothing by a target week, and the throughput the
+// team would need in order to land on zero at that target is DERIVED rather than
+// typed in. That derived number — "you would have to close N a week" — is the thing
+// worth reading off this card, because it can be compared against the rate actually
+// measured.
+//
+// Every input is real: the measured bars come from history.json's daily snapshots,
+// and the arrival/closure rates come from the deltas between them. The three
+// scenario knobs are the only assumptions, and they are the viewer's to set.
+const FC_SETTINGS_KEY = 'cpaaForecastSettings';
+
+const FC_RCA_ORDER = ['filled', 'empty', 'unknown'];
+const FC_RCA_COLORS = { filled: 'var(--series-ipod)', empty: 'var(--series-aa)', unknown: 'var(--muted)' };
+// Statuses in the order a bug moves through them, so the stack reads bottom-to-top as
+// "closest to done" → "hasn't started". Anything unexpected lands in Other rather than
+// being given a generated hue.
+const FC_STATUS_ORDER = ['In Progress', 'Reopen', 'Need info', 'Blocked', 'To Do'];
+const FC_STATUS_COLORS = {
+  'In Progress': 'var(--series-cp)',
+  'Reopen': 'var(--series-yellow)',
+  'Need info': 'var(--series-violet)',
+  'Blocked': 'var(--series-red)',
+  'To Do': 'var(--series-aa)',
+  'Other': 'var(--muted)',
+};
+
+function fcLoadSettings() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(FC_SETTINGS_KEY));
+    return (raw && typeof raw === 'object') ? raw : {};
+  } catch (e) { return {}; }
+}
+function fcSaveSettings(s) {
+  try { localStorage.setItem(FC_SETTINGS_KEY, JSON.stringify(s)); } catch (e) { /* private mode */ }
+}
+
+// --- ISO weeks -------------------------------------------------------------------
+function fcWeekStart(d) {
+  const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  const day = t.getUTCDay() || 7;
+  t.setUTCDate(t.getUTCDate() - day + 1);
+  return t;
+}
+// Both the week number and the month label come off the week's Thursday, which is what
+// makes a week that straddles a month boundary land in exactly one month.
+function fcWeekMeta(monday) {
+  const th = new Date(monday.getTime() + 3 * 86400000);
+  const jan1 = new Date(Date.UTC(th.getUTCFullYear(), 0, 1));
+  const w = Math.ceil(((th - jan1) / 86400000 + 1) / 7);
+  return {
+    tag: th.getUTCFullYear() + '-W' + String(w).padStart(2, '0'),
+    short: 'W' + String(w).padStart(2, '0'),
+    my: th.getUTCFullYear(), month: th.getUTCMonth() + 1,
+    iso: monday.toISOString().slice(0, 10),
+  };
+}
+function fcWeekTagOf(dateStr) {
+  return fcWeekMeta(fcWeekStart(new Date(dateStr + 'T00:00:00Z'))).tag;
+}
+
+// --- The dimensions the bars can be split by -------------------------------------
+// `histKey` is the per-day snapshot field that carries the same split. When a day was
+// recorded before that field existed the actual bar for that week falls back to one
+// grey total — drawing a zero there would be a lie, and backfilling is impossible.
+function fcDimensions() {
+  return {
+    status: {
+      label: t('fc_dim_status'), histKey: 'bugs_by_status',
+      keyOf: r => (FC_STATUS_ORDER.includes(r.status) ? r.status : 'Other'),
+      order: FC_STATUS_ORDER.concat(['Other']),
+      colorOf: k => FC_STATUS_COLORS[k] || 'var(--muted)',
+      labelOf: k => (k === 'Other' ? t('fc_other') : k),
+    },
+    rca: {
+      label: t('fc_dim_rca'), histKey: 'bugs_by_rca',
+      keyOf: r => (r.hasRca === true ? 'filled' : r.hasRca === false ? 'empty' : 'unknown'),
+      order: FC_RCA_ORDER,
+      colorOf: k => FC_RCA_COLORS[k],
+      labelOf: k => t('fc_rca_' + k),
+    },
+    team: {
+      label: t('fc_dim_team'), histKey: 'bugs_by_team',
+      keyOf: r => effTeam(r),
+      order: TEAM_ORDER,
+      colorOf: k => TEAM_COLORS[k] || 'var(--muted)',
+      labelOf: k => k,
+    },
+  };
+}
+
+// --- What history actually measured ----------------------------------------------
+function fcMeasured() {
+  const days = Object.keys(HISTORY).filter(d => HISTORY[d] && HISTORY[d].bugs).sort();
+  const byWeek = new Map();              // week tag -> the LAST snapshot in that week
+  days.forEach(d => { byWeek.set(fcWeekTagOf(d), { date: d, snap: HISTORY[d] }); });
+  const weeks = [...byWeek.entries()].map(([tag, v]) => ({
+    tag, date: v.date, snap: v.snap,
+    open: v.snap.bugs.total - v.snap.bugs.done,
+  })).sort((a, b) => (a.tag < b.tag ? -1 : 1));
+
+  // Arrivals and closures per week, read off the change in total/done between the last
+  // snapshot of one week and the last of the next. Negative values are possible when a
+  // ticket leaves the filter; they are kept rather than clamped, because hiding them
+  // would quietly flatter the measured rate.
+  const flows = [];
+  for (let i = 1; i < weeks.length; i++) {
+    const a = weeks[i - 1].snap.bugs, b = weeks[i].snap.bugs;
+    flows.push({ tag: weeks[i].tag, added: b.total - a.total, closed: b.done - a.done });
+  }
+  return { weeks, flows };
+}
+
+// --- The scenario ------------------------------------------------------------------
+// Arrivals ramp from today's rate to `peakRate` at `peakIdx`, then taper to zero at
+// `zeroIdx`. Total work = what is open today + everything that still arrives. The
+// closure shape ramps 0.6 → 1.0 by the peak and then holds, scaled so the backlog
+// lands exactly on zero at the target — so `peakClosure` is what the plan DEMANDS.
+function fcScenario(weeks, cut, openNow, startRate, peakIdx, peakRate, zeroIdx) {
+  const n = weeks.length;
+  const arr = new Array(n).fill(0);
+  for (let i = cut + 1; i < n; i++) {
+    if (i <= peakIdx) {
+      const f = (i - cut - 1) / Math.max(1, peakIdx - cut - 1);
+      arr[i] = startRate + (peakRate - startRate) * f;
+    } else if (i <= zeroIdx) {
+      const f = (i - peakIdx) / Math.max(1, zeroIdx - peakIdx);
+      arr[i] = peakRate * (1 - f);
+    }
+  }
+  const work = openNow + arr.reduce((a, b) => a + b, 0);
+  const shape = new Array(n).fill(0);
+  for (let i = cut + 1; i <= zeroIdx; i++) {
+    shape[i] = 0.6 + 0.4 * Math.min(1, (i - cut - 1) / Math.max(1, peakIdx - cut - 1));
+  }
+  const k = work / (shape.reduce((a, b) => a + b, 0) || 1);
+  const clo = shape.map(v => v * k);
+
+  const open = new Array(n).fill(null);
+  let cur = openNow;
+  for (let i = cut + 1; i < n; i++) { cur = Math.max(0, cur + arr[i] - clo[i]); open[i] = cur; }
+
+  // Back-run over the measured weeks, so the actual bars carry the same comparison the
+  // forecast half does. The scenario says nothing about the past, so this states its
+  // own assumption: arrivals at today's rate, throughput at the scenario's STARTING
+  // capacity (the 0.6 end of the ramp). The note under the chart spells that out — it
+  // answers "where would this plan have put us", it is not a fitted model.
+  const back = new Array(n).fill(null);
+  if (weeks.length) {
+    let b = null;
+    for (let i = 0; i <= cut; i++) {
+      if (b === null) { if (weeks[i].open == null) continue; b = weeks[i].open; }
+      else b = Math.max(0, b + startRate - 0.6 * k);
+      back[i] = b;
+    }
+  }
+  return { arr, clo, open, back, backClo: 0.6 * k, work,
+           peakClosure: Math.max(...clo), peakOpen: Math.max(0, ...open.filter(v => v != null)) };
+}
+
+// --- The card ---------------------------------------------------------------------
+function renderForecastCard() {
+  const host = document.getElementById('fcBody');
+  const caption = document.getElementById('fcCaption');
+  if (!host) return;
+
+  const measured = fcMeasured();
+  const openNow = BUGS.filter(r => !r.done).length;
+  if (measured.weeks.length < 2) {
+    caption.textContent = '';
+    host.innerHTML = `<div class="empty-state">${esc(t('fc_insufficient'))}</div>`;
+    return;
+  }
+
+  const DIMS = fcDimensions();
+  const saved = fcLoadSettings();
+
+  // The week axis runs from the first measured week to whatever "solve by" week is
+  // picked, and the pickers offer the next 18 months — so this keeps working next year
+  // without anyone editing a hardcoded date.
+  const firstMonday = fcWeekStart(new Date(measured.weeks[0].date + 'T00:00:00Z'));
+  const todayTag = fcWeekTagOf(UPDATED_AT.slice(0, 10));
+  const allWeeks = [];
+  for (let i = 0; i < 120; i++) {
+    allWeeks.push(fcWeekMeta(new Date(firstMonday.getTime() + i * 7 * 86400000)));
+  }
+  const cut = Math.max(0, allWeeks.findIndex(w => w.tag === todayTag));
+  const futureIdx = allWeeks.map((w, i) => i).filter(i => i > cut);
+
+  // Defaults: the peak at the first ISO week of the NEXT December, and zero by the last
+  // week of the March that follows it — the shape of a programme closing out in Q1.
+  // Derived from today rather than hardcoded, so the card still opens on a sensible
+  // scenario a year from now. Whatever this viewer last set wins over both.
+  const defPeak = () => {
+    const i = futureIdx.find(i => allWeeks[i].month === 12);
+    return i === undefined ? futureIdx[Math.min(10, futureIdx.length - 1)] : i;
+  };
+  const defZero = peakIdx => {
+    const yr = allWeeks[peakIdx].my + 1;
+    const hits = futureIdx.filter(i => allWeeks[i].my === yr && allWeeks[i].month === 3 && i > peakIdx);
+    return hits.length ? hits[hits.length - 1] : futureIdx[futureIdx.length - 1];
+  };
+  const st = {
+    dim: DIMS[saved.dim] ? saved.dim : 'status',
+    start: Number.isFinite(saved.start) ? saved.start : null,
+    peak: futureIdx.includes(saved.peak) ? saved.peak : defPeak(),
+    peakRate: Number.isFinite(saved.peakRate) ? saved.peakRate : 40,
+    zero: null,
+  };
+  st.zero = futureIdx.includes(saved.zero) ? saved.zero : defZero(st.peak);
+  if (st.zero <= st.peak) st.zero = futureIdx[futureIdx.length - 1];
+
+  // Measured rates: the mean of the complete weeks we have both endpoints for. The
+  // current week is still running, so its flow is left out of the average.
+  const doneFlows = measured.flows.filter(f => f.tag !== todayTag);
+  const meanOf = (xs, k) => (xs.length ? Math.round(xs.reduce((a, f) => a + f[k], 0) / xs.length) : 0);
+  const rateArr = meanOf(doneFlows, 'added');
+  const rateClo = meanOf(doneFlows, 'closed');
+  if (st.start === null) st.start = Math.max(0, rateArr);
+
+  caption.textContent = t('fc_caption', measured.weeks[0].tag, todayTag, openNow);
+
+  host.innerHTML = `
+    <div class="fc-controls">
+      <div class="fc-ctl">
+        <label>${esc(t('fc_dim_label'))}</label>
+        <span class="chip-row" id="fcDim">${Object.keys(DIMS).map(k =>
+          `<button type="button" class="chip" data-fcdim="${k}">${esc(DIMS[k].label)}</button>`).join('')}</span>
+      </div>
+      <div class="fc-ctl">
+        <label for="fcStart">${esc(t('fc_start_label'))}</label>
+        <input type="range" id="fcStart" min="0" max="60" step="1">
+        <span class="fc-val" id="fcStartV"></span>
+      </div>
+      <div class="fc-ctl">
+        <label for="fcPeak">${esc(t('fc_peak_label'))}</label>
+        <select id="fcPeak"></select>
+      </div>
+      <div class="fc-ctl">
+        <label for="fcPeakRate">${esc(t('fc_peakrate_label'))}</label>
+        <input type="range" id="fcPeakRate" min="5" max="80" step="1">
+        <span class="fc-val" id="fcPeakRateV"></span>
+      </div>
+      <div class="fc-ctl">
+        <label for="fcZero">${esc(t('fc_zero_label'))}</label>
+        <select id="fcZero"></select>
+      </div>
+      <div class="fc-ctl">
+        <label>&nbsp;</label>
+        <button type="button" class="btn small" id="fcReset">${esc(t('fc_reset'))}</button>
+      </div>
+    </div>
+    <div class="fc-legend" id="fcLegend"></div>
+    <div class="fc-chart-host"><svg id="fcChart" role="img"></svg></div>
+    <details class="trend-table-details"><summary>${esc(t('trend_table_toggle'))}</summary>
+      <div style="overflow-x:auto"><table class="trend-table" id="fcTable"></table></div>
+    </details>
+    <p class="caption" id="fcNarrative" style="margin-top:12px; line-height:1.7"></p>
+  `;
+
+  const peakSel = document.getElementById('fcPeak');
+  const zeroSel = document.getElementById('fcZero');
+  futureIdx.forEach(i => {
+    const w = allWeeks[i];
+    const o = document.createElement('option');
+    o.value = i;
+    o.textContent = `${w.tag}（${w.my}-${String(w.month).padStart(2, '0')}）`;
+    peakSel.appendChild(o);
+    zeroSel.appendChild(o.cloneNode(true));
+  });
+
+  function syncControls() {
+    document.querySelectorAll('[data-fcdim]').forEach(b =>
+      b.classList.toggle('active', b.dataset.fcdim === st.dim));
+    document.getElementById('fcStart').value = st.start;
+    document.getElementById('fcStartV').textContent = t('fc_per_week', st.start);
+    document.getElementById('fcPeakRate').value = st.peakRate;
+    document.getElementById('fcPeakRateV').textContent = t('fc_per_week', st.peakRate);
+    peakSel.value = st.peak;
+    zeroSel.value = st.zero;
+  }
+
+  function commit() {
+    fcSaveSettings(st);
+    syncControls();
+    draw();
+  }
+
+  document.getElementById('fcDim').addEventListener('click', e => {
+    const b = e.target.closest('[data-fcdim]');
+    if (b) { st.dim = b.dataset.fcdim; commit(); }
+  });
+  document.getElementById('fcStart').addEventListener('input', e => { st.start = +e.target.value; commit(); });
+  document.getElementById('fcPeakRate').addEventListener('input', e => { st.peakRate = +e.target.value; commit(); });
+  peakSel.addEventListener('change', e => {
+    st.peak = +e.target.value;
+    if (st.zero <= st.peak) st.zero = futureIdx[futureIdx.length - 1];
+    commit();
+  });
+  zeroSel.addEventListener('change', e => {
+    st.zero = +e.target.value;
+    // A target at or before the peak has no taper to describe, so the peak is pulled
+    // back rather than silently producing a scenario that is not the one on screen.
+    if (st.zero <= st.peak) st.peak = futureIdx[0];
+    commit();
+  });
+  document.getElementById('fcReset').addEventListener('click', () => {
+    st.dim = 'status'; st.start = Math.max(0, rateArr); st.peakRate = 40;
+    st.peak = defPeak(); st.zero = defZero(st.peak);
+    commit();
+  });
+
+  function svgEl(name, attrs, kids) {
+    const n = document.createElementNS('http://www.w3.org/2000/svg', name);
+    for (const k in attrs) if (attrs[k] !== undefined) n.setAttribute(k, attrs[k]);
+    (kids || []).forEach(c => n.appendChild(c));
+    return n;
+  }
+
+  function buildRows() {
+    const dim = DIMS[st.dim];
+    const weeks = allWeeks.slice(0, st.zero + 1);
+    const sc = fcScenario(
+      weeks.map(w => ({ open: (measured.weeks.find(m => m.tag === w.tag) || {}).open ?? null })),
+      cut, openNow, st.start, st.peak, st.peakRate, st.zero);
+
+    // Today's mix, used to colour the forecast bars. The scenario moves the TOTAL; it
+    // says nothing about how the mix shifts, so the proportions are held constant and
+    // the narrative says so.
+    const mix = {};
+    BUGS.filter(r => !r.done).forEach(r => { const k = dim.keyOf(r); mix[k] = (mix[k] || 0) + 1; });
+    const mixKeys = dim.order.filter(k => mix[k]).concat(Object.keys(mix).filter(k => !dim.order.includes(k)));
+    const mixTotal = mixKeys.reduce((a, k) => a + mix[k], 0) || 1;
+
+    const flowOf = tag => measured.flows.find(f => f.tag === tag);
+
+    return weeks.map((wk, i) => {
+      const act = measured.weeks.find(m => m.tag === wk.tag);
+      const model = sc.back[i];
+      if (i <= cut) {
+        if (!act) return { wk, kind: 'none', open: null, segs: null, model: null };
+        const hist = act.snap[dim.histKey];
+        const segs = hist ? Object.keys(hist)
+          .map(k => ({ key: k, label: dim.labelOf(k), color: dim.colorOf(k),
+                       n: hist[k].total - hist[k].done }))
+          .filter(s => s.n > 0)
+          .sort((a, b) => dim.order.indexOf(a.key) - dim.order.indexOf(b.key)) : null;
+        const fl = flowOf(wk.tag);
+        return { wk, kind: 'actual', open: act.open, segs, date: act.date, model,
+                 partial: wk.tag === todayTag,
+                 arr: fl ? fl.added : null, clo: fl ? fl.closed : null, measuredFlow: !!fl };
+      }
+      const open = sc.open[i];
+      return { wk, kind: 'forecast', open, model: null,
+               segs: mixKeys.map(k => ({ key: k, label: dim.labelOf(k), color: dim.colorOf(k),
+                                         n: open * (mix[k] / mixTotal) })),
+               arr: sc.arr[i], clo: sc.clo[i] };
+    });
+  }
+
+  function draw() {
+    const rows = buildRows();
+    const dim = DIMS[st.dim];
+    const sc = fcScenario(rows.map(r => ({ open: r.kind === 'actual' ? r.open : null })),
+                          cut, openNow, st.start, st.peak, st.peakRate, st.zero);
+
+    const svg = document.getElementById('fcChart');
+    const PAD = { t: 18, r: 16, b: 48, l: 40 };
+    // Wide enough that every week can carry its own label without the "W36W37W38"
+    // run-together a tighter gap produces at this font size.
+    const BAR_W = 17, GAP = 10, SEG_GAP = 2;
+    const W = PAD.l + PAD.r + rows.length * (BAR_W + GAP);
+    const H = 340, plotH = H - PAD.t - PAD.b;
+    const maxV = Math.max(10, ...rows.map(r => r.open || 0));
+    const niceMax = Math.ceil(maxV / 10) * 10;
+    const y = v => PAD.t + plotH - (v / niceMax) * plotH;
+
+    svg.setAttribute('width', W);
+    svg.setAttribute('height', H);
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('aria-label', t('fc_heading'));
+    svg.replaceChildren();
+
+    const defs = svgEl('defs');
+    // The forecast bars wear a hatch so a projected number is never mistaken for a
+    // measured one, even in a screenshot with the legend cropped off.
+    defs.innerHTML =
+      '<pattern id="fcHatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">' +
+      '<line x1="0" y1="0" x2="0" y2="5" stroke="var(--surface-1)" stroke-width="2" stroke-opacity=".6"/></pattern>';
+    const clip = svgEl('clipPath', { id: 'fcPlotClip' });
+    clip.appendChild(svgEl('rect', { x: PAD.l, y: PAD.t - 10, width: W - PAD.l - PAD.r, height: plotH + 10 }));
+    defs.appendChild(clip);
+    svg.appendChild(defs);
+
+    for (let i = 0; i <= 4; i++) {
+      const v = Math.round(niceMax * i / 4);
+      svg.appendChild(svgEl('line', { x1: PAD.l, x2: W - PAD.r, y1: y(v), y2: y(v),
+        stroke: 'var(--grid)', 'stroke-width': 1 }));
+      const tx = svgEl('text', { x: PAD.l - 7, y: y(v) + 4, 'text-anchor': 'end',
+        fill: 'var(--muted)', 'font-size': 11 });
+      tx.textContent = v;
+      svg.appendChild(tx);
+    }
+
+    rows.forEach((row, i) => {
+      if (row.kind === 'none') return;
+      const x = PAD.l + i * (BAR_W + GAP) + GAP / 2;
+      if (row.segs && row.segs.length) {
+        let acc = 0;
+        row.segs.forEach(s => {
+          if (s.n <= 0.01) { acc += s.n; return; }
+          const yTop = y(acc + s.n), h = Math.max(1, y(acc) - yTop - SEG_GAP);
+          svg.appendChild(svgEl('rect', { x, y: yTop, width: BAR_W, height: h, rx: 3, fill: s.color }));
+          if (row.kind === 'forecast') {
+            svg.appendChild(svgEl('rect', { x, y: yTop, width: BAR_W, height: h, rx: 3, fill: 'url(#fcHatch)' }));
+          }
+          acc += s.n;
+        });
+      } else {
+        // This week was snapshotted before the chosen dimension was recorded. One
+        // honest grey total beats inventing a split.
+        const yTop = y(row.open);
+        svg.appendChild(svgEl('rect', { x, y: yTop, width: BAR_W, height: Math.max(1, y(0) - yTop),
+          rx: 3, fill: 'var(--grid)' }));
+      }
+
+      if (row.kind === 'actual' || i % 2 === 0) {
+        const lab = svgEl('text', { x: x + BAR_W / 2, y: y(row.open) - 6, 'text-anchor': 'middle',
+          fill: row.kind === 'actual' ? 'var(--text-primary)' : 'var(--muted)',
+          'font-size': 10, 'font-weight': row.kind === 'actual' ? 600 : 400 });
+        lab.textContent = Math.round(row.open);
+        svg.appendChild(lab);
+      }
+
+      const xt = svgEl('text', { x: x + BAR_W / 2, y: H - PAD.b + 15, 'text-anchor': 'middle',
+        fill: 'var(--muted)', 'font-size': 10 });
+      xt.textContent = row.wk.short;
+      svg.appendChild(xt);
+      if (i === 0 || row.wk.month !== rows[i - 1].wk.month) {
+        const mt = svgEl('text', { x: x + BAR_W / 2, y: H - PAD.b + 30, 'text-anchor': 'middle',
+          fill: 'var(--text-secondary)', 'font-size': 10, 'font-weight': 600 });
+        mt.textContent = row.wk.my + '-' + String(row.wk.month).padStart(2, '0');
+        svg.appendChild(mt);
+      }
+
+      const hit = svgEl('rect', { x: x - GAP / 2, y: PAD.t, width: BAR_W + GAP, height: plotH, fill: 'transparent' });
+      hit.addEventListener('mousemove', e => fcShowTip(e, row, dim));
+      hit.addEventListener('mouseleave', fcHideTip);
+      svg.appendChild(hit);
+    });
+
+    // Both flows are counts of bugs per week, so they share the bars' axis — this is
+    // one scale, not a second one. Over the measured weeks they carry what really
+    // happened; past the divider, what the scenario demands. The step between is the
+    // gap between the plan and the team's current pace.
+    [['arr', 'var(--series-yellow)', '4 3'], ['clo', 'var(--series-ipod)', null]].forEach(([key, col, dash]) => {
+      const pts = rows.map((r, i) => r[key] == null ? null
+        : { x: PAD.l + i * (BAR_W + GAP) + GAP / 2 + BAR_W / 2, y: y(r[key]), r }).filter(Boolean);
+      if (pts.length < 2) return;
+      svg.appendChild(svgEl('polyline', { points: pts.map(p => `${p.x},${p.y}`).join(' '),
+        fill: 'none', stroke: col, 'stroke-width': 2,
+        'stroke-dasharray': dash || undefined, 'clip-path': 'url(#fcPlotClip)' }));
+      pts.filter(p => p.r.measuredFlow).forEach(p => {
+        svg.appendChild(svgEl('rect', { x: p.x - 3, y: p.y - 3, width: 6, height: 6,
+          fill: col, stroke: 'var(--surface-1)', 'stroke-width': 1.5 }));
+      });
+    });
+
+    // The back-run, on the measured bars only.
+    const backPts = rows.map((r, i) => r.model == null ? null
+      : { x: PAD.l + i * (BAR_W + GAP) + GAP / 2 + BAR_W / 2, y: y(r.model), r }).filter(Boolean);
+    if (backPts.length > 1) {
+      svg.appendChild(svgEl('polyline', { points: backPts.map(p => `${p.x},${p.y}`).join(' '),
+        fill: 'none', stroke: 'var(--text-primary)', 'stroke-width': 2,
+        'stroke-dasharray': '5 4', opacity: .7, 'clip-path': 'url(#fcPlotClip)' }));
+      backPts.forEach(p => svg.appendChild(svgEl('circle', { cx: p.x, cy: p.y, r: 3,
+        fill: 'var(--surface-1)', stroke: 'var(--text-primary)', 'stroke-width': 1.5, opacity: .85 })));
+      backPts.forEach((p, idx) => {
+        if (idx === 0 || p.r.partial) return;        // week 0 is the anchor, by construction
+        const d = Math.round(p.r.model - p.r.open);
+        if (!d) return;
+        const tx = svgEl('text', { x: p.x + 8, y: p.y - 6, 'text-anchor': 'start',
+          fill: d > 0 ? 'var(--series-red)' : 'var(--series-ipod)', 'font-size': 9.5, 'font-weight': 600 });
+        tx.textContent = (d > 0 ? '+' : '') + d;
+        svg.appendChild(tx);
+      });
+    }
+
+    const cutX = PAD.l + (cut + 1) * (BAR_W + GAP);
+    svg.appendChild(svgEl('line', { x1: cutX, x2: cutX, y1: PAD.t - 6, y2: y(0),
+      stroke: 'var(--muted)', 'stroke-width': 1, 'stroke-dasharray': '3 3' }));
+    const l1 = svgEl('text', { x: cutX - 4, y: PAD.t + 4, 'text-anchor': 'end', fill: 'var(--muted)', 'font-size': 10 });
+    l1.textContent = t('fc_cut_left');
+    svg.appendChild(l1);
+    const l2 = svgEl('text', { x: cutX + 4, y: PAD.t + 4, fill: 'var(--muted)', 'font-size': 10 });
+    l2.textContent = t('fc_cut_right');
+    svg.appendChild(l2);
+    svg.appendChild(svgEl('line', { x1: PAD.l, x2: W - PAD.r, y1: y(0), y2: y(0),
+      stroke: 'var(--border)', 'stroke-width': 1 }));
+
+    drawLegend(rows, dim);
+    drawTable(rows, dim);
+    drawNarrative(rows, sc, dim);
+  }
+
+  function drawLegend(rows, dim) {
+    // Only the groups actually on screen, in the dimension's own fixed order — a
+    // legend entry for a group with no bugs is noise.
+    const seen = new Map();
+    rows.forEach(r => (r.segs || []).forEach(s => { if (s.n > 0.01) seen.set(s.key, s); }));
+    const order = dim.order.filter(k => seen.has(k)).concat([...seen.keys()].filter(k => !dim.order.includes(k)));
+    // Today's count beside each label. A group holding 2 of 82 is a sliver the eye
+    // cannot measure off the bar, and that is exactly the group worth reading.
+    const today = {};
+    BUGS.filter(r => !r.done).forEach(r => { const k = dim.keyOf(r); today[k] = (today[k] || 0) + 1; });
+    document.getElementById('fcLegend').innerHTML =
+      order.map(k => `<span><i class="fc-sw" style="background:${seen.get(k).color}"></i>${esc(seen.get(k).label)}` +
+        (today[k] ? ` <b style="font-weight:600">${today[k]}</b>` : '') + `</span>`).join('') +
+      `<i class="fc-divider"></i>` +
+      `<span><svg width="22" height="10" style="overflow:visible"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--series-yellow)" stroke-width="2" stroke-dasharray="4 3"/><rect x="8" y="2" width="6" height="6" fill="var(--series-yellow)" stroke="var(--surface-1)" stroke-width="1.5"/></svg>${esc(t('fc_lg_arr'))}</span>` +
+      `<span><svg width="22" height="10" style="overflow:visible"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--series-ipod)" stroke-width="2"/><rect x="8" y="2" width="6" height="6" fill="var(--series-ipod)" stroke="var(--surface-1)" stroke-width="1.5"/></svg>${esc(t('fc_lg_clo'))}</span>` +
+      `<span><i class="fc-sw fc-hatch"></i>${esc(t('fc_lg_forecast'))}</span>` +
+      `<span><svg width="22" height="10" style="overflow:visible"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--text-primary)" stroke-width="2" stroke-dasharray="5 4" opacity=".7"/><circle cx="11" cy="5" r="3" fill="var(--surface-1)" stroke="var(--text-primary)" stroke-width="1.5"/></svg>${esc(t('fc_lg_back'))}</span>`;
+  }
+
+  function drawTable(rows, dim) {
+    const seen = new Map();
+    rows.forEach(r => (r.segs || []).forEach(s => { if (s.n > 0.01) seen.set(s.key, s); }));
+    const order = dim.order.filter(k => seen.has(k)).concat([...seen.keys()].filter(k => !dim.order.includes(k)));
+    document.getElementById('fcTable').innerHTML =
+      `<thead><tr><th>${esc(t('fc_th_week'))}</th><th>${esc(t('fc_th_kind'))}</th>` +
+      order.map(k => `<th>${esc(seen.get(k).label)}</th>`).join('') +
+      `<th>${esc(t('fc_th_total'))}</th></tr></thead><tbody>` +
+      rows.filter(r => r.kind !== 'none').map(r => {
+        const by = {};
+        (r.segs || []).forEach(s => { by[s.key] = s.n; });
+        return `<tr><td>${esc(r.wk.tag)}</td><td>${esc(r.kind === 'actual'
+          ? (r.partial ? t('fc_actual_partial') : t('fc_actual')) : t('fc_forecast'))}</td>` +
+          order.map(k => `<td>${r.segs ? Math.round(by[k] || 0) : '—'}</td>`).join('') +
+          `<td>${Math.round(r.open)}</td></tr>`;
+      }).join('') + '</tbody>';
+  }
+
+  function drawNarrative(rows, sc, dim) {
+    const peakWeek = rows.reduce((best, r) =>
+      (r.kind === 'forecast' && r.open > (best ? best.open : -1)) ? r : best, null);
+    const futureArr = Math.round(sc.arr.reduce((a, b) => a + b, 0));
+    const ratio = rateClo > 0 ? (sc.peakClosure / rateClo).toFixed(1) : null;
+    // The first measured week is the back-run's anchor, so counting it as a zero-error
+    // week would flatter the average.
+    const checks = rows.filter((r, i) => i > 0 && r.kind === 'actual' && r.model != null && !r.partial);
+    const mae = checks.length
+      ? (checks.reduce((a, r) => a + Math.abs(r.model - r.open), 0) / checks.length).toFixed(1) : null;
+    const bias = checks.length ? checks.reduce((a, r) => a + (r.model - r.open), 0) / checks.length : 0;
+    const noSplit = rows.some(r => r.kind === 'actual' && !r.segs);
+
+    document.getElementById('fcNarrative').innerHTML =
+      t('fc_narr_scenario', st.start, allWeeks[st.peak].tag, st.peakRate, allWeeks[st.zero].tag,
+        Math.round(sc.work), openNow, futureArr) +
+      '<br>' + t('fc_narr_capacity', Math.round(sc.peakClosure), rateClo, ratio) +
+      '<br>' + t('fc_narr_peak', peakWeek ? peakWeek.wk.tag : '—', peakWeek ? Math.round(peakWeek.open) : '—') +
+      (mae ? '<br>' + t('fc_narr_back', st.start, Math.round(sc.backClo), rows[0].wk.tag, checks.length, mae,
+        bias > 1.5 ? t('fc_narr_bias_high') : bias < -1.5 ? t('fc_narr_bias_low') : t('fc_narr_bias_ok')) : '') +
+      '<br>' + t('fc_narr_mix', dim.label) +
+      (noSplit ? '<br>' + t('fc_narr_nosplit', dim.label) : '');
+  }
+
+  syncControls();
+  draw();
+}
+
+// One tooltip element, created on demand and reused — a card that redraws on every
+// slider move should not leak a node per hover.
+function fcTipEl() {
+  let el = document.getElementById('fcTip');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'fcTip';
+    el.className = 'fc-tip';
+    document.body.appendChild(el);
+  }
+  return el;
+}
+function fcHideTip() { fcTipEl().style.opacity = 0; }
+function fcShowTip(e, row, dim) {
+  const tip = fcTipEl();
+  const head = `${esc(row.wk.tag)} <span style="color:var(--muted);font-weight:400">` +
+    (row.kind === 'actual'
+      ? (row.partial ? esc(t('fc_actual_partial')) : esc(t('fc_actual')) + ' · ' + esc(row.date))
+      : esc(t('fc_forecast'))) + '</span>';
+  let body = row.segs && row.segs.length
+    ? row.segs.filter(s => s.n > 0.4).map(s =>
+        `<div class="r"><span><i class="fc-sw" style="background:${s.color}"></i>${esc(s.label)}</span><b>${Math.round(s.n)}</b></div>`).join('')
+    : `<div class="r" style="color:var(--muted)"><span>${esc(t('fc_tip_nosplit'))}</span></div>`;
+  let extra = '';
+  if (row.kind === 'actual' && row.model != null) {
+    const d = Math.round(row.model - row.open);
+    extra += `<div class="r"><span>${esc(t('fc_tip_back'))}</span><b>${Math.round(row.model)}</b></div>` +
+      `<div class="r"><span>${esc(t('fc_tip_gap'))}</span><b style="color:${d > 0 ? 'var(--series-red)' : 'var(--series-ipod)'}">${d > 0 ? '+' : ''}${d}</b></div>`;
+  }
+  if (row.arr != null) {
+    extra += `<div class="r"><span>${esc(row.kind === 'actual' ? t('fc_tip_arr_real') : t('fc_tip_arr_plan'))}</span><b>${Math.round(row.arr)}</b></div>` +
+      `<div class="r"><span>${esc(row.kind === 'actual' ? t('fc_tip_clo_real') : t('fc_tip_clo_plan'))}</span><b>${Math.round(row.clo)}</b></div>`;
+  }
+  tip.innerHTML = `<h4>${head}</h4>${body}` +
+    `<div class="r" style="margin-top:4px;border-top:1px solid var(--grid);padding-top:4px"><span>${esc(t('fc_th_total'))}</span><b>${Math.round(row.open)}</b></div>` + extra;
+  tip.style.opacity = 1;
+  const r = tip.getBoundingClientRect();
+  tip.style.left = Math.min(window.innerWidth - r.width - 10, e.clientX + 14) + 'px';
+  tip.style.top = Math.max(8, e.clientY - r.height - 10) + 'px';
 }
 
 const LABEL_BUCKETS = ['ASW-R2', 'ASW-R3 (不含CPAA 0830)', 'CPAA0830', '三者皆無'];

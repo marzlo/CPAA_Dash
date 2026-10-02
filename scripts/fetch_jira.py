@@ -29,8 +29,45 @@ JQL = os.environ.get("JIRA_JQL", "filter=12399")
 OUT_CSV = os.environ.get("OUT_CSV", "jira_export.csv")
 
 SEVERITY_FIELD_ID = "customfield_10230"
+# "Root Cause Analysis" on the NR1LT board, confirmed against a live issue's field
+# payload on 2026-10-02. It is a rich-text field, so the API hands back an Atlassian
+# Document Format tree rather than a string — adf_text() below flattens it. The
+# dashboard only asks whether it is filled in, but the text is carried anyway so a
+# later feature does not need another pipeline change.
+RCA_FIELD_ID = "customfield_10985"
+RCA_MAX_CHARS = 300
 FIELDS = ["issuetype", "summary", "status", "assignee", "labels", "priority", SEVERITY_FIELD_ID,
-          "created", "issuelinks"]
+          RCA_FIELD_ID, "created", "issuelinks"]
+
+
+def adf_text(node):
+    """Flattens a rich-text field to plain text.
+
+    Jira returns these as ADF (a nested {type, content, text} tree) on the v3 API, but
+    older fields and some migrations hand back a plain string instead — both shapes turn
+    up in the same export, so both are handled. Anything else (a number, a select) is
+    stringified so a non-empty value is never mistaken for an empty one.
+    """
+    if node is None:
+        return ""
+    if isinstance(node, str):
+        return node
+    if isinstance(node, list):
+        return "".join(adf_text(n) for n in node)
+    if isinstance(node, dict):
+        if node.get("type") == "hardBreak":
+            return "\n"
+        # A select-list field ({"value": ...}) is not ADF at all; without this it would
+        # flatten to "" and a filled-in field would read as empty.
+        if "text" not in node and "content" not in node and "value" in node:
+            return str(node.get("value") or "")
+        text = node.get("text") or ""
+        inner = adf_text(node.get("content"))
+        # Block-level nodes need a separator or their words run together.
+        if node.get("type") in {"paragraph", "listItem", "heading", "blockquote"}:
+            inner += "\n"
+        return text + inner
+    return str(node)
 
 
 def linked_issues(fields):
@@ -109,6 +146,7 @@ def main():
             severity_value = severity.get("value", "")
         else:
             severity_value = severity or ""
+        rca = adf_text(f.get(RCA_FIELD_ID)).strip()
         parsed.append({
             "Issue Type": (f.get("issuetype") or {}).get("name", ""),
             "Issue key": issue.get("key", ""),
@@ -121,6 +159,7 @@ def main():
             # Carried as JSON inside one cell: a link list has no sane flat CSV shape,
             # and csv's own quoting makes the embedded commas and quotes a non-issue.
             "Linked Issues": json.dumps(linked_issues(f), ensure_ascii=False),
+            "Custom field (Root Cause Analysis)": rca[:RCA_MAX_CHARS],
             "Labels": labels,
         })
 
@@ -128,7 +167,8 @@ def main():
     header = (
         ["Issue Type", "Issue key", "Summary"]
         + ["Labels"] * max_labels
-        + ["Assignee", "Status", "Custom field (Severity)", "Priority", "Created", "Linked Issues"]
+        + ["Assignee", "Status", "Custom field (Severity)", "Priority", "Created", "Linked Issues",
+           "Custom field (Root Cause Analysis)"]
     )
 
     with open(OUT_CSV, "w", newline="", encoding="utf-8-sig") as f:
@@ -142,6 +182,7 @@ def main():
                 *label_cells,
                 row["Assignee"], row["Status"], row["Custom field (Severity)"],
                 row["Priority"], row["Created"], row["Linked Issues"],
+                row["Custom field (Root Cause Analysis)"],
             ])
 
     print(f"Wrote {len(parsed)} rows to {OUT_CSV}")
