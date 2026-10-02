@@ -5930,8 +5930,14 @@ function renderTraceabilityPanel() {
     }
     const toggle = e.target.closest('.cmt-btn');
     if (toggle) {
-      const box = toggle.closest('.trace-line').nextElementSibling;
-      if (box && box.classList.contains('cmt-box')) box.hidden = !box.hidden;
+      // The comment box is not necessarily the line's immediate next sibling — a SWE2
+      // with no SWE3 has its suggestion list in between. Walk forward to the box, but
+      // stop at the next line so a line without a box can never steal the one below it.
+      let el = toggle.closest('.trace-line').nextElementSibling;
+      while (el && !el.classList.contains('trace-line')) {
+        if (el.classList.contains('cmt-box')) { el.hidden = !el.hidden; break; }
+        el = el.nextElementSibling;
+      }
       return;
     }
     const post = e.target.closest('.cmt-post');
