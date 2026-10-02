@@ -102,7 +102,24 @@ TEAM_MAP = {
     '王杨阳': 'TS_CPAA',
     'JosephWDLee': 'MDT_PM',
     'KaiYKHuang(黃鈺凱)': 'MDT_Sys_QA',
+    'sivaramkrishna': 'MDI_System',
 }
+
+# Per-assignee team corrections made from the dashboard itself and committed back to
+# team_overrides.json, so a mis-filed assignee can be fixed without editing this file.
+# Applied on top of TEAM_MAP, which stays the baked-in default.
+try:
+    with open("team_overrides.json", encoding="utf-8") as f:
+        TEAM_OVERRIDES = json.load(f)
+except FileNotFoundError:
+    TEAM_OVERRIDES = {"updated_at": None, "updated_by": None, "teams": {}}
+
+_TEAM_OVERRIDE_MAP = {k: v for k, v in (TEAM_OVERRIDES.get("teams") or {}).items() if v}
+if _TEAM_OVERRIDE_MAP:
+    print("Team overrides in effect:", len(_TEAM_OVERRIDE_MAP))
+
+def team_of(assignee):
+    return _TEAM_OVERRIDE_MAP.get(assignee) or TEAM_MAP.get(assignee, "Unknown")
 
 DONE_STATUSES = {"Done"}  # statusCategory 'done'
 # Jira statusCategory mapping (approx from status names seen)
@@ -262,7 +279,7 @@ for r in data:
         "hasR3": "ASW-R3" in labels,
         "hasCPAA0830": "CPAA_0830" in labels,
         "assignee": assignee,
-        "team": TEAM_MAP.get(assignee, "Unknown"),
+        "team": team_of(assignee),
         "created": created_iso(r[IDX_CREATED]) if IDX_CREATED is not None else None,
     }
     rec["labelBucket"] = label_bucket(rec["hasR2"], rec["hasR3"], rec["hasCPAA0830"])
@@ -335,7 +352,7 @@ for r in data:
         "hasR3": "ASW-R3" in labels,
         "hasCPAA0830": "CPAA_0830" in labels,
         "assignee": assignee,
-        "team": TEAM_MAP.get(assignee, "Unknown"),
+        "team": team_of(assignee),
         "severity": severity,
         "priority": priority,
         "created": created_iso(r[IDX_CREATED]) if IDX_CREATED is not None else None,
@@ -565,6 +582,7 @@ if s_header:
 
 with open("dashboard_data.json", "w", encoding="utf-8") as f:
     json.dump({"tickets": records, "bugs": bug_records, "audio": audio_records,
-               "pretest": pretest_records, "watch": watch_records, "swe3": swe3_pool},
+               "pretest": pretest_records, "watch": watch_records, "swe3": swe3_pool,
+               "team_overrides": TEAM_OVERRIDES},
               f, ensure_ascii=False, indent=1)
 print("\nWrote dashboard_data.json")

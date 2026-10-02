@@ -338,6 +338,20 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .cmp-sub { font-size: 12px; font-weight: 600; color: var(--muted); margin: 10px 0 6px; }
   .cmp-rel { font-size: 12px; color: var(--muted); white-space: nowrap; }
   .cmp-rel.blocking { color: var(--good); font-weight: 600; }
+  /* The ✎ that re-files an assignee into another team. Quiet until the row is hovered,
+     so the cards stay readable; always visible once an override is in effect. */
+  .team-edit {
+    background: none; border: none; cursor: pointer; color: var(--muted);
+    font-size: 11px; line-height: 1; padding: 0 2px; margin-left: 4px; visibility: hidden;
+  }
+  .bar-row:hover .team-edit { visibility: visible; }
+  .team-edit:hover { color: var(--series-cp); }
+  .team-edit.on { visibility: visible; color: var(--series-cp); }
+  .team-form { margin-left: 6px; }
+  .team-form select {
+    font-size: 11px; padding: 0 2px; border-radius: 5px;
+    border: 1px solid var(--series-cp); background: var(--surface-1); color: var(--text-primary);
+  }
   /* Suggested SWE3 under a SWE2 that has none. Indented to sit under the lane column,
      so it reads as belonging to the line above rather than as another ticket. */
   .s3-sug { margin: 2px 0 6px 50px; }
@@ -925,6 +939,122 @@ const OVERVIEW_NOTES = RAW.overview_notes || { updated_at: null, updated_by: nul
 const BUG_COMMENTS = Object.assign({ updated_at: null, updated_by: null, comments: {} },
                                    RAW.bug_comments || {});
 const WATCH = RAW.watch || [];
+
+// --- Per-assignee team corrections -------------------------------------------------
+// build_data.py has already applied these when it stamped each ticket's team, so on a
+// fresh build the map below is confirmation rather than correction. It is applied again
+// here so that saving a change takes effect on the spot, instead of after the nightly
+// rebuild — which is the whole point of being able to edit it from the page.
+const TEAM_OVERRIDES = Object.assign({ updated_at: null, updated_by: null, teams: {} },
+                                     RAW.team_overrides || {});
+const GITHUB_TEAM_OVERRIDES_PATH = 'team_overrides.json';
+// Built where it is used, not here: GITHUB_REPO is declared further down the file, and
+// a top-level const cannot read it before that line runs.
+function teamOverridesRawUrl() {
+  return `https://raw.githubusercontent.com/${GITHUB_REPO}/main/${GITHUB_TEAM_OVERRIDES_PATH}`;
+}
+
+function effTeam(rec) {
+  return (TEAM_OVERRIDES.teams || {})[rec.assignee] || rec.team || 'Unknown';
+}
+
+async function refreshTeamOverrides() {
+  try {
+    const resp = await fetch(teamOverridesRawUrl() + "?t=" + Date.now(), { cache: "no-store" });
+    if (!resp.ok) return false;
+    const fresh = await resp.json();
+    if (!fresh || typeof fresh !== 'object') return false;
+    // The CDN can still be serving the pre-commit copy right after a save.
+    if (TEAM_OVERRIDES.updated_at &&
+        (!fresh.updated_at || new Date(fresh.updated_at) < new Date(TEAM_OVERRIDES.updated_at))) return false;
+    TEAM_OVERRIDES.teams = fresh.teams || {};
+    TEAM_OVERRIDES.updated_at = fresh.updated_at;
+    TEAM_OVERRIDES.updated_by = fresh.updated_by;
+    return true;
+  } catch (e) { return false; }
+}
+
+// GET immediately before the PUT, so two people correcting different assignees merge
+// instead of overwriting each other.
+async function commitTeamOverrides(apply) {
+  const token = getGithubToken(false);
+  if (!token) { alert(t('team_need_token')); return false; }
+  try {
+    const apiBase = `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_TEAM_OVERRIDES_PATH}`;
+    const getResp = await fetch(apiBase + '?ref=main&t=' + Date.now(),
+      { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+    let sha, remote = {};
+    if (getResp.ok) {
+      const meta = await getResp.json();
+      sha = meta.sha;
+      try { remote = JSON.parse(decodeURIComponent(escape(atob((meta.content || '').replace(/\n/g, ''))))); }
+      catch (e) { remote = {}; }
+    } else if (getResp.status !== 404) {
+      throw new Error('GET ' + getResp.status);
+    }
+    const teams = Object.assign({}, remote.teams || {});
+    apply(teams);
+    Object.keys(teams).forEach(k => { if (!teams[k]) delete teams[k]; });
+    const payload = {
+      updated_at: new Date().toISOString(),
+      updated_by: traceUserName(false) || t('notes_meta_unknown'),
+      teams,
+    };
+    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+    const putResp = await fetch(apiBase, {
+      method: 'PUT',
+      headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'Update assignee team overrides via dashboard', content: b64, sha, branch: 'main' }),
+    });
+    if (!putResp.ok) throw new Error('PUT ' + putResp.status + ': ' + (await putResp.text()).slice(0, 200));
+    TEAM_OVERRIDES.teams = payload.teams;
+    TEAM_OVERRIDES.updated_at = payload.updated_at;
+    TEAM_OVERRIDES.updated_by = payload.updated_by;
+    return true;
+  } catch (err) {
+    alert(t('trace_save_error', String((err && err.message) || err)));
+    return false;
+  }
+}
+
+// The ✎ next to an assignee in the team cards. Opens a picker in place; choosing a team
+// commits it and redraws every card, so the person moves column immediately.
+function teamEditButton(name) {
+  const set = (TEAM_OVERRIDES.teams || {})[name];
+  return `<button type="button" class="team-edit${set ? ' on' : ''}" data-team-edit="${esc(name)}" ` +
+         `title="${esc(set ? t('team_edit_set', set) : t('team_edit'))}">✎</button>`;
+}
+
+function openTeamEditor(btn, name) {
+  const row = btn.closest('.bar-row');
+  if (!row || row.querySelector('.team-form')) return;
+  const current = (TEAM_OVERRIDES.teams || {})[name] || '';
+  const form = document.createElement('span');
+  form.className = 'team-form';
+  form.innerHTML =
+    `<select>${['', ...TEAM_ORDER.filter(x => x !== 'Unassigned' && x !== 'Unknown')]
+      .map(x => `<option value="${esc(x)}"${x === current ? ' selected' : ''}>${esc(x || t('team_edit_clear'))}</option>`)
+      .join('')}</select>`;
+  // The row itself jumps to the assignee's tickets; clicks inside the editor must not.
+  form.addEventListener('click', e => e.stopPropagation());
+  row.appendChild(form);
+  const sel = form.querySelector('select');
+  sel.focus();
+  let closed = false;
+  const close = () => { if (!closed) { closed = true; form.remove(); } };
+  sel.addEventListener('change', async () => {
+    const value = sel.value;
+    sel.disabled = true;
+    const ok = await commitTeamOverrides(teams => {
+      if (value) teams[name] = value; else delete teams[name];
+    });
+    close();
+    if (!ok) return;
+    renderAssigneeBars();
+    renderBugPanel();
+  });
+  sel.addEventListener('blur', () => setTimeout(close, 150));
+}
 const FEATURE_COLORS = { "CarPlay": "var(--series-cp)", "Android Auto": "var(--series-aa)", "iPod": "var(--series-ipod)" };
 
 // ---- i18n ----------------------------------------------------------------
@@ -948,6 +1078,10 @@ const STRINGS = {
   tab_overview: { zh: '總覽', en: 'Overview' },
   tab_knowledge: { zh: '知識庫', en: 'Knowledge' },
   tab_compare: { zh: '對照', en: 'Compare' },
+  team_edit: { zh: '修改這個人的團隊', en: 'Change this person\u2019s team' },
+  team_edit_set: { zh: tm => `已改為 ${tm}(點擊可再修改)`, en: tm => `Set to ${tm} — click to change` },
+  team_edit_clear: { zh: '(回到預設)', en: '(back to default)' },
+  team_need_token: { zh: '要修改團隊得先填 GitHub token(右上角的鑰匙按鈕)', en: 'Changing a team needs a GitHub token — use the key button at the top right' },
   cmp_heading: { zh: '追蹤清單 ↔ Bug 清單 對照', en: 'Watchlist ↔ Bug list cross-check' },
   cmp_caption: { zh: (n, m) => `把追蹤清單的 ${n} 張票，逐一跟 Bug 清單的 ${m} 張票比對相似度。比對是每次開啟頁面時在瀏覽器裡即時算的,所以永遠跟當下的 Bug 清單一致;兩邊的 Jira 資料本身則是每天早上 09:00 由 Actions 更新一次(或按右上角「重新整理資料」手動觸發)`,
                  en: (n, m) => `Scores each of the ${n} watchlist tickets against all ${m} Bug tickets. The matching runs in your browser every time the page loads, so it always reflects the current Bug list; the Jira data on both sides is refreshed once a day at 09:00 by Actions (or on demand with "Refresh data" at the top right)` },
@@ -4545,9 +4679,9 @@ function renderAssigneeBars() {
   const container = document.getElementById('assigneeBarsContainer');
   container.innerHTML = '';
   const notDone = DATA.filter(r => !r.done);
-  const teamsPresent = TEAM_ORDER.filter(team => notDone.some(r => r.team === team));
+  const teamsPresent = TEAM_ORDER.filter(team => notDone.some(r => effTeam(r) === team));
   teamsPresent.forEach(team => {
-    const teamRows = notDone.filter(r => r.team === team);
+    const teamRows = notDone.filter(r => effTeam(r) === team);
     const total = teamRows.length;
     const counts = {};
     teamRows.forEach(r => { counts[r.assignee] = (counts[r.assignee] || 0) + 1; });
@@ -4572,12 +4706,27 @@ function renderAssigneeBars() {
         <div class="name assignee" title="${esc(row.name)}">${esc(row.name)}</div>
         <div class="pct-value" style="color:var(--series-cp)">${pct}%</div>
         <div class="bar-count">${row.count}</div>
+        ${teamEditButton(row.name)}
       `;
       div.addEventListener('click', () => jumpToAssignee(row.name));
       target.appendChild(div);
     });
     container.appendChild(col);
   });
+
+  // Capture phase: the row itself has a click handler that jumps to the assignee's
+  // tickets, and it is bound to the row, so a bubbling listener here would run after it.
+  // Wired once — the container survives re-renders, only its contents are replaced.
+  if (!container.dataset.teamWired) {
+    container.dataset.teamWired = '1';
+    container.addEventListener('click', e => {
+      const btn = e.target.closest('.team-edit');
+      if (!btn) return;
+      e.stopPropagation();
+      e.preventDefault();
+      openTeamEditor(btn, btn.dataset.teamEdit);
+    }, true);
+  }
 }
 
 function populateMissingSubFeatureFilter() {
@@ -5054,9 +5203,9 @@ function renderBugPanel() {
     const container = document.getElementById('bugAssigneeBarsContainer');
     container.innerHTML = '';
     const notDone = BUGS.filter(r => !r.done);
-    const teamsPresent = TEAM_ORDER.filter(team => notDone.some(r => r.team === team));
+    const teamsPresent = TEAM_ORDER.filter(team => notDone.some(r => effTeam(r) === team));
     teamsPresent.forEach(team => {
-      const teamRows = notDone.filter(r => r.team === team);
+      const teamRows = notDone.filter(r => effTeam(r) === team);
       const teamTotal = teamRows.length;
       const counts = {};
       teamRows.forEach(r => { counts[r.assignee] = (counts[r.assignee] || 0) + 1; });
@@ -5081,12 +5230,27 @@ function renderBugPanel() {
           <div class="name assignee" title="${esc(row.name)}">${esc(row.name)}</div>
           <div class="pct-value" style="color:var(--series-cp)">${pct2}%</div>
           <div class="bar-count">${row.count}</div>
+          ${teamEditButton(row.name)}
         `;
         div.addEventListener('click', () => jumpToBugAssignee(row.name));
         target.appendChild(div);
       });
       container.appendChild(col);
     });
+
+  // Capture phase: the row itself has a click handler that jumps to the assignee's
+  // tickets, and it is bound to the row, so a bubbling listener here would run after it.
+  // Wired once — the container survives re-renders, only its contents are replaced.
+  if (!container.dataset.teamWired) {
+    container.dataset.teamWired = '1';
+    container.addEventListener('click', e => {
+      const btn = e.target.closest('.team-edit');
+      if (!btn) return;
+      e.stopPropagation();
+      e.preventDefault();
+      openTeamEditor(btn, btn.dataset.teamEdit);
+    }, true);
+  }
   }
   renderBugAssigneeBars();
 }
@@ -6289,6 +6453,14 @@ renderKnowledgePanel();
 renderPretestPanel();
 renderTraceabilityPanel();
 initTabs();
+
+// A team correction saved from any browser should show up here on the next reload,
+// without waiting for the nightly rebuild to bake it in.
+refreshTeamOverrides().then(changed => {
+  if (!changed) return;
+  renderAssigneeBars();
+  renderBugPanel();
+});
 </script>
 </body>
 </html>
