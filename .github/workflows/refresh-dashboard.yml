@@ -48,6 +48,18 @@ jobs:
           OUT_CSV: 'watch_export.csv'
         run: python scripts/fetch_jira.py
 
+      # The pool the Traceability tab searches when a SWE2 ticket has no SWE3 linked to
+      # it yet. Much wider than the CPAA filter above — a SWE2 can legitimately point at
+      # a SWE3 owned by any team — so it is fetched separately.
+      - name: Fetch the SWE3 candidate pool from Jira
+        env:
+          JIRA_SITE: mobiledrivetech.atlassian.net
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_JQL: 'filter=12654'
+          OUT_CSV: 'swe3_export.csv'
+        run: python scripts/fetch_jira.py
+
       - name: Build dashboard_data.json
         run: python scripts/build_data.py
 
