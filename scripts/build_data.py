@@ -534,7 +534,37 @@ if w_header:
         w_feat[r["feature"]] = w_feat.get(r["feature"], 0) + 1
     print("Watchlist feature counts:", w_feat)
 
+# --- SWE3 candidate pool -----------------------------------------------------------
+# Searched in the browser when a SWE2 ticket on the Traceability tab has no SWE3 linked
+# to it. Only the four fields the search and the suggestion row need are carried: this
+# pool is ~2000 rows and every byte is baked into dashboard.html for every visitor.
+SWE3_SRC = os.environ.get("SWE3_CSV_PATH", "swe3_export.csv")
+
+swe3_pool = []
+try:
+    s_header, s_data = read_jira_csv(SWE3_SRC)
+except FileNotFoundError:
+    s_header, s_data = None, []
+    print(f"\nNo {SWE3_SRC} — the Traceability tab will show no SWE3 suggestions")
+
+if s_header:
+    S_KEY = s_header.index("Issue key")
+    S_SUMMARY = s_header.index("Summary")
+    S_STATUS = s_header.index("Status")
+    S_ASSIGNEE = s_header.index("Assignee") if "Assignee" in s_header else None
+    for r in s_data:
+        status = r[S_STATUS]
+        swe3_pool.append({
+            "k": r[S_KEY],
+            "t": r[S_SUMMARY] or "",
+            "st": status,
+            "c": status_category(status),
+            "a": (r[S_ASSIGNEE] if S_ASSIGNEE is not None else None) or "",
+        })
+    print("\nSWE3 candidate pool:", len(swe3_pool))
+
 with open("dashboard_data.json", "w", encoding="utf-8") as f:
     json.dump({"tickets": records, "bugs": bug_records, "audio": audio_records,
-               "pretest": pretest_records, "watch": watch_records}, f, ensure_ascii=False, indent=1)
+               "pretest": pretest_records, "watch": watch_records, "swe3": swe3_pool},
+              f, ensure_ascii=False, indent=1)
 print("\nWrote dashboard_data.json")

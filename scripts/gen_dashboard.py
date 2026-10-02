@@ -338,6 +338,22 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .cmp-sub { font-size: 12px; font-weight: 600; color: var(--muted); margin: 10px 0 6px; }
   .cmp-rel { font-size: 12px; color: var(--muted); white-space: nowrap; }
   .cmp-rel.blocking { color: var(--good); font-weight: 600; }
+  /* Suggested SWE3 under a SWE2 that has none. Indented to sit under the lane column,
+     so it reads as belonging to the line above rather than as another ticket. */
+  .s3-sug { margin: 2px 0 6px 50px; }
+  .s3-sug > summary {
+    cursor: pointer; font-size: 12px; color: var(--series-cp);
+    list-style: none; display: inline-flex; align-items: center; gap: 5px;
+  }
+  .s3-sug > summary::-webkit-details-marker { display: none; }
+  .s3-sug > summary::before { content: '▸'; color: var(--muted); }
+  .s3-sug[open] > summary::before { content: '▾'; }
+  .s3-sug-body { padding: 6px 0 2px; display: flex; flex-direction: column; gap: 5px; }
+  .s3-sug-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; }
+  .s3-score { font-variant-numeric: tabular-nums; color: var(--muted); min-width: 34px; }
+  .s3-meter { min-width: 54px; max-width: 54px; }
+  .s3-title { color: var(--text-secondary); overflow-wrap: anywhere; }
+  .s3-terms { display: inline-flex; flex-wrap: wrap; gap: 2px; }
   .trace-save-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
   .trace-save-row .meta { font-size: 12px; color: var(--muted); }
   .trace-stats > summary {
@@ -1175,6 +1191,12 @@ const STRINGS = {
   trace_filter_any: { zh: '全部 SWE2', en: 'All SWE2' },
   trace_search: { zh: '搜尋票號、需求 ID 或標題…', en: 'Search key, requirement ID or title…' },
   trace_no_swe3: { zh: '無 SWE3', en: 'no SWE3' },
+  trace_sug_summary: { zh: n => `可能對應的 SWE3 (${n})`, en: n => `Possible SWE3 (${n})` },
+  trace_sug_threshold: { zh: '建議門檻', en: 'Suggest at' },
+  trace_sug_top: { zh: '最多', en: 'Max' },
+  trace_sug_off: { zh: '關閉', en: 'off' },
+  trace_sug_caption: { zh: n => `已連結 SWE3 的 SWE2 不再給建議;其餘的會從 ${n} 張 SWE3 候選票裡,依標題相似度排序列出可能對應的票(點開才展開)。比對是每次開啟頁面時在瀏覽器裡即時算的`,
+                       en: n => `A SWE2 that already has a SWE3 gets no suggestions; the rest are matched by title against ${n} SWE3 candidates, best first, collapsed until you open one. The matching runs in your browser on every page load` },
   trace_no_swe2: { zh: '此需求沒有對應的 SWE2 票', en: 'no SWE2 ticket for this requirement' },
   trace_owner_summary: { zh: (req, s1, s2, cov) => `${req} 需求 · ${s1} SWE1 · ${s2} SWE2 · SWE3 覆蓋 ${cov}%`, en: (req, s1, s2, cov) => `${req} reqs · ${s1} SWE1 · ${s2} SWE2 · ${cov}% SWE3 coverage` },
   trace_empty_filter: { zh: '沒有符合條件的資料', en: 'Nothing matches the current filters' },
@@ -3697,6 +3719,120 @@ function cmpStatusBadge(rec) {
   return `<span class="badge todo">${esc(rec.status)}</span>`;
 }
 
+// --- Suggesting a SWE3 for a SWE2 that has none ----------------------------------
+// The Traceability tab knows which SWE2 tickets Jira has never linked to a SWE3. This
+// searches the SWE3 pool for the ones whose title is closest, so the gap can be closed
+// by confirming a candidate rather than by hunting through Jira.
+//
+// Scale is why this is not the Compare tab's loop: ~1000 gaps against ~2200 candidates
+// is two million pairs. An inverted index turns that into "only score the candidates
+// that share a distinctive word", which is a few hundred each.
+const SWE3_POOL = RAW.swe3 || [];
+
+// On top of the shared noise list: the lane and process tags that every SWE3 title
+// carries ("CP【SWE3】-【System】-…-【External】"). They are in the pool's whole NR1LT
+// half, which is distinctive enough for IDF to reward — and meaningless to match on.
+const SWE3_EXTRA_STOP = new Set(['swe1', 'swe2', 'swe3', 'swe5', 'impl', 'demo',
+                                 'external', 'internal', 'mgt', 'part']);
+
+function s3Tokens(text) {
+  const out = cmpTokens(String(text || '').replace(/【|】/g, ' '));
+  SWE3_EXTRA_STOP.forEach(w => out.delete(w));
+  return out;
+}
+
+let SWE3_INDEX = null;
+function swe3Index() {
+  if (SWE3_INDEX) return SWE3_INDEX;
+  const docs = SWE3_POOL.map(x => s3Tokens(x.t));
+  const df = new Map();
+  docs.forEach(set => set.forEach(tok => df.set(tok, (df.get(tok) || 0) + 1)));
+  const n = docs.length || 1;
+  const idf = new Map();
+  df.forEach((count, tok) => idf.set(tok, Math.log((n + 1) / (count + 0.5))));
+  // A token held by a fifth of the pool makes every candidate a candidate, and carries
+  // almost no weight anyway — leaving it out of the postings is what keeps this fast.
+  const maxDf = Math.max(20, Math.floor(n * 0.2));
+  const postings = new Map();
+  docs.forEach((set, i) => set.forEach(tok => {
+    if ((df.get(tok) || 0) > maxDf) return;
+    let list = postings.get(tok);
+    if (!list) { list = []; postings.set(tok, list); }
+    list.push(i);
+  }));
+  SWE3_INDEX = { docs, idf, postings, norms: docs.map(set => cmpWeight(set, idf)) };
+  return SWE3_INDEX;
+}
+
+const SWE3_SUGGEST_CACHE = new Map();
+
+// Returns every candidate worth showing, best first. The caller decides how many of
+// them and above what score — so moving the threshold never re-runs the search.
+function swe3Suggestions(x) {
+  if (SWE3_SUGGEST_CACHE.has(x.k)) return SWE3_SUGGEST_CACHE.get(x.k);
+  const out = [];
+  if (SWE3_POOL.length) {
+    const { docs, idf, postings, norms } = swe3Index();
+    const q = s3Tokens(x.t);
+    const normQ = cmpWeight(q, idf);
+    if (normQ) {
+      const dots = new Map();   // candidate index -> [dot, sharedCount]
+      q.forEach(tok => {
+        const list = postings.get(tok);
+        if (!list) return;
+        const w = (idf.get(tok) || 0) ** 2;
+        list.forEach(i => {
+          const cur = dots.get(i);
+          if (cur) { cur[0] += w; cur[1]++; } else dots.set(i, [w, 1]);
+        });
+      });
+      dots.forEach(([dot, shared], i) => {
+        if (!norms[i]) return;
+        let score = dot / (normQ * norms[i]);
+        // Same rule as the Compare tab: one word in common is a coincidence.
+        if (shared < 2) score *= 0.5;
+        if (score < 0.1) return;
+        out.push({ i, score });
+      });
+      out.sort((a, b) => b.score - a.score);
+      out.length = Math.min(out.length, 12);
+      // Shared terms are only needed for the handful actually shown.
+      out.forEach(m => {
+        const cand = SWE3_POOL[m.i];
+        const terms = [...q].filter(tk => docs[m.i].has(tk))
+          .sort((a, b) => (idf.get(b) || 0) - (idf.get(a) || 0)).slice(0, 4);
+        m.cand = cand;
+        m.terms = terms;
+      });
+    }
+  }
+  SWE3_SUGGEST_CACHE.set(x.k, out);
+  return out;
+}
+
+function swe3SuggestHtml(x, thr, top) {
+  // The threshold select's "off" entry is 0, and it means hide them — not "show
+  // everything", which is what a bare `score >= 0` would have done.
+  if (!(thr > 0)) return '';
+  const all = swe3Suggestions(x);
+  const hits = all.filter(m => m.score >= thr).slice(0, top);
+  if (!hits.length) return '';
+  return `<details class="s3-sug">
+    <summary>${esc(t('trace_sug_summary', hits.length))}</summary>
+    <div class="s3-sug-body">
+      ${hits.map(m => `
+        <div class="s3-sug-row">
+          <span class="s3-score">${Math.round(m.score * 100)}%</span>
+          <div class="trace-meter s3-meter"><div style="width:${Math.round(m.score * 100)}%"></div></div>
+          <a class="trace-key" href="${ticketUrl(m.cand.k)}" target="_blank" rel="noopener noreferrer">${esc(m.cand.k)}</a>
+          <span class="st ${m.cand.c}">${esc(m.cand.st)}</span>
+          <span class="s3-title">${esc(m.cand.t)}</span>
+          <span class="s3-terms">${m.terms.map(tk => `<span class="cmp-term">${esc(tk)}</span>`).join('')}</span>
+        </div>`).join('')}
+    </div>
+  </details>`;
+}
+
 function renderComparePanel() {
   const panel = document.getElementById('panel-Compare');
   if (!panel) return;
@@ -5565,7 +5701,20 @@ function renderTraceabilityPanel() {
           <option value="has">${esc(t('trace_filter_has'))}</option>
         </select>
         <input type="text" id="traceSearch" placeholder="${esc(t('trace_search'))}">
+        ${SWE3_POOL.length ? `
+        <label class="chk">${esc(t('trace_sug_threshold'))}
+          <select id="traceSugThreshold">
+            ${[0, 15, 20, 25, 30, 40].map(v => `<option value="${v}"${v === 20 ? ' selected' : ''}>${
+              v ? v + '%' : esc(t('trace_sug_off'))}</option>`).join('')}
+          </select>
+        </label>
+        <label class="chk">${esc(t('trace_sug_top'))}
+          <select id="traceSugTop">
+            ${[3, 5, 10].map(v => `<option value="${v}"${v === 5 ? ' selected' : ''}>${v}</option>`).join('')}
+          </select>
+        </label>` : ''}
       </div>
+      ${SWE3_POOL.length ? `<p class="caption">${esc(t('trace_sug_caption', SWE3_POOL.length))}</p>` : ''}
       <div id="traceGroups"></div>
     </section>
   `;
@@ -5575,6 +5724,10 @@ function renderTraceabilityPanel() {
   const assigneeSel = document.getElementById('traceAssigneeFilter');
   const gapSel = document.getElementById('traceGapFilter');
   const confirmSel = document.getElementById('traceConfirmFilter');
+  // Absent when no SWE3 pool shipped with this build; renderGroups falls back to its
+  // own defaults in that case and simply renders no suggestions.
+  const sugThrSel = document.getElementById('traceSugThreshold');
+  const sugTopSel = document.getElementById('traceSugTop');
   const saveBtn = document.getElementById('traceSaveBtn');
   const metaEl = document.getElementById('traceNotesMeta');
 
@@ -5629,6 +5782,9 @@ function renderTraceabilityPanel() {
     // edit, a save) — collapsing everything under them was the annoying part.
     const wasOpen = new Set([...groupsEl.querySelectorAll('details.trace-group[open]')]
       .map(d => d.dataset.owner));
+    // Read once per render rather than per SWE2 line.
+    const sugThr = sugThrSel ? Number(sugThrSel.value) / 100 : 0.2;
+    const sugTop = sugTopSel ? Number(sugTopSel.value) : 5;
     const shown = slices.filter(matches);
     if (!shown.length) {
       groupsEl.innerHTML = `<div class="empty-state">${esc(t('trace_empty_filter'))}</div>`;
@@ -5691,6 +5847,7 @@ function renderTraceabilityPanel() {
                     ? x.swe3.map(y => `${traceTicket(y)}`).join('<span class="trace-arrow">,</span> ')
                     : `<span class="trace-gap">${esc(t('trace_no_swe3'))}</span>`}
                 </div>
+                ${x.swe3.length ? '' : swe3SuggestHtml(x, sugThr, sugTop)}
                 ${traceCommentPanel(x.k)}`).join('') ||
                 // "no SWE2" means the requirement has none at all — not that its SWE2
                 // tickets were moved to another owner's group.
@@ -5727,7 +5884,8 @@ function renderTraceabilityPanel() {
     renderGroups(openOwner);
   }
 
-  [ownerSel, assigneeSel, gapSel, confirmSel].forEach(el => el.addEventListener('change', () => renderGroups()));
+  [ownerSel, assigneeSel, gapSel, confirmSel, sugThrSel, sugTopSel]
+    .filter(Boolean).forEach(el => el.addEventListener('change', () => renderGroups()));
   saveBtn.addEventListener('click', () => saveTraceNotes(saveBtn));
   document.getElementById('traceTokenBtn').addEventListener('click', () => { getGithubToken(true); traceUserName(true); });
   search.addEventListener('input', () => renderGroups());
