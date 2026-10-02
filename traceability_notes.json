@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-10-02T04:55:24.827Z",
-  "updated_by": "Leyo",
+  "updated_at": "2026-10-02T06:50:27.280Z",
+  "updated_by": "StevenJSHsu",
   "confirmed": {
     "f4c0d095": {
       "by": "Leyo",
@@ -161,6 +161,10 @@
     "c06c9e1c": {
       "by": "Leyo",
       "at": "2026-10-02T04:55:20.874Z"
+    },
+    "6ed488ff": {
+      "by": "StevenJSHsu",
+      "at": "2026-10-02T06:50:25.338Z"
     }
   },
   "comments": {
@@ -246,6 +250,20 @@
         "text": "done",
         "by": "Leyo",
         "at": "2026-10-02T03:12:16.307Z"
+      }
+    ],
+    "NR1LT-6548": [
+      {
+        "text": "針對 5.4.2 (R05-552) WPP TCP 連線安全這條，我們的分析與職責劃分建議如下：\n\n憑證資材提供（KeyInstall 支援）：\n本條提及之「TLS certificate」，即為前述 4.12 規範之 Google AA Production 憑證與金鑰資材。\nKeyInstall 負責該憑證金鑰之安全儲存、硬體繫結與解密運算，\nAA 可透過既有的 Crypto API / JNI 取得解密後的 X.509 憑證及私鑰材料。   \n\n連線與 SslTransportFactory 建立（屬 AA TS 協定層職責）：\n條文規範之 SslTransportFactory 與 WPP TCP 連線，屬於 Google Android Auto Receiver SDK 內部之通訊傳輸架構。\nKeyInstall 為底層通用安全服務，未依賴 Google Receiver SDK，亦不持有 WPP TCP Socket。   \n實作流程：應由 AA模組 於建立 WPP 連線時，呼叫 KeyInstall API 取得安全材料後，於 AA內部調用 Google SDK 之 SslTransportFactory 完成 TCP 傳輸層之 TLS 加密包裝。   \n\n結論：Security / KeyInstall 負責提供憑證解密能力；SslTransportFactory 物件之建立與 WPP TCP 連線管理則由 AA投影引擎認領實作。",
+        "by": "StevenJSHsu",
+        "at": "2026-10-02T06:43:37.852Z"
+      }
+    ],
+    "NR1LT-1186": [
+      {
+        "text": "針對 5.4.2 (R05-545, R05-546) WPP TCP Server IP 與 Port 這條需求，回覆如下：\n依據貴團隊分析結論：\n貴團隊於分析中已明確標註：「即使恢复出厂设置，用于WPP TCP server的IP地址和端口号不能变，这两个参数由AA闭源部分实现。」\n本項規範之固定 IP 與 Port 確屬 Google Android Auto Receiver SDK（閉源組件）內部之網路服務監聽參數配置，由 AA 投影模組加載時決定。\nSecurity / KeyInstall 範疇釐清：\nKeyInstall 的防重置持久化機制（Factory Reset 不遺失）係針對 TEE/RPMB 硬體繫結之密碼學金鑰 KeyBlob（/mnt/vendor/oemkeys），並不管理亦無法干涉 AA 閉源通訊組件內部的 TCP IP 與 Port 常數配置。   \n\n結論：既然本項參數由 AA 閉源組件內部實現，應屬 AA / Projection 模組之職責範疇，謝謝！",
+        "by": "StevenJSHsu",
+        "at": "2026-10-02T06:50:17.722Z"
       }
     ]
   },
@@ -344,6 +362,16 @@
       "name": "CC Huang",
       "by": "Leyo",
       "at": "2026-10-02T03:29:08.289Z"
+    },
+    "NR1LT-6548": {
+      "name": "孙琦",
+      "by": "StevenJSHsu",
+      "at": "2026-10-02T06:43:46.110Z"
+    },
+    "NR1LT-1186": {
+      "name": "孙琦",
+      "by": "StevenJSHsu",
+      "at": "2026-10-02T06:50:23.705Z"
     }
   }
 }
