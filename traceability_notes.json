@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-02T06:50:27.280Z",
+  "updated_at": "2026-10-02T07:17:31.380Z",
   "updated_by": "StevenJSHsu",
   "confirmed": {
     "f4c0d095": {
@@ -165,6 +165,10 @@
     "6ed488ff": {
       "by": "StevenJSHsu",
       "at": "2026-10-02T06:50:25.338Z"
+    },
+    "53ed85ba": {
+      "by": "StevenJSHsu",
+      "at": "2026-10-02T07:17:29.501Z"
     }
   },
   "comments": {
@@ -264,6 +268,13 @@
         "text": "針對 5.4.2 (R05-545, R05-546) WPP TCP Server IP 與 Port 這條需求，回覆如下：\n依據貴團隊分析結論：\n貴團隊於分析中已明確標註：「即使恢复出厂设置，用于WPP TCP server的IP地址和端口号不能变，这两个参数由AA闭源部分实现。」\n本項規範之固定 IP 與 Port 確屬 Google Android Auto Receiver SDK（閉源組件）內部之網路服務監聽參數配置，由 AA 投影模組加載時決定。\nSecurity / KeyInstall 範疇釐清：\nKeyInstall 的防重置持久化機制（Factory Reset 不遺失）係針對 TEE/RPMB 硬體繫結之密碼學金鑰 KeyBlob（/mnt/vendor/oemkeys），並不管理亦無法干涉 AA 閉源通訊組件內部的 TCP IP 與 Port 常數配置。   \n\n結論：既然本項參數由 AA 閉源組件內部實現，應屬 AA / Projection 模組之職責範疇，謝謝！",
         "by": "StevenJSHsu",
         "at": "2026-10-02T06:50:17.722Z"
+      }
+    ],
+    "NR1LT-6505": [
+      {
+        "text": "針對 14.1.2 (R14-030, R14-040) VEC 擴充通道安全這條需求，經檢視 Google 規範與系統架構，本項應歸屬 AA TS / 車載應用模組，說明如下：\n白名單宣告歸屬（R14-040）：\n規範明確指明，允許連線之 Package Name 必須於車機端調用 Google 原廠 SDK 之 VendorExtension::addDiscoveryInfo() / add_package_white_list() 進行宣告。\n該 API 為 Google Android Auto Receiver SDK 之內部介面，運行於 AA TS 投影服務 中。KeyInstall 服務並未引用 Google AA SDK，無法亦不應介入 VEC 通道之白名單註冊。\n\nVEC Payload 應用層加密（R14-030）：\n條文規範係針對車機端與手機端 OEM 客製化 App 透過 VEC 通道傳輸之業務資料（Payload）。\n規範指出 AAP 連線本身已具備 TLS 加密，本項僅為針對敏感車載資料在傳入 OEM App 前的端到端（End-to-End）應用層加密防護建議。\n此部分取決於專案是否有導入 VEC 客製通道，以及該 OEM 應用之通訊協定設計，屬於 車載應用層 / AA TS 擴充功能 範疇，非 KeyInstall 系統級金鑰管理範疇。   \n\n結論：VEC 白名單設置（VendorExtension）為 AA SDK 連線配置，請 AA TS 模組 認領實作；若專案有 VEC 業務數據加密需求，請由對應之 OEM 車載應用模組 進行評估。",
+        "by": "StevenJSHsu",
+        "at": "2026-10-02T07:17:22.039Z"
       }
     ]
   },
@@ -372,6 +383,11 @@
       "name": "孙琦",
       "by": "StevenJSHsu",
       "at": "2026-10-02T06:50:23.705Z"
+    },
+    "NR1LT-6505": {
+      "name": "孙琦",
+      "by": "StevenJSHsu",
+      "at": "2026-10-02T07:17:27.721Z"
     }
   }
 }
