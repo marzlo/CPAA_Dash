@@ -112,6 +112,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     --series-magenta: #e87ba4;
     --series-green: #008300;
     --series-violet: #4a3aa7;
+    /* Reserved for the forecast card's two flow lines — never used by a stack. */
+    --flow-arr: #4a3aa7;
+    --flow-clo: #0f7a52;
     --series-red: #e34948;
     /* 9th categorical slot, added for the MDT_Sys_QA team line. */
     --series-brown: #8a5a2b;
@@ -138,6 +141,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       --series-magenta: #d55181;
       --series-green: #008300;
       --series-violet: #9085e9;
+      --flow-arr: #9085e9;
+      --flow-clo: #29a876;
       --series-red: #e66767;
       --series-brown: #b5834f;
     }
@@ -159,6 +164,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     --series-magenta: #d55181;
     --series-green: #008300;
     --series-violet: #9085e9;
+    --flow-arr: #9085e9;
+    --flow-clo: #29a876;
     --series-red: #e66767;
     --series-brown: #b5834f;
   }
@@ -1163,6 +1170,9 @@ const STRINGS = {
   fc_insufficient: { zh: '每日快照還不到兩週,畫不出每週的實際值。系統每天會自動記一筆,再過幾天這裡就會出現', en: 'Fewer than two weeks of daily snapshots, so there are no weekly actuals to draw yet. One is recorded automatically every day — this will appear in a few days' },
 
   fc_dim_label: { zh: '堆疊維度', en: 'Stack by' },
+  fc_dim_status2: { zh: '處理中 / 未開始', en: 'In flight / not started' },
+  fc_status2_wip: { zh: '處理中(In Progress・Reopen・Need info)', en: 'In flight (In Progress · Reopen · Need info)' },
+  fc_status2_idle: { zh: '未開始或卡住(To Do・Blocked)', en: 'Not started or stuck (To Do · Blocked)' },
   fc_dim_status: { zh: '處理狀態', en: 'Status' },
   fc_dim_rca: { zh: 'Root Cause Analysis', en: 'Root Cause Analysis' },
   fc_dim_team: { zh: '依 Team', en: 'By team' },
@@ -1172,6 +1182,9 @@ const STRINGS = {
   fc_other: { zh: '其他', en: 'Other' },
 
   fc_start_label: { zh: '起點:目前每週新增', en: 'Start: arrivals per week today' },
+  fc_basis_label: { zh: '套用實測新增', en: 'Use a measured rate' },
+  fc_basis_recent: { zh: n => `近 ${n} 週實測`, en: n => `Last ${n} weeks measured` },
+  fc_basis_created: { zh: n => `近 ${n} 週建立`, en: n => `Last ${n} weeks created` },
   fc_peak_label: { zh: '新增高峰落在', en: 'Arrival peak at' },
   fc_peakrate_label: { zh: '高峰時每週新增', en: 'Arrivals per week at the peak' },
   fc_zero_label: { zh: '全部解決於', en: 'All cleared by' },
@@ -1194,6 +1207,8 @@ const STRINGS = {
 
   fc_tip_nosplit: { zh: '這週的快照沒有記這個維度', en: "This week's snapshot doesn't carry this dimension" },
   fc_tip_back: { zh: '情境回推', en: 'Scenario back-run' },
+  fc_tip_gap_more: { zh: '比情境多', en: 'More than the scenario' },
+  fc_tip_gap_less: { zh: '比情境少', en: 'Fewer than the scenario' },
   fc_tip_gap: { zh: '差距', en: 'Gap' },
   fc_tip_arr_real: { zh: '實測新增', en: 'Measured arrivals' },
   fc_tip_clo_real: { zh: '實測消化', en: 'Measured closures' },
@@ -4647,6 +4662,13 @@ const FC_RCA_COLORS = { filled: 'var(--series-ipod)', empty: 'var(--series-aa)',
 // "closest to done" → "hasn't started". Anything unexpected lands in Other rather than
 // being given a generated hue.
 const FC_STATUS_ORDER = ['In Progress', 'Reopen', 'Need info', 'Blocked', 'To Do'];
+// The coarse read of the same field: is somebody working on it, or is it sitting?
+// "Blocked" belongs with "To Do" rather than with the in-flight work — a blocked bug
+// is waiting on someone else, so no capacity is being spent on it this week.
+const FC_WIP_STATUSES = ['In Progress', 'Reopen', 'Need info'];
+const FC_STATUS2_ORDER = ['wip', 'idle'];
+const FC_STATUS2_COLORS = { wip: 'var(--series-cp)', idle: 'var(--series-aa)' };
+function fcStatus2(status) { return FC_WIP_STATUSES.includes(status) ? 'wip' : 'idle'; }
 const FC_STATUS_COLORS = {
   'In Progress': 'var(--series-cp)',
   'Reopen': 'var(--series-yellow)',
@@ -4696,6 +4718,16 @@ function fcWeekTagOf(dateStr) {
 // grey total — drawing a zero there would be a lie, and backfilling is impossible.
 function fcDimensions() {
   return {
+    status2: {
+      label: t('fc_dim_status2'), histKey: 'bugs_by_status',
+      keyOf: r => fcStatus2(r.status),
+      // History records one entry per status name, so the two buckets are folded out of
+      // it here rather than needing their own snapshot field.
+      histBucket: fcStatus2,
+      order: FC_STATUS2_ORDER,
+      colorOf: k => FC_STATUS2_COLORS[k],
+      labelOf: k => t('fc_status2_' + k),
+    },
     status: {
       label: t('fc_dim_status'), histKey: 'bugs_by_status',
       keyOf: r => (FC_STATUS_ORDER.includes(r.status) ? r.status : 'Other'),
@@ -4832,7 +4864,7 @@ function renderForecastCard() {
     return hits.length ? hits[hits.length - 1] : futureIdx[futureIdx.length - 1];
   };
   const st = {
-    dim: DIMS[saved.dim] ? saved.dim : 'status',
+    dim: DIMS[saved.dim] ? saved.dim : 'status2',
     start: Number.isFinite(saved.start) ? saved.start : null,
     peak: futureIdx.includes(saved.peak) ? saved.peak : defPeak(),
     peakRate: Number.isFinite(saved.peakRate) ? saved.peakRate : 40,
@@ -4847,7 +4879,26 @@ function renderForecastCard() {
   const meanOf = (xs, k) => (xs.length ? Math.round(xs.reduce((a, f) => a + f[k], 0) / xs.length) : 0);
   const rateArr = meanOf(doneFlows, 'added');
   const rateClo = meanOf(doneFlows, 'closed');
-  if (st.start === null) st.start = Math.max(0, rateArr);
+
+  // A second, longer arrival series, counted off each bug's own Created date instead
+  // of the week-to-week change in the snapshot total. It reaches further back than
+  // history.json does — which matters, because the snapshot series is only a few weeks
+  // old — but it counts bugs that have since been closed too, so the two answer
+  // slightly different questions and are offered side by side rather than averaged.
+  const createdByWeek = {};
+  BUGS.forEach(r => { if (r.created) createdByWeek[fcWeekTagOf(r.created.slice(0, 10))] = (createdByWeek[fcWeekTagOf(r.created.slice(0, 10))] || 0) + 1; });
+  const createdWeeks = Object.keys(createdByWeek).filter(w => w < todayTag).sort().slice(-8);
+  const rateCreated = createdWeeks.length
+    ? Math.round(createdWeeks.reduce((a, w) => a + createdByWeek[w], 0) / createdWeeks.length) : 0;
+
+  const BASES = [
+    { key: 'recent', n: doneFlows.length, value: Math.max(0, rateArr),
+      label: t('fc_basis_recent', doneFlows.length), detail: doneFlows.map(f => f.added).join(' / ') },
+    { key: 'created', n: createdWeeks.length, value: rateCreated,
+      label: t('fc_basis_created', createdWeeks.length), detail: createdWeeks.map(w => createdByWeek[w]).join(' / ') },
+  ].filter(b => b.n > 0);
+
+  if (st.start === null) st.start = BASES.length ? BASES[0].value : 0;
 
   caption.textContent = t('fc_caption', measured.weeks[0].tag, todayTag, openNow);
 
@@ -4863,6 +4914,11 @@ function renderForecastCard() {
         <input type="range" id="fcStart" min="0" max="60" step="1">
         <span class="fc-val" id="fcStartV"></span>
       </div>
+      ${BASES.length ? `<div class="fc-ctl">
+        <label>${esc(t('fc_basis_label'))}</label>
+        <span class="chip-row" id="fcBasis">${BASES.map(b =>
+          `<button type="button" class="chip" data-fcbasis="${b.key}" title="${esc(b.detail)}">${esc(b.label)} ${b.value}</button>`).join('')}</span>
+      </div>` : ''}
       <div class="fc-ctl">
         <label for="fcPeak">${esc(t('fc_peak_label'))}</label>
         <select id="fcPeak"></select>
@@ -4905,6 +4961,12 @@ function renderForecastCard() {
       b.classList.toggle('active', b.dataset.fcdim === st.dim));
     document.getElementById('fcStart').value = st.start;
     document.getElementById('fcStartV').textContent = t('fc_per_week', st.start);
+    // Lit when the slider sits exactly on that measured rate — so the chips double as
+    // a readout of where the current value came from.
+    document.querySelectorAll('[data-fcbasis]').forEach(b => {
+      const basis = BASES.find(x => x.key === b.dataset.fcbasis);
+      b.classList.toggle('active', !!basis && basis.value === st.start);
+    });
     document.getElementById('fcPeakRate').value = st.peakRate;
     document.getElementById('fcPeakRateV').textContent = t('fc_per_week', st.peakRate);
     peakSel.value = st.peak;
@@ -4922,6 +4984,13 @@ function renderForecastCard() {
     if (b) { st.dim = b.dataset.fcdim; commit(); }
   });
   document.getElementById('fcStart').addEventListener('input', e => { st.start = +e.target.value; commit(); });
+  const basisRow = document.getElementById('fcBasis');
+  if (basisRow) basisRow.addEventListener('click', e => {
+    const b = e.target.closest('[data-fcbasis]');
+    if (!b) return;
+    const basis = BASES.find(x => x.key === b.dataset.fcbasis);
+    if (basis) { st.start = basis.value; commit(); }
+  });
   document.getElementById('fcPeakRate').addEventListener('input', e => { st.peakRate = +e.target.value; commit(); });
   peakSel.addEventListener('change', e => {
     st.peak = +e.target.value;
@@ -4936,7 +5005,7 @@ function renderForecastCard() {
     commit();
   });
   document.getElementById('fcReset').addEventListener('click', () => {
-    st.dim = 'status'; st.start = Math.max(0, rateArr); st.peakRate = 40;
+    st.dim = 'status2'; st.start = BASES.length ? BASES[0].value : 0; st.peakRate = 40;
     st.peak = defPeak(); st.zero = defZero(st.peak);
     commit();
   });
@@ -4971,11 +5040,20 @@ function renderForecastCard() {
       if (i <= cut) {
         if (!act) return { wk, kind: 'none', open: null, segs: null, model: null };
         const hist = act.snap[dim.histKey];
-        const segs = hist ? Object.keys(hist)
-          .map(k => ({ key: k, label: dim.labelOf(k), color: dim.colorOf(k),
-                       n: hist[k].total - hist[k].done }))
-          .filter(s => s.n > 0)
-          .sort((a, b) => dim.order.indexOf(a.key) - dim.order.indexOf(b.key)) : null;
+        let segs = null;
+        if (hist) {
+          // Fold the snapshot's own keys into this dimension's buckets, so a coarse
+          // split can reuse a fine-grained snapshot instead of needing its own field.
+          const acc = {};
+          Object.keys(hist).forEach(k => {
+            const key = dim.histBucket ? dim.histBucket(k) : k;
+            acc[key] = (acc[key] || 0) + (hist[k].total - hist[k].done);
+          });
+          segs = Object.keys(acc)
+            .map(k => ({ key: k, label: dim.labelOf(k), color: dim.colorOf(k), n: acc[k] }))
+            .filter(s => s.n > 0)
+            .sort((a, b) => dim.order.indexOf(a.key) - dim.order.indexOf(b.key));
+        }
         const fl = flowOf(wk.tag);
         return { wk, kind: 'actual', open: act.open, segs, date: act.date, model,
                  partial: wk.tag === todayTag,
@@ -5084,16 +5162,25 @@ function renderForecastCard() {
     // one scale, not a second one. Over the measured weeks they carry what really
     // happened; past the divider, what the scenario demands. The step between is the
     // gap between the plan and the team's current pace.
-    [['arr', 'var(--series-yellow)', '4 3'], ['clo', 'var(--series-ipod)', null]].forEach(([key, col, dash]) => {
+    // Both lines cross the stacked bars, and every hue in the categorical palette is
+    // already spoken for by one dimension or another — so contrast cannot come from
+    // hue alone. Each line is drawn twice: a wide casing in the card's own background
+    // colour, then the coloured stroke on top. That keeps it legible over an orange
+    // bar, a blue one, or the empty plot, in either theme.
+    [['arr', 'var(--flow-arr)', '5 3'], ['clo', 'var(--flow-clo)', null]].forEach(([key, col, dash]) => {
       const pts = rows.map((r, i) => r[key] == null ? null
         : { x: PAD.l + i * (BAR_W + GAP) + GAP / 2 + BAR_W / 2, y: y(r[key]), r }).filter(Boolean);
       if (pts.length < 2) return;
-      svg.appendChild(svgEl('polyline', { points: pts.map(p => `${p.x},${p.y}`).join(' '),
-        fill: 'none', stroke: col, 'stroke-width': 2,
+      const d = pts.map(p => `${p.x},${p.y}`).join(' ');
+      svg.appendChild(svgEl('polyline', { points: d, fill: 'none', stroke: 'var(--surface-1)',
+        'stroke-width': 5.5, 'stroke-linejoin': 'round', 'stroke-linecap': 'round',
+        opacity: .9, 'clip-path': 'url(#fcPlotClip)' }));
+      svg.appendChild(svgEl('polyline', { points: d, fill: 'none', stroke: col, 'stroke-width': 2.5,
+        'stroke-linejoin': 'round', 'stroke-linecap': 'round',
         'stroke-dasharray': dash || undefined, 'clip-path': 'url(#fcPlotClip)' }));
       pts.filter(p => p.r.measuredFlow).forEach(p => {
-        svg.appendChild(svgEl('rect', { x: p.x - 3, y: p.y - 3, width: 6, height: 6,
-          fill: col, stroke: 'var(--surface-1)', 'stroke-width': 1.5 }));
+        svg.appendChild(svgEl('rect', { x: p.x - 3.5, y: p.y - 3.5, width: 7, height: 7,
+          fill: col, stroke: 'var(--surface-1)', 'stroke-width': 2 }));
       });
     });
 
@@ -5101,18 +5188,24 @@ function renderForecastCard() {
     const backPts = rows.map((r, i) => r.model == null ? null
       : { x: PAD.l + i * (BAR_W + GAP) + GAP / 2 + BAR_W / 2, y: y(r.model), r }).filter(Boolean);
     if (backPts.length > 1) {
-      svg.appendChild(svgEl('polyline', { points: backPts.map(p => `${p.x},${p.y}`).join(' '),
+      const bd = backPts.map(p => `${p.x},${p.y}`).join(' ');
+      svg.appendChild(svgEl('polyline', { points: bd, fill: 'none', stroke: 'var(--surface-1)',
+        'stroke-width': 5, 'stroke-linecap': 'round', opacity: .9, 'clip-path': 'url(#fcPlotClip)' }));
+      svg.appendChild(svgEl('polyline', { points: bd,
         fill: 'none', stroke: 'var(--text-primary)', 'stroke-width': 2,
-        'stroke-dasharray': '5 4', opacity: .7, 'clip-path': 'url(#fcPlotClip)' }));
+        'stroke-dasharray': '5 4', opacity: .8, 'clip-path': 'url(#fcPlotClip)' }));
       backPts.forEach(p => svg.appendChild(svgEl('circle', { cx: p.x, cy: p.y, r: 3,
         fill: 'var(--surface-1)', stroke: 'var(--text-primary)', 'stroke-width': 1.5, opacity: .85 })));
+      // The number is read off the BAR, not the line: it answers "how many more (or
+      // fewer) bugs are actually open than this plan expected". So a back-run sitting
+      // above the bar — the plan expected more than we have — prints as a reduction.
       backPts.forEach((p, idx) => {
         if (idx === 0 || p.r.partial) return;        // week 0 is the anchor, by construction
-        const d = Math.round(p.r.model - p.r.open);
+        const d = Math.round(p.r.open - p.r.model);
         if (!d) return;
         const tx = svgEl('text', { x: p.x + 8, y: p.y - 6, 'text-anchor': 'start',
-          fill: d > 0 ? 'var(--series-red)' : 'var(--series-ipod)', 'font-size': 9.5, 'font-weight': 600 });
-        tx.textContent = (d > 0 ? '+' : '') + d;
+          fill: d > 0 ? 'var(--series-red)' : 'var(--series-green)', 'font-size': 9.5, 'font-weight': 600 });
+        tx.textContent = (d > 0 ? '+' : '−') + Math.abs(d);
         svg.appendChild(tx);
       });
     }
@@ -5148,8 +5241,8 @@ function renderForecastCard() {
       order.map(k => `<span><i class="fc-sw" style="background:${seen.get(k).color}"></i>${esc(seen.get(k).label)}` +
         (today[k] ? ` <b style="font-weight:600">${today[k]}</b>` : '') + `</span>`).join('') +
       `<i class="fc-divider"></i>` +
-      `<span><svg width="22" height="10" style="overflow:visible"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--series-yellow)" stroke-width="2" stroke-dasharray="4 3"/><rect x="8" y="2" width="6" height="6" fill="var(--series-yellow)" stroke="var(--surface-1)" stroke-width="1.5"/></svg>${esc(t('fc_lg_arr'))}</span>` +
-      `<span><svg width="22" height="10" style="overflow:visible"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--series-ipod)" stroke-width="2"/><rect x="8" y="2" width="6" height="6" fill="var(--series-ipod)" stroke="var(--surface-1)" stroke-width="1.5"/></svg>${esc(t('fc_lg_clo'))}</span>` +
+      `<span><svg width="22" height="10" style="overflow:visible"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--flow-arr)" stroke-width="2.5" stroke-dasharray="5 3"/><rect x="8" y="1.5" width="7" height="7" fill="var(--flow-arr)" stroke="var(--surface-1)" stroke-width="2"/></svg>${esc(t('fc_lg_arr'))}</span>` +
+      `<span><svg width="22" height="10" style="overflow:visible"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--flow-clo)" stroke-width="2.5"/><rect x="8" y="1.5" width="7" height="7" fill="var(--flow-clo)" stroke="var(--surface-1)" stroke-width="2"/></svg>${esc(t('fc_lg_clo'))}</span>` +
       `<span><i class="fc-sw fc-hatch"></i>${esc(t('fc_lg_forecast'))}</span>` +
       `<span><svg width="22" height="10" style="overflow:visible"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--text-primary)" stroke-width="2" stroke-dasharray="5 4" opacity=".7"/><circle cx="11" cy="5" r="3" fill="var(--surface-1)" stroke="var(--text-primary)" stroke-width="1.5"/></svg>${esc(t('fc_lg_back'))}</span>`;
   }
@@ -5225,9 +5318,10 @@ function fcShowTip(e, row, dim) {
     : `<div class="r" style="color:var(--muted)"><span>${esc(t('fc_tip_nosplit'))}</span></div>`;
   let extra = '';
   if (row.kind === 'actual' && row.model != null) {
-    const d = Math.round(row.model - row.open);
+    const d = Math.round(row.open - row.model);
     extra += `<div class="r"><span>${esc(t('fc_tip_back'))}</span><b>${Math.round(row.model)}</b></div>` +
-      `<div class="r"><span>${esc(t('fc_tip_gap'))}</span><b style="color:${d > 0 ? 'var(--series-red)' : 'var(--series-ipod)'}">${d > 0 ? '+' : ''}${d}</b></div>`;
+      `<div class="r"><span>${esc(d >= 0 ? t('fc_tip_gap_more') : t('fc_tip_gap_less'))}</span>` +
+      `<b style="color:${d > 0 ? 'var(--series-red)' : 'var(--series-green)'}">${d > 0 ? '+' : '−'}${Math.abs(d)}</b></div>`;
   }
   if (row.arr != null) {
     extra += `<div class="r"><span>${esc(row.kind === 'actual' ? t('fc_tip_arr_real') : t('fc_tip_arr_plan'))}</span><b>${Math.round(row.arr)}</b></div>` +
