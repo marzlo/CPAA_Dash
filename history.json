@@ -1570,16 +1570,16 @@
     "total": 22
    },
    "MDT_Sys_QA": {
-    "done": 2,
-    "total": 2
+    "done": 1,
+    "total": 1
    },
    "MDT_System": {
     "done": 1,
     "total": 13
    },
    "TS_CPAA": {
-    "done": 163,
-    "total": 189
+    "done": 164,
+    "total": 190
    },
    "TS_FW": {
     "done": 24,
@@ -1596,12 +1596,12 @@
   },
   "date": "2026-10-02",
   "swe2": {
-   "done": 315,
+   "done": 316,
    "total": 1145
   },
   "swe3": {
-   "done": 252,
-   "total": 295
+   "done": 253,
+   "total": 296
   },
   "swe5": {
    "done": 93,
