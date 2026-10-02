@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-02T02:22:11.589Z",
+  "updated_at": "2026-10-02T03:12:20.884Z",
   "updated_by": "Leyo",
   "confirmed": {
     "f4c0d095": {
@@ -203,6 +203,13 @@
         "text": "針對 4.4.9 Vehicle ID 這條，我們稍微看了一下 Google 原文規範（R04-310 ~ R04-330），有一些技術細節想跟你們對齊並請你們確認一下：條文規格與硬體/憑證特性的差異：規範裡明確要求 Vehicle ID 「每次恢復原廠設定（Factory Reset）必須重新生成」，而且 「不能使用有現實追蹤意義的標識（如 VIN、MAC）」。Security / KeyInstall 這邊負責的 Android Auto 憑證與 KeyBlob，設計上是透過 TEE/RPMB 做硬體防重置持久化（Factory Reset 後不可遺失），加上靜態車型憑證目錄也屬於跨車輛共用的配置，看起來與 Vehicle ID 的動態特性完全相反。   我們的理解與推測：這段在 4.4 Service Discovery 流程中，看起來比較像是 AA 模組在跟手機做首連識別時帶的連線參數。我們推測這個 Vehicle ID 可能不需要底層硬體或 Vehicle Property 提供，而是 AA 模組在投影 App 本地（例如 SharedPreferences）自行產生的一組隨機字串（如 UUID > 64 bit）。這樣當車機執行 Factory Reset、App 本地資料被清除後，下次連線自然就能重新生成一組全新的 ID，剛好符合 Google 的規範要求。後續確認：因為這部分直接關聯到 AA ReceiverLib 送出 Service Discovery Response 的欄位填寫，不確定你們在實作 AA 投影協定棧時，一般是不是也是由 AA 模組自己維護這個隨機字串？可能需要麻煩你們再確認一下 Google AA 原廠 SDK 的實作範例或專案架構，看看這條是否其實由 AA 內部生成並管理即可，謝謝！",
         "by": "StevenJSHsu",
         "at": "2026-10-01T09:28:41.982Z"
+      }
+    ],
+    "NR1LT-1050": [
+      {
+        "text": "done",
+        "by": "Leyo",
+        "at": "2026-10-02T03:12:16.307Z"
       }
     ]
   },
