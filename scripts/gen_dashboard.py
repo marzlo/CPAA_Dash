@@ -1454,6 +1454,9 @@ const STRINGS = {
   trace_sug_caption: { zh: n => `已連結 SWE3 的 SWE2 不再給建議;其餘的會從 ${n} 張 SWE3 候選票裡,依標題相似度排序列出可能對應的票(點開才展開)。比對是每次開啟頁面時在瀏覽器裡即時算的`,
                        en: n => `A SWE2 that already has a SWE3 gets no suggestions; the rest are matched by title against ${n} SWE3 candidates, best first, collapsed until you open one. The matching runs in your browser on every page load` },
   trace_no_swe2: { zh: '此需求沒有對應的 SWE2 票', en: 'no SWE2 ticket for this requirement' },
+  trace_filter_lane_swe2: { zh: '只顯示 SWE2', en: 'SWE2 only' },
+  trace_filter_lane_all: { zh: 'SWE1 + SWE2', en: 'SWE1 + SWE2' },
+  trace_owner_summary_swe2: { zh: (req, s2, cov) => `${req} 需求 · ${s2} SWE2 · SWE3 覆蓋 ${cov}%`, en: (req, s2, cov) => `${req} reqs · ${s2} SWE2 · ${cov}% SWE3 coverage` },
   trace_owner_summary: { zh: (req, s1, s2, cov) => `${req} 需求 · ${s1} SWE1 · ${s2} SWE2 · SWE3 覆蓋 ${cov}%`, en: (req, s1, s2, cov) => `${req} reqs · ${s1} SWE1 · ${s2} SWE2 · ${cov}% SWE3 coverage` },
   trace_empty_filter: { zh: '沒有符合條件的資料', en: 'Nothing matches the current filters' },
   refresh_view_run: { zh: '在 GitHub 查看執行紀錄', en: 'View the run on GitHub' },
@@ -6738,6 +6741,10 @@ function renderTraceabilityPanel() {
           <option value="no">${esc(t('trace_filter_confirm_no'))}</option>
           <option value="yes">${esc(t('trace_filter_confirm_yes'))}</option>
         </select>
+        <select id="traceLaneFilter">
+          <option value="swe2" selected>${esc(t('trace_filter_lane_swe2'))}</option>
+          <option value="all">${esc(t('trace_filter_lane_all'))}</option>
+        </select>
         <select id="traceGapFilter">
           <option value="">${esc(t('trace_filter_any'))}</option>
           <option value="gap">${esc(t('trace_filter_gap'))}</option>
@@ -6765,6 +6772,7 @@ function renderTraceabilityPanel() {
   const ownerSel = document.getElementById('traceOwnerFilter');
   ownerSel.dataset.names = JSON.stringify(owners.map(o => o.owner));
   const assigneeSel = document.getElementById('traceAssigneeFilter');
+  const laneSel = document.getElementById('traceLaneFilter');
   const gapSel = document.getElementById('traceGapFilter');
   const confirmSel = document.getElementById('traceConfirmFilter');
   // Absent when no SWE3 pool shipped with this build; renderGroups falls back to its
@@ -6839,6 +6847,10 @@ function renderTraceabilityPanel() {
       byOwner.get(s.owner).push(s);
     });
     const order = owners.map(o => o.owner).filter(o => byOwner.has(o));
+    // SWE1 is the requirement's own ticket; SWE2 is the line this tab exists to chase
+    // (it is the one that needs a SWE3). Hiding SWE1 is the default because it roughly
+    // halves the rows without removing anything the SWE3 gap analysis uses.
+    const showSwe1 = !laneSel || laneSel.value === 'all';
     groupsEl.innerHTML = order.map(owner => {
       const stat = owners.find(o => o.owner === owner);
       const list = byOwner.get(owner);
@@ -6847,7 +6859,9 @@ function renderTraceabilityPanel() {
         <details class="trace-group" data-owner="${esc(owner)}"${open ? ' open' : ''}>
           <summary>
             <span>${esc(owner)}</span>
-            <span class="meta">${esc(t('trace_owner_summary', stat.reqs, stat.s1, stat.s2, stat.pct))}</span>
+            <span class="meta">${esc(showSwe1
+              ? t('trace_owner_summary', stat.reqs, stat.s1, stat.s2, stat.pct)
+              : t('trace_owner_summary_swe2', stat.reqs, stat.s2, stat.pct))}</span>
             <div class="trace-meter"><div style="width:${stat.pct}%"></div></div>
           </summary>
           <div class="trace-reqs">${list.map(s => {
@@ -6864,7 +6878,7 @@ function renderTraceabilityPanel() {
             const away = [
               ...(r.swe1 || []).map(x => ({ lane: 'SWE1', x })),
               ...(r.swe2 || []).map(x => ({ lane: 'SWE2', x })),
-            ].filter(o => !ownKeys.has(o.x.k))
+            ].filter(o => !ownKeys.has(o.x.k) && (showSwe1 || o.lane === 'SWE2'))
              .map(o => ({ lane: o.lane, x: o.x, to: traceEffOwner(o.x, r.owner) }));
             return `
             <div class="trace-req${conf ? ' confirmed' : ''}" data-row="${rid}">
@@ -6879,9 +6893,9 @@ function renderTraceabilityPanel() {
                   <span class="trace-confirm-meta">${conf ? esc(t('trace_confirm_meta', conf.by || '?', (conf.at || '').slice(0, 10))) : ''}</span>
                 </label>
               </div>
-              ${s.swe1.map(x => `
+              ${showSwe1 ? s.swe1.map(x => `
                 <div class="trace-line"><span class="lane">SWE1</span>${traceTicket(x, true)}<span class="trace-title">${esc(x.t)}</span>${traceOwnerChip(x)}</div>
-                ${traceCommentPanel(x.k)}`).join('')}
+                ${traceCommentPanel(x.k)}`).join('') : ''}
               ${vis2.map(x => `
                 <div class="trace-line">
                   <span class="lane">SWE2</span>${traceTicket(x, true)}<span class="trace-title">${esc(x.t)}</span>${traceOwnerChip(x)}
@@ -6927,7 +6941,7 @@ function renderTraceabilityPanel() {
     renderGroups(openOwner);
   }
 
-  [ownerSel, assigneeSel, gapSel, confirmSel, sugThrSel, sugTopSel]
+  [ownerSel, assigneeSel, laneSel, gapSel, confirmSel, sugThrSel, sugTopSel]
     .filter(Boolean).forEach(el => el.addEventListener('change', () => renderGroups()));
   saveBtn.addEventListener('click', () => saveTraceNotes(saveBtn));
   document.getElementById('traceTokenBtn').addEventListener('click', () => { getGithubToken(true); traceUserName(true); });
