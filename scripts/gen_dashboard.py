@@ -1196,8 +1196,8 @@ const STRINGS = {
   fc_lg_arr: { zh: '每週新增(■ 實測 → 情境)', en: 'Arrivals / week (■ measured → scenario)' },
   fc_lg_clo: { zh: '每週消化(■ 實測 → 情境需求)', en: 'Closures / week (■ measured → scenario demand)' },
   fc_lg_forecast: { zh: '情境(斜紋)', en: 'Scenario (hatched)' },
-  fc_lg_back: { zh: '情境回推(對照用,不是預測)', en: 'Scenario back-run (a yardstick, not a forecast)' },
-  fc_backrun_tag: { zh: '回推', en: 'back-run' },
+  fc_lg_target: { zh: '本週情境預測值', en: "This week's scenario target" },
+  fc_target_tag: { zh: n => `情境 ${n}`, en: n => `scenario ${n}` },
   fc_inprogress_tag: { zh: '進行中', en: 'in progress' },
   fc_lg_partial: { zh: '本週進行中(淡色虛框)', en: 'Week in progress (faded, dashed)' },
   fc_tip_carry: { zh: '上週結轉', en: 'Carried from last week' },
@@ -1210,10 +1210,11 @@ const STRINGS = {
   fc_forecast: { zh: '情境', en: 'Scenario' },
 
   fc_tip_nosplit: { zh: '這週的快照沒有記這個維度', en: "This week's snapshot doesn't carry this dimension" },
-  fc_tip_back: { zh: '情境回推', en: 'Scenario back-run' },
+  fc_tip_target: { zh: '本週情境預測', en: "Scenario target for this week" },
   fc_tip_partial_note: { zh: '本週還沒結束,圖上不標這個差距', en: "The week isn't over, so this gap isn't labelled on the chart" },
   fc_tip_gap_more: { zh: '比情境多', en: 'More than the scenario' },
   fc_tip_gap_less: { zh: '比情境少', en: 'Fewer than the scenario' },
+  fc_tip_gap_same: { zh: '和情境打平', en: 'Level with the scenario' },
   fc_tip_gap: { zh: '差距', en: 'Gap' },
   fc_tip_arr_real: { zh: '實測新增', en: 'Measured arrivals' },
   fc_tip_clo_real: { zh: '實測消化', en: 'Measured closures' },
@@ -1233,14 +1234,14 @@ const STRINGS = {
   fc_narr_peak: {
     zh: (wk, n) => `未完成數量會在 <b>${wk}</b> 達到最高 <b>${n}</b> 張,之後下降 — 注意它比新增的高峰晚,因為消化跟不上的那幾週還在累積。`,
     en: (wk, n) => `The backlog peaks at <b>${n}</b> in <b>${wk}</b> and falls after that — later than the arrival peak, because the weeks where closures lag are still piling up.` },
-  fc_narr_back: {
-    zh: (arr, clo, from, n, mae, dir) =>
-      `<b>回推對照</b>:把這個情境的起點條件(新增 ${arr} 張／週、消化 ${clo} 張／週,也就是產能爬坡的 0.6 起點)往回套到 ${from} 起算,在有實際資料的 ${n} 週裡平均差 <b>${mae}</b> 張(柱子旁的紅／綠數字)。${dir}`,
-    en: (arr, clo, from, n, mae, dir) =>
-      `<b>Back-run check</b>: running this scenario's starting conditions (${arr} arriving, ${clo} closing per week — the 0.6 end of the capacity ramp) from ${from} onward misses the measured weeks by <b>${mae}</b> on average across ${n} weeks (the red/green numbers beside the bars). ${dir}` },
-  fc_narr_bias_high: { zh: '回推偏高,代表實際的消化比這組起點條件快。', en: 'The back-run sits high, so the team actually closed faster than those starting conditions.' },
-  fc_narr_bias_low: { zh: '回推偏低,代表實際的消化比這組起點條件慢。', en: 'The back-run sits low, so the team actually closed slower than those starting conditions.' },
-  fc_narr_bias_ok: { zh: '兩邊大致吻合。', en: 'The two line up closely.' },
+  fc_narr_current: {
+    zh: (wk, target, actual, gap, dir) =>
+      `<b>本週對照</b>:這個情境對 <b>${wk}</b> 的預測是 <b>${target}</b> 張,目前實際 <b>${actual}</b> 張 — ${dir}`,
+    en: (wk, target, actual, gap, dir) =>
+      `<b>This week</b>: the scenario expected <b>${target}</b> for <b>${wk}</b>; the measured count so far is <b>${actual}</b> — ${dir}` },
+  fc_narr_behind: { zh: '比計畫<b>多</b>,也就是落後進度(本週還沒結束,數字還會動)。', en: 'that is <b>above</b> plan — behind schedule (the week is not over, so this will still move).' },
+  fc_narr_ahead: { zh: '比計畫<b>少</b>,也就是超前進度(本週還沒結束,數字還會動)。', en: 'that is <b>below</b> plan — ahead of schedule (the week is not over, so this will still move).' },
+  fc_narr_ontrack: { zh: '剛好打平(本週還沒結束,數字還會動)。', en: 'exactly on plan (the week is not over, so this will still move).' },
   fc_narr_mix: {
     zh: d => `情境的柱子依<b>今天</b>的「${d}」比例上色 — 這個模型只推總量,不預測比例怎麼變,所以顏色的佔比是假設不變的。`,
     en: d => `Scenario bars are coloured by <b>today's</b> ${d} mix — the model projects the total only, so the proportions are held constant rather than predicted.` },
@@ -4808,21 +4809,7 @@ function fcScenario(weeks, cut, openNow, startRate, peakIdx, peakRate, zeroIdx) 
   let cur = openNow;
   for (let i = cut + 1; i < n; i++) { cur = Math.max(0, cur + arr[i] - clo[i]); open[i] = cur; }
 
-  // Back-run over the measured weeks, so the actual bars carry the same comparison the
-  // forecast half does. The scenario says nothing about the past, so this states its
-  // own assumption: arrivals at today's rate, throughput at the scenario's STARTING
-  // capacity (the 0.6 end of the ramp). The note under the chart spells that out — it
-  // answers "where would this plan have put us", it is not a fitted model.
-  const back = new Array(n).fill(null);
-  if (weeks.length) {
-    let b = null;
-    for (let i = 0; i <= cut; i++) {
-      if (b === null) { if (weeks[i].open == null) continue; b = weeks[i].open; }
-      else b = Math.max(0, b + startRate - 0.6 * k);
-      back[i] = b;
-    }
-  }
-  return { arr, clo, open, back, backClo: 0.6 * k, work,
+  return { arr, clo, open, work,
            peakClosure: Math.max(...clo), peakOpen: Math.max(0, ...open.filter(v => v != null)) };
 }
 
@@ -4852,16 +4839,23 @@ function renderForecastCard() {
   for (let i = 0; i < 120; i++) {
     allWeeks.push(fcWeekMeta(new Date(firstMonday.getTime() + i * 7 * 86400000)));
   }
-  // The divider sits after the LAST WEEK THAT HAS A SNAPSHOT, not after today's week.
-  // When the nightly job has not run for a few days those are different weeks, and
-  // anchoring on today would leave an empty column between the last real bar and the
-  // first scenario bar. The scenario still starts from the live open count, so a stale
-  // history delays the split, never the starting number.
   const lastMeasuredTag = measured.weeks[measured.weeks.length - 1].tag;
-  const cut = Math.max(0, allWeeks.findIndex(w => w.tag === lastMeasuredTag));
-  // Only the current calendar week is "still running" — an older last snapshot is a
-  // complete week whose number is final, so it gets its delta label like any other.
+  // Only the current calendar week is "still running"; an older last snapshot is a
+  // complete week whose number is final.
   const partialTag = lastMeasuredTag === todayTag ? todayTag : null;
+  // The scenario is anchored on the last COMPLETE week, not on today. That is what makes
+  // a comparison possible at all: anchored on today the forecast would equal the actual
+  // by construction and there would be nothing to be ahead or behind of. So the week in
+  // progress gets both — its measured bar, and the number this plan expected for it.
+  const lastCompleteTag = partialTag
+    ? (measured.weeks.length > 1 ? measured.weeks[measured.weeks.length - 2].tag : lastMeasuredTag)
+    : lastMeasuredTag;
+  const cut = Math.max(0, allWeeks.findIndex(w => w.tag === lastCompleteTag));
+  // The in-progress week sits at cut+1 only when it really is the next week; if history
+  // skipped a week there is nothing honest to compare and the card just forecasts.
+  const currentIdx = (partialTag && allWeeks[cut + 1] && allWeeks[cut + 1].tag === partialTag)
+    ? cut + 1 : -1;
+  const anchorOpen = (measured.weeks.find(w => w.tag === lastCompleteTag) || {}).open ?? openNow;
   const futureIdx = allWeeks.map((w, i) => i).filter(i => i > cut);
 
   // Defaults: the peak at the first ISO week of the NEXT December, and zero by the last
@@ -5036,7 +5030,7 @@ function renderForecastCard() {
     const weeks = allWeeks.slice(0, st.zero + 1);
     const sc = fcScenario(
       weeks.map(w => ({ open: (measured.weeks.find(m => m.tag === w.tag) || {}).open ?? null })),
-      cut, openNow, st.start, st.peak, st.peakRate, st.zero);
+      cut, anchorOpen, st.start, st.peak, st.peakRate, st.zero);
 
     // Today's mix, used to colour the forecast bars. The scenario moves the TOTAL; it
     // says nothing about how the mix shifts, so the proportions are held constant and
@@ -5050,36 +5044,39 @@ function renderForecastCard() {
 
     return weeks.map((wk, i) => {
       const act = measured.weeks.find(m => m.tag === wk.tag);
-      const model = sc.back[i];
+      const segsOf = snap => {
+        const hist = snap[dim.histKey];
+        if (!hist) return null;
+        // Fold the snapshot's own keys into this dimension's buckets, so a coarse split
+        // can reuse a fine-grained snapshot instead of needing its own field.
+        const acc = {};
+        Object.keys(hist).forEach(k => {
+          const key = dim.histBucket ? dim.histBucket(k) : k;
+          acc[key] = (acc[key] || 0) + (hist[k].total - hist[k].done);
+        });
+        return Object.keys(acc)
+          .map(k => ({ key: k, label: dim.labelOf(k), color: dim.colorOf(k), n: acc[k] }))
+          .filter(s => s.n > 0)
+          .sort((a, b) => dim.order.indexOf(a.key) - dim.order.indexOf(b.key));
+      };
+
+      // The week in progress: a measured bar AND the number this plan expected for it.
+      // This is the only week where both exist, and the gap between them is the one
+      // "are we ahead or behind" reading the card can honestly give.
+      if (i === currentIdx && act) {
+        return { wk, kind: 'current', open: act.open, segs: segsOf(act.snap), date: act.date,
+                 partial: true, target: sc.open[i], prevOpen: anchorOpen,
+                 arr: null, clo: null, measuredFlow: false };
+      }
       if (i <= cut) {
-        if (!act) return { wk, kind: 'none', open: null, segs: null, model: null };
-        const hist = act.snap[dim.histKey];
-        let segs = null;
-        if (hist) {
-          // Fold the snapshot's own keys into this dimension's buckets, so a coarse
-          // split can reuse a fine-grained snapshot instead of needing its own field.
-          const acc = {};
-          Object.keys(hist).forEach(k => {
-            const key = dim.histBucket ? dim.histBucket(k) : k;
-            acc[key] = (acc[key] || 0) + (hist[k].total - hist[k].done);
-          });
-          segs = Object.keys(acc)
-            .map(k => ({ key: k, label: dim.labelOf(k), color: dim.colorOf(k), n: acc[k] }))
-            .filter(s => s.n > 0)
-            .sort((a, b) => dim.order.indexOf(a.key) - dim.order.indexOf(b.key));
-        }
-        // The week in progress is deliberately left off the flow lines. Its "weekly"
-        // arrivals and closures are only whatever happened since the last snapshot — a
-        // day or two — so plotting them as a full week's worth drags both lines down to
-        // near zero right at the divider, which reads as the work having stopped.
-        const partial = wk.tag === partialTag;
-        const fl = partial ? null : flowOf(wk.tag);
-        return { wk, kind: 'actual', open: act.open, segs, date: act.date, model, partial,
+        if (!act) return { wk, kind: 'none', open: null, segs: null };
+        const fl = flowOf(wk.tag);
+        return { wk, kind: 'actual', open: act.open, segs: segsOf(act.snap), date: act.date,
                  arr: fl ? fl.added : null, clo: fl ? fl.closed : null, measuredFlow: !!fl };
       }
       const open = sc.open[i];
-      const prevOpen = i === cut + 1 ? openNow : sc.open[i - 1];
-      return { wk, kind: 'forecast', open, model: null, prevOpen,
+      const prevOpen = i === cut + 1 ? anchorOpen : sc.open[i - 1];
+      return { wk, kind: 'forecast', open, prevOpen,
                segs: mixKeys.map(k => ({ key: k, label: dim.labelOf(k), color: dim.colorOf(k),
                                          n: open * (mix[k] / mixTotal) })),
                arr: sc.arr[i], clo: sc.clo[i] };
@@ -5090,7 +5087,7 @@ function renderForecastCard() {
     const rows = buildRows();
     const dim = DIMS[st.dim];
     const sc = fcScenario(rows.map(r => ({ open: r.kind === 'actual' ? r.open : null })),
-                          cut, openNow, st.start, st.peak, st.peakRate, st.zero);
+                          cut, anchorOpen, st.start, st.peak, st.peakRate, st.zero);
 
     const svg = document.getElementById('fcChart');
     const PAD = { t: 18, r: 16, b: 48, l: 40 };
@@ -5166,10 +5163,11 @@ function renderForecastCard() {
         }
       }
 
-      if (row.kind === 'actual' || i % 2 === 0) {
+      const measuredBar = row.kind === 'actual' || row.kind === 'current';
+      if (measuredBar || i % 2 === 0) {
         const lab = svgEl('text', { x: x + BAR_W / 2, y: y(row.open) - 6, 'text-anchor': 'middle',
-          fill: row.kind === 'actual' ? 'var(--text-primary)' : 'var(--muted)',
-          'font-size': 10, 'font-weight': row.kind === 'actual' ? 600 : 400 });
+          fill: measuredBar ? 'var(--text-primary)' : 'var(--muted)',
+          'font-size': 10, 'font-weight': measuredBar ? 600 : 400 });
         lab.textContent = Math.round(row.open);
         svg.appendChild(lab);
       }
@@ -5224,57 +5222,44 @@ function renderForecastCard() {
       });
     });
 
-    // The back-run, on the measured bars only.
-    const backPts = rows.map((r, i) => r.model == null ? null
-      : { x: PAD.l + i * (BAR_W + GAP) + GAP / 2 + BAR_W / 2, y: y(r.model), r }).filter(Boolean);
-    if (backPts.length > 1) {
-      const bd = backPts.map(p => `${p.x},${p.y}`).join(' ');
-      svg.appendChild(svgEl('polyline', { points: bd, fill: 'none', stroke: 'var(--surface-1)',
-        'stroke-width': 5, 'stroke-linecap': 'round', opacity: .9, 'clip-path': 'url(#fcPlotClip)' }));
-      svg.appendChild(svgEl('polyline', { points: bd,
-        fill: 'none', stroke: 'var(--text-primary)', 'stroke-width': 2,
-        'stroke-dasharray': '5 4', opacity: .8, 'clip-path': 'url(#fcPlotClip)' }));
-      backPts.forEach(p => svg.appendChild(svgEl('circle', { cx: p.x, cy: p.y, r: 3,
-        fill: 'var(--surface-1)', stroke: 'var(--text-primary)', 'stroke-width': 1.5, opacity: .85 })));
-      // Named where it ends. This line stops at the divider and the scenario bars start
-      // from the LAST BAR, not from here — without a label the eye carries the line on
-      // into the hatched bars and reads it as the forecast's starting point.
-      {
-        const last = backPts[backPts.length - 1];
-        const tag = svgEl('text', { x: last.x + 7, y: last.y + 3, 'text-anchor': 'start',
-          fill: 'var(--muted)', 'font-size': 9.5 });
-        tag.textContent = t('fc_backrun_tag');
-        svg.appendChild(tag);
+    // The week in progress, against what the plan expected for it. Drawn as a target
+    // rule across the bar plus the gap in plain numbers — the bar is what we have, the
+    // rule is what this scenario asked for, and the distance between them is the point.
+    {
+      const i = rows.findIndex(r => r.kind === 'current');
+      const row = i >= 0 ? rows[i] : null;
+      if (row && row.target != null) {
+        const x = PAD.l + i * (BAR_W + GAP) + GAP / 2;
+        const yT = y(row.target);
+        svg.appendChild(svgEl('line', { x1: x - 5, x2: x + BAR_W + 5, y1: yT, y2: yT,
+          stroke: 'var(--text-primary)', 'stroke-width': 2.5 }));
+        const d = Math.round(row.open) - Math.round(row.target);
+        // Centred over the bar, never hung off its right edge — the next bar starts 10px
+        // away and a side label lands on top of it. It clears whichever of the two marks
+        // sits higher: the target rule, or the bar's own total.
+        const topY = Math.min(yT, y(row.open) - 12);
+        const lab = svgEl('text', { x: x + BAR_W / 2, y: topY - 7, 'text-anchor': 'middle',
+          'font-size': 9.5 });
+        const a1 = svgEl('tspan', { fill: 'var(--text-secondary)' });
+        a1.textContent = t('fc_target_tag', Math.round(row.target)) + ' ';
+        const a2 = svgEl('tspan', { 'font-weight': 700,
+          fill: d > 0 ? 'var(--series-red)' : d < 0 ? 'var(--series-green)' : 'var(--muted)' });
+        a2.textContent = (d > 0 ? '+' : d < 0 ? '−' : '±') + Math.abs(d);
+        lab.appendChild(a1); lab.appendChild(a2);
+        svg.appendChild(lab);
       }
-      // The number is read off the BAR, not the line: it answers "how many more (or
-      // fewer) bugs are actually open than this plan expected". So a back-run sitting
-      // above the bar — the plan expected more than we have — prints as a reduction.
-      //
-      // Centred on its own week, never offset sideways: an offset label drifts over the
-      // NEXT bar and gets read as that week's number. It goes above the dot when the dot
-      // sits above the bar and below it otherwise, which keeps it clear of the bar's own
-      // total either way.
-      backPts.forEach((p, idx) => {
-        if (idx === 0 || p.r.partial) return;        // week 0 is the anchor, by construction
-        const d = Math.round(p.r.open - p.r.model);
-        if (!d) return;
-        const above = p.r.model > p.r.open;
-        const tx = svgEl('text', { x: p.x, y: p.y + (above ? -9 : 15), 'text-anchor': 'middle',
-          fill: d > 0 ? 'var(--series-red)' : 'var(--series-green)', 'font-size': 9.5, 'font-weight': 600 });
-        tx.textContent = (d > 0 ? '+' : '−') + Math.abs(d);
-        svg.appendChild(tx);
-      });
     }
 
     // A short tie from the top of the last measured bar across to the first scenario
     // bar: the scenario is anchored on today's real number, and this is the only mark
     // on the chart that says so.
     {
-      const lastAct = rows[cut], firstFc = rows[cut + 1];
-      if (lastAct && firstFc && lastAct.open != null && firstFc.open != null) {
+      const anchorRow = rows[cut], next = rows[cut + 1];
+      const nextPlan = next && (next.kind === 'current' ? next.target : next.open);
+      if (anchorRow && anchorRow.open != null && nextPlan != null) {
         const x1 = PAD.l + cut * (BAR_W + GAP) + GAP / 2 + BAR_W;
-        const x2 = PAD.l + (cut + 1) * (BAR_W + GAP) + GAP / 2;
-        svg.appendChild(svgEl('line', { x1, x2, y1: y(lastAct.open), y2: y(firstFc.open),
+        const x2 = PAD.l + (cut + 1) * (BAR_W + GAP) + GAP / 2 + (next.kind === 'current' ? -5 : 0);
+        svg.appendChild(svgEl('line', { x1, x2, y1: y(anchorRow.open), y2: y(nextPlan),
           stroke: 'var(--text-secondary)', 'stroke-width': 1.5, opacity: .55 }));
       }
     }
@@ -5314,7 +5299,8 @@ function renderForecastCard() {
       `<span><svg width="22" height="10" style="overflow:visible"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--flow-clo)" stroke-width="2.5"/><rect x="8" y="1.5" width="7" height="7" fill="var(--flow-clo)" stroke="var(--surface-1)" stroke-width="2"/></svg>${esc(t('fc_lg_clo'))}</span>` +
       (rows.some(r => r.partial) ? `<span><i class="fc-sw" style="background:var(--text-secondary);opacity:.45;outline:1px dashed var(--text-secondary);outline-offset:1px"></i>${esc(t('fc_lg_partial'))}</span>` : '') +
       `<span><i class="fc-sw fc-hatch"></i>${esc(t('fc_lg_forecast'))}</span>` +
-      `<span><svg width="22" height="10" style="overflow:visible"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--text-primary)" stroke-width="2" stroke-dasharray="5 4" opacity=".7"/><circle cx="11" cy="5" r="3" fill="var(--surface-1)" stroke="var(--text-primary)" stroke-width="1.5"/></svg>${esc(t('fc_lg_back'))}</span>`;
+      (rows.some(r => r.kind === 'current')
+        ? `<span><svg width="22" height="10"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--text-primary)" stroke-width="2.5"/></svg>${esc(t('fc_lg_target'))}</span>` : '');
   }
 
   function drawTable(rows, dim) {
@@ -5328,8 +5314,8 @@ function renderForecastCard() {
       rows.filter(r => r.kind !== 'none').map(r => {
         const by = {};
         (r.segs || []).forEach(s => { by[s.key] = s.n; });
-        return `<tr><td>${esc(r.wk.tag)}</td><td>${esc(r.kind === 'actual'
-          ? (r.partial ? t('fc_actual_partial') : t('fc_actual')) : t('fc_forecast'))}</td>` +
+        return `<tr><td>${esc(r.wk.tag)}</td><td>${esc(r.kind === 'current' ? t('fc_actual_partial')
+          : r.kind === 'actual' ? t('fc_actual') : t('fc_forecast'))}</td>` +
           order.map(k => `<td>${r.segs ? Math.round(by[k] || 0) : '—'}</td>`).join('') +
           `<td>${Math.round(r.open)}</td></tr>`;
       }).join('') + '</tbody>';
@@ -5340,21 +5326,22 @@ function renderForecastCard() {
       (r.kind === 'forecast' && r.open > (best ? best.open : -1)) ? r : best, null);
     const futureArr = Math.round(sc.arr.reduce((a, b) => a + b, 0));
     const ratio = rateClo > 0 ? (sc.peakClosure / rateClo).toFixed(1) : null;
-    // The first measured week is the back-run's anchor, so counting it as a zero-error
-    // week would flatter the average.
-    const checks = rows.filter((r, i) => i > 0 && r.kind === 'actual' && r.model != null && !r.partial);
-    const mae = checks.length
-      ? (checks.reduce((a, r) => a + Math.abs(r.model - r.open), 0) / checks.length).toFixed(1) : null;
-    const bias = checks.length ? checks.reduce((a, r) => a + (r.model - r.open), 0) / checks.length : 0;
-    const noSplit = rows.some(r => r.kind === 'actual' && !r.segs);
+    const cur = rows.find(r => r.kind === 'current');
+    const noSplit = rows.some(r => (r.kind === 'actual' || r.kind === 'current') && !r.segs);
 
     document.getElementById('fcNarrative').innerHTML =
       t('fc_narr_scenario', st.start, allWeeks[st.peak].tag, st.peakRate, allWeeks[st.zero].tag,
-        Math.round(sc.work), openNow, futureArr) +
+        Math.round(sc.work), Math.round(anchorOpen), futureArr) +
       '<br>' + t('fc_narr_capacity', Math.round(sc.peakClosure), rateClo, ratio) +
       '<br>' + t('fc_narr_peak', peakWeek ? peakWeek.wk.tag : '—', peakWeek ? Math.round(peakWeek.open) : '—') +
-      (mae ? '<br>' + t('fc_narr_back', st.start, Math.round(sc.backClo), rows[0].wk.tag, checks.length, mae,
-        bias > 1.5 ? t('fc_narr_bias_high') : bias < -1.5 ? t('fc_narr_bias_low') : t('fc_narr_bias_ok')) : '') +
+      (cur && cur.target != null
+        ? (() => {
+            const shownTarget = Math.round(cur.target), shownOpen = Math.round(cur.open);
+            const d = shownOpen - shownTarget;
+            return '<br>' + t('fc_narr_current', cur.wk.tag, shownTarget, shownOpen, Math.abs(d),
+              d > 0 ? t('fc_narr_behind') : d < 0 ? t('fc_narr_ahead') : t('fc_narr_ontrack'));
+          })()
+        : '') +
       '<br>' + t('fc_narr_mix', dim.label) +
       (noSplit ? '<br>' + t('fc_narr_nosplit', dim.label) : '');
   }
@@ -5379,20 +5366,21 @@ function fcHideTip() { fcTipEl().style.opacity = 0; }
 function fcShowTip(e, row, dim) {
   const tip = fcTipEl();
   const head = `${esc(row.wk.tag)} <span style="color:var(--muted);font-weight:400">` +
-    (row.kind === 'actual'
-      ? (row.partial ? esc(t('fc_actual_partial')) : esc(t('fc_actual')) + ' · ' + esc(row.date))
+    (row.kind === 'current' ? esc(t('fc_actual_partial')) + ' · ' + esc(row.date)
+      : row.kind === 'actual' ? esc(t('fc_actual')) + ' · ' + esc(row.date)
       : esc(t('fc_forecast'))) + '</span>';
   let body = row.segs && row.segs.length
     ? row.segs.filter(s => s.n > 0.4).map(s =>
         `<div class="r"><span><i class="fc-sw" style="background:${s.color}"></i>${esc(s.label)}</span><b>${Math.round(s.n)}</b></div>`).join('')
     : `<div class="r" style="color:var(--muted)"><span>${esc(t('fc_tip_nosplit'))}</span></div>`;
   let extra = '';
-  if (row.kind === 'actual' && row.model != null) {
-    const d = Math.round(row.open - row.model);
-    extra += `<div class="r"><span>${esc(t('fc_tip_back'))}</span><b>${Math.round(row.model)}</b></div>` +
-      `<div class="r"><span>${esc(d >= 0 ? t('fc_tip_gap_more') : t('fc_tip_gap_less'))}</span>` +
-      `<b style="color:${d > 0 ? 'var(--series-red)' : 'var(--series-green)'}">${d > 0 ? '+' : '−'}${Math.abs(d)}</b></div>` +
-      (row.partial ? `<div class="r" style="color:var(--muted)"><span>${esc(t('fc_tip_partial_note'))}</span></div>` : '');
+  if (row.kind === 'current' && row.target != null) {
+    const d = Math.round(row.open) - Math.round(row.target);
+    extra += `<div class="r"><span>${esc(t('fc_tip_target'))}</span><b>${Math.round(row.target)}</b></div>` +
+      `<div class="r"><span>${esc(d > 0 ? t('fc_tip_gap_more') : d < 0 ? t('fc_tip_gap_less') : t('fc_tip_gap_same'))}</span>` +
+      `<b style="color:${d > 0 ? 'var(--series-red)' : d < 0 ? 'var(--series-green)' : 'var(--muted)'}">` +
+      `${d > 0 ? '+' : d < 0 ? '−' : '±'}${Math.abs(d)}</b></div>` +
+      `<div class="r" style="color:var(--muted)"><span>${esc(t('fc_tip_partial_note'))}</span></div>`;
   }
   if (row.arr != null) {
     extra += (row.kind === 'forecast' && row.prevOpen != null
