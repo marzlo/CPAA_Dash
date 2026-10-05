@@ -1196,7 +1196,9 @@ const STRINGS = {
   fc_lg_arr: { zh: '每週新增(■ 實測 → 情境)', en: 'Arrivals / week (■ measured → scenario)' },
   fc_lg_clo: { zh: '每週消化(■ 實測 → 情境需求)', en: 'Closures / week (■ measured → scenario demand)' },
   fc_lg_forecast: { zh: '情境(斜紋)', en: 'Scenario (hatched)' },
-  fc_lg_back: { zh: '情境回推', en: 'Scenario back-run' },
+  fc_lg_back: { zh: '情境回推(對照用,不是預測)', en: 'Scenario back-run (a yardstick, not a forecast)' },
+  fc_backrun_tag: { zh: '回推', en: 'back-run' },
+  fc_tip_carry: { zh: '上週結轉', en: 'Carried from last week' },
 
   fc_th_week: { zh: '週', en: 'Week' },
   fc_th_kind: { zh: '類型', en: 'Kind' },
@@ -5070,7 +5072,8 @@ function renderForecastCard() {
                  arr: fl ? fl.added : null, clo: fl ? fl.closed : null, measuredFlow: !!fl };
       }
       const open = sc.open[i];
-      return { wk, kind: 'forecast', open, model: null,
+      const prevOpen = i === cut + 1 ? openNow : sc.open[i - 1];
+      return { wk, kind: 'forecast', open, model: null, prevOpen,
                segs: mixKeys.map(k => ({ key: k, label: dim.labelOf(k), color: dim.colorOf(k),
                                          n: open * (mix[k] / mixTotal) })),
                arr: sc.arr[i], clo: sc.clo[i] };
@@ -5206,6 +5209,16 @@ function renderForecastCard() {
         'stroke-dasharray': '5 4', opacity: .8, 'clip-path': 'url(#fcPlotClip)' }));
       backPts.forEach(p => svg.appendChild(svgEl('circle', { cx: p.x, cy: p.y, r: 3,
         fill: 'var(--surface-1)', stroke: 'var(--text-primary)', 'stroke-width': 1.5, opacity: .85 })));
+      // Named where it ends. This line stops at the divider and the scenario bars start
+      // from the LAST BAR, not from here — without a label the eye carries the line on
+      // into the hatched bars and reads it as the forecast's starting point.
+      {
+        const last = backPts[backPts.length - 1];
+        const tag = svgEl('text', { x: last.x + 7, y: last.y + 3, 'text-anchor': 'start',
+          fill: 'var(--muted)', 'font-size': 9.5 });
+        tag.textContent = t('fc_backrun_tag');
+        svg.appendChild(tag);
+      }
       // The number is read off the BAR, not the line: it answers "how many more (or
       // fewer) bugs are actually open than this plan expected". So a back-run sitting
       // above the bar — the plan expected more than we have — prints as a reduction.
@@ -5224,6 +5237,19 @@ function renderForecastCard() {
         tx.textContent = (d > 0 ? '+' : '−') + Math.abs(d);
         svg.appendChild(tx);
       });
+    }
+
+    // A short tie from the top of the last measured bar across to the first scenario
+    // bar: the scenario is anchored on today's real number, and this is the only mark
+    // on the chart that says so.
+    {
+      const lastAct = rows[cut], firstFc = rows[cut + 1];
+      if (lastAct && firstFc && lastAct.open != null && firstFc.open != null) {
+        const x1 = PAD.l + cut * (BAR_W + GAP) + GAP / 2 + BAR_W;
+        const x2 = PAD.l + (cut + 1) * (BAR_W + GAP) + GAP / 2;
+        svg.appendChild(svgEl('line', { x1, x2, y1: y(lastAct.open), y2: y(firstFc.open),
+          stroke: 'var(--text-secondary)', 'stroke-width': 1.5, opacity: .55 }));
+      }
     }
 
     const cutX = PAD.l + (cut + 1) * (BAR_W + GAP);
@@ -5341,8 +5367,10 @@ function fcShowTip(e, row, dim) {
       (row.partial ? `<div class="r" style="color:var(--muted)"><span>${esc(t('fc_tip_partial_note'))}</span></div>` : '');
   }
   if (row.arr != null) {
-    extra += `<div class="r"><span>${esc(row.kind === 'actual' ? t('fc_tip_arr_real') : t('fc_tip_arr_plan'))}</span><b>${Math.round(row.arr)}</b></div>` +
-      `<div class="r"><span>${esc(row.kind === 'actual' ? t('fc_tip_clo_real') : t('fc_tip_clo_plan'))}</span><b>${Math.round(row.clo)}</b></div>`;
+    extra += (row.kind === 'forecast' && row.prevOpen != null
+      ? `<div class="r"><span>${esc(t('fc_tip_carry'))}</span><b>${Math.round(row.prevOpen)}</b></div>` : '') +
+      `<div class="r"><span>${esc(row.kind === 'actual' ? t('fc_tip_arr_real') : t('fc_tip_arr_plan'))}</span><b>+${Math.round(row.arr)}</b></div>` +
+      `<div class="r"><span>${esc(row.kind === 'actual' ? t('fc_tip_clo_real') : t('fc_tip_clo_plan'))}</span><b>−${Math.round(row.clo)}</b></div>`;
   }
   tip.innerHTML = `<h4>${head}</h4>${body}` +
     `<div class="r" style="margin-top:4px;border-top:1px solid var(--grid);padding-top:4px"><span>${esc(t('fc_th_total'))}</span><b>${Math.round(row.open)}</b></div>` + extra;
