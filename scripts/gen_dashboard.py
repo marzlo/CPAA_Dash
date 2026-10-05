@@ -1207,6 +1207,7 @@ const STRINGS = {
 
   fc_tip_nosplit: { zh: '這週的快照沒有記這個維度', en: "This week's snapshot doesn't carry this dimension" },
   fc_tip_back: { zh: '情境回推', en: 'Scenario back-run' },
+  fc_tip_partial_note: { zh: '本週還沒結束,圖上不標這個差距', en: "The week isn't over, so this gap isn't labelled on the chart" },
   fc_tip_gap_more: { zh: '比情境多', en: 'More than the scenario' },
   fc_tip_gap_less: { zh: '比情境少', en: 'Fewer than the scenario' },
   fc_tip_gap: { zh: '差距', en: 'Gap' },
@@ -4847,7 +4848,16 @@ function renderForecastCard() {
   for (let i = 0; i < 120; i++) {
     allWeeks.push(fcWeekMeta(new Date(firstMonday.getTime() + i * 7 * 86400000)));
   }
-  const cut = Math.max(0, allWeeks.findIndex(w => w.tag === todayTag));
+  // The divider sits after the LAST WEEK THAT HAS A SNAPSHOT, not after today's week.
+  // When the nightly job has not run for a few days those are different weeks, and
+  // anchoring on today would leave an empty column between the last real bar and the
+  // first scenario bar. The scenario still starts from the live open count, so a stale
+  // history delays the split, never the starting number.
+  const lastMeasuredTag = measured.weeks[measured.weeks.length - 1].tag;
+  const cut = Math.max(0, allWeeks.findIndex(w => w.tag === lastMeasuredTag));
+  // Only the current calendar week is "still running" — an older last snapshot is a
+  // complete week whose number is final, so it gets its delta label like any other.
+  const partialTag = lastMeasuredTag === todayTag ? todayTag : null;
   const futureIdx = allWeeks.map((w, i) => i).filter(i => i > cut);
 
   // Defaults: the peak at the first ISO week of the NEXT December, and zero by the last
@@ -4875,7 +4885,7 @@ function renderForecastCard() {
 
   // Measured rates: the mean of the complete weeks we have both endpoints for. The
   // current week is still running, so its flow is left out of the average.
-  const doneFlows = measured.flows.filter(f => f.tag !== todayTag);
+  const doneFlows = measured.flows.filter(f => f.tag !== partialTag);
   const meanOf = (xs, k) => (xs.length ? Math.round(xs.reduce((a, f) => a + f[k], 0) / xs.length) : 0);
   const rateArr = meanOf(doneFlows, 'added');
   const rateClo = meanOf(doneFlows, 'closed');
@@ -4900,7 +4910,7 @@ function renderForecastCard() {
 
   if (st.start === null) st.start = BASES.length ? BASES[0].value : 0;
 
-  caption.textContent = t('fc_caption', measured.weeks[0].tag, todayTag, openNow);
+  caption.textContent = t('fc_caption', measured.weeks[0].tag, lastMeasuredTag, openNow);
 
   host.innerHTML = `
     <div class="fc-controls">
@@ -5056,7 +5066,7 @@ function renderForecastCard() {
         }
         const fl = flowOf(wk.tag);
         return { wk, kind: 'actual', open: act.open, segs, date: act.date, model,
-                 partial: wk.tag === todayTag,
+                 partial: wk.tag === partialTag,
                  arr: fl ? fl.added : null, clo: fl ? fl.closed : null, measuredFlow: !!fl };
       }
       const open = sc.open[i];
@@ -5199,11 +5209,17 @@ function renderForecastCard() {
       // The number is read off the BAR, not the line: it answers "how many more (or
       // fewer) bugs are actually open than this plan expected". So a back-run sitting
       // above the bar — the plan expected more than we have — prints as a reduction.
+      //
+      // Centred on its own week, never offset sideways: an offset label drifts over the
+      // NEXT bar and gets read as that week's number. It goes above the dot when the dot
+      // sits above the bar and below it otherwise, which keeps it clear of the bar's own
+      // total either way.
       backPts.forEach((p, idx) => {
         if (idx === 0 || p.r.partial) return;        // week 0 is the anchor, by construction
         const d = Math.round(p.r.open - p.r.model);
         if (!d) return;
-        const tx = svgEl('text', { x: p.x + 8, y: p.y - 6, 'text-anchor': 'start',
+        const above = p.r.model > p.r.open;
+        const tx = svgEl('text', { x: p.x, y: p.y + (above ? -9 : 15), 'text-anchor': 'middle',
           fill: d > 0 ? 'var(--series-red)' : 'var(--series-green)', 'font-size': 9.5, 'font-weight': 600 });
         tx.textContent = (d > 0 ? '+' : '−') + Math.abs(d);
         svg.appendChild(tx);
@@ -5321,7 +5337,8 @@ function fcShowTip(e, row, dim) {
     const d = Math.round(row.open - row.model);
     extra += `<div class="r"><span>${esc(t('fc_tip_back'))}</span><b>${Math.round(row.model)}</b></div>` +
       `<div class="r"><span>${esc(d >= 0 ? t('fc_tip_gap_more') : t('fc_tip_gap_less'))}</span>` +
-      `<b style="color:${d > 0 ? 'var(--series-red)' : 'var(--series-green)'}">${d > 0 ? '+' : '−'}${Math.abs(d)}</b></div>`;
+      `<b style="color:${d > 0 ? 'var(--series-red)' : 'var(--series-green)'}">${d > 0 ? '+' : '−'}${Math.abs(d)}</b></div>` +
+      (row.partial ? `<div class="r" style="color:var(--muted)"><span>${esc(t('fc_tip_partial_note'))}</span></div>` : '');
   }
   if (row.arr != null) {
     extra += `<div class="r"><span>${esc(row.kind === 'actual' ? t('fc_tip_arr_real') : t('fc_tip_arr_plan'))}</span><b>${Math.round(row.arr)}</b></div>` +
