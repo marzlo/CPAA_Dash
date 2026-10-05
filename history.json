@@ -1896,7 +1896,7 @@
    },
    "In Progress": {
     "done": 0,
-    "total": 29
+    "total": 31
    },
    "Monitoring": {
     "done": 3,
@@ -1924,7 +1924,7 @@
    },
    "To Do": {
     "done": 0,
-    "total": 18
+    "total": 16
    }
   },
   "bugs_by_team": {
@@ -1934,11 +1934,11 @@
    },
    "MDT_App": {
     "done": 9,
-    "total": 24
+    "total": 25
    },
    "MDT_PM": {
     "done": 18,
-    "total": 21
+    "total": 20
    },
    "MDT_Sys_QA": {
     "done": 1,
@@ -1950,11 +1950,11 @@
    },
    "TS_CPAA": {
     "done": 165,
-    "total": 196
+    "total": 197
    },
    "TS_FW": {
     "done": 23,
-    "total": 28
+    "total": 27
    },
    "Unassigned": {
     "done": 1,
