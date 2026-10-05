@@ -52,6 +52,17 @@ DATA["bug_notes"] = BUG_NOTES
 # Per-ticket comment threads for the Bug list, keyed by Jira key. Kept in their own
 # file so the nightly rebuild can replace dashboard_data.json without touching
 # anything a human wrote. Saved from the browser via the GitHub Contents API.
+# A frozen scenario: the plan as it stood on the day somebody pressed "freeze", with
+# its per-week numbers written out rather than recomputed. That is what makes it a
+# baseline — changing the model later, or the sliders, cannot move it.
+try:
+    with open("forecast_baseline.json", encoding="utf-8") as f:
+        FORECAST_BASELINE = json.load(f)
+except FileNotFoundError:
+    FORECAST_BASELINE = {"updated_at": None, "updated_by": None, "active": None, "archive": []}
+
+DATA["forecast_baseline"] = FORECAST_BASELINE
+
 try:
     with open("bug_comments.json", encoding="utf-8") as f:
         BUG_COMMENTS = json.load(f)
@@ -985,6 +996,16 @@ const WATCH = RAW.watch || [];
 const TEAM_OVERRIDES = Object.assign({ updated_at: null, updated_by: null, teams: {} },
                                      RAW.team_overrides || {});
 const GITHUB_TEAM_OVERRIDES_PATH = 'team_overrides.json';
+
+// The frozen plan. `active` is the one being tracked against; `archive` keeps every
+// earlier freeze, so re-freezing is a new version rather than destroying the record of
+// what was promised before.
+const FORECAST_BASELINE = Object.assign({ updated_at: null, updated_by: null, active: null, archive: [] },
+                                        RAW.forecast_baseline || {});
+const GITHUB_FORECAST_BASELINE_PATH = 'forecast_baseline.json';
+function forecastBaselineRawUrl() {
+  return `https://raw.githubusercontent.com/${GITHUB_REPO}/main/${GITHUB_FORECAST_BASELINE_PATH}`;
+}
 // Built where it is used, not here: GITHUB_REPO is declared further down the file, and
 // a top-level const cannot read it before that line runs.
 function teamOverridesRawUrl() {
@@ -1052,6 +1073,69 @@ async function commitTeamOverrides(apply) {
     alert(t('trace_save_error', String((err && err.message) || err)));
     return false;
   }
+}
+
+// Freezing writes the plan's NUMBERS, not its parameters, so the recorded baseline
+// stays exactly what was promised even if the model, the sliders or this script change
+// later. The parameters ride along as a record of how it was produced, nothing more.
+async function commitForecastBaseline(entry) {
+  const token = getGithubToken(false);
+  if (!token) { alert(t('fc_freeze_need_token')); return false; }
+  try {
+    const apiBase = `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FORECAST_BASELINE_PATH}`;
+    const getResp = await fetch(apiBase + '?ref=main&t=' + Date.now(),
+      { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+    let sha, remote = {};
+    if (getResp.ok) {
+      const meta = await getResp.json();
+      sha = meta.sha;
+      try { remote = JSON.parse(decodeURIComponent(escape(atob((meta.content || '').replace(/\n/g, ''))))); }
+      catch (e) { remote = {}; }
+    } else if (getResp.status !== 404) {
+      throw new Error('GET ' + getResp.status);
+    }
+    // Whatever was active becomes history. Nothing is ever dropped — the point of a
+    // baseline is that you can still see what you committed to three months ago.
+    const archive = (remote.archive || []).slice();
+    if (remote.active) archive.push(remote.active);
+    const payload = {
+      updated_at: new Date().toISOString(),
+      updated_by: traceUserName(false) || t('notes_meta_unknown'),
+      active: entry,
+      archive,
+    };
+    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+    const putResp = await fetch(apiBase, {
+      method: 'PUT',
+      headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'Freeze forecast baseline via dashboard', content: b64, sha, branch: 'main' }),
+    });
+    if (!putResp.ok) throw new Error('PUT ' + putResp.status + ': ' + (await putResp.text()).slice(0, 200));
+    FORECAST_BASELINE.active = payload.active;
+    FORECAST_BASELINE.archive = payload.archive;
+    FORECAST_BASELINE.updated_at = payload.updated_at;
+    FORECAST_BASELINE.updated_by = payload.updated_by;
+    return true;
+  } catch (err) {
+    alert(t('trace_save_error', String((err && err.message) || err)));
+    return false;
+  }
+}
+
+// Pulled straight from the repo on load, like the other note files, so a freeze made on
+// one machine shows up everywhere without waiting for the nightly rebuild.
+async function refreshForecastBaseline() {
+  try {
+    const resp = await fetch(forecastBaselineRawUrl() + '?t=' + Date.now(), { cache: 'no-store' });
+    if (!resp.ok) return false;
+    const remote = await resp.json();
+    if (!remote || typeof remote !== 'object') return false;
+    FORECAST_BASELINE.active = remote.active || null;
+    FORECAST_BASELINE.archive = remote.archive || [];
+    FORECAST_BASELINE.updated_at = remote.updated_at || null;
+    FORECAST_BASELINE.updated_by = remote.updated_by || null;
+    return true;
+  } catch (e) { return false; }
 }
 
 // The ✎ next to an assignee in the team cards. Opens a picker in place; choosing a team
@@ -1185,6 +1269,7 @@ const STRINGS = {
   fc_basis_label: { zh: '套用實測新增', en: 'Use a measured rate' },
   fc_basis_recent: { zh: n => `近 ${n} 週實測`, en: n => `Last ${n} weeks measured` },
   fc_basis_created: { zh: n => `近 ${n} 週建立`, en: n => `Last ${n} weeks created` },
+  fc_anchor_label: { zh: '情境起算於', en: 'Scenario starts at' },
   fc_peak_label: { zh: '新增高峰落在', en: 'Arrival peak at' },
   fc_peakrate_label: { zh: '高峰時每週新增', en: 'Arrivals per week at the peak' },
   fc_zero_label: { zh: '全部解決於', en: 'All cleared by' },
@@ -1196,6 +1281,36 @@ const STRINGS = {
   fc_lg_arr: { zh: '每週新增(■ 實測 → 情境)', en: 'Arrivals / week (■ measured → scenario)' },
   fc_lg_clo: { zh: '每週消化(■ 實測 → 情境需求)', en: 'Closures / week (■ measured → scenario demand)' },
   fc_lg_forecast: { zh: '情境(斜紋)', en: 'Scenario (hatched)' },
+  fc_freeze: { zh: '凍結為基準', en: 'Freeze as baseline' },
+  fc_freeze_confirm: { zh: (n, from, to) => `把目前的情境凍結成基準線?\n\n會寫入 ${n} 週的預測值(${from} ~ ${to}),存進 repo 的 forecast_baseline.json。\n之後每週的實際值都會和這條線比對,而且不會再隨實際值移動。\n\n舊的基準會保留在 archive 裡,不會被刪掉。`,
+                       en: (n, from, to) => `Freeze the current scenario as the baseline?\n\n${n} weekly values (${from} – ${to}) will be written to forecast_baseline.json in the repo.\nEvery week from then on is measured against this line, and it will not re-anchor.\n\nAny previous baseline is kept in the archive.` },
+  fc_lg_baseline: { zh: '基準線(已凍結)', en: 'Baseline (frozen)' },
+  fc_narr_tracked: {
+    zh: (anchor, n, mae, wk, gap, dir, running, worstWk, worstGap) =>
+      `<b>vs 情境</b>:從 ${anchor} 起算,已有 ${n} 週可以對照,平均差 <b>${mae}</b> 張;` +
+      `最新的 ${wk} ${dir} <b>${gap}</b> 張${running ? '(本週還沒結束)' : ''},偏離最大的是 ${worstWk}(${worstGap})。` +
+      `<br><span style="color:var(--muted)">這些數字會隨上面的滑桿即時重算 — 它在回答「哪組假設貼近現實」,不是承諾追蹤。要固定下來請按「凍結為基準」。</span>`,
+    en: (anchor, n, mae, wk, gap, dir, running, worstWk, worstGap) =>
+      `<b>vs scenario</b>: starting from ${anchor}, ${n} weeks can be compared, off by <b>${mae}</b> on average; ` +
+      `the latest, ${wk}, is <b>${gap}</b> ${dir}${running ? ' (week still running)' : ''}, and the widest was ${worstWk} (${worstGap}).` +
+      `<br><span style="color:var(--muted)">These recompute as you move the sliders above — this answers "which assumptions fit reality", it is not commitment tracking. "Freeze as baseline" fixes it.</span>` },
+  fc_narr_nobaseline: { zh: '目前<b>還沒有凍結基準線</b> — 情境每週會重新對齊到上週實際值,所以只看得到一週的領先/落後,不會累積。按「凍結為基準」就會把這條曲線固定下來開始追蹤。', en: 'No baseline is frozen yet — the scenario re-anchors to last week every week, so only a one-week reading is available and nothing accumulates. "Freeze as baseline" fixes the curve and starts the track record.' },
+  fc_narr_baseline: {
+    zh: (at, by, start, peakWk, peakRate, zeroWk) =>
+      `<b>基準線</b>:凍結於 ${at}(${by});當時的假設是起點 ${start} 張／週、${peakWk} 高峰 ${peakRate} 張／週、${zeroWk} 歸零。這條線不會再動。`,
+    en: (at, by, start, peakWk, peakRate, zeroWk) =>
+      `<b>Baseline</b>: frozen ${at} by ${by}, assuming ${start}/week at the start, a peak of ${peakRate}/week at ${peakWk}, and zero by ${zeroWk}. It does not move again.` },
+  fc_narr_baseline_gap: {
+    zh: (wk, gap, dir, n, worstWk, worstGap, running) =>
+      `<b>vs 基準</b>:${wk} ${dir} <b>${gap}</b> 張${running ? '(本週還沒結束,數字還會動)' : ''};` +
+      `已比對 ${n} 週,偏離最大的是 ${worstWk}(${worstGap})。`,
+    en: (wk, gap, dir, n, worstWk, worstGap, running) =>
+      `<b>vs baseline</b>: ${wk} is <b>${gap}</b> ${dir}${running ? ' (the week is not over, so this will still move)' : ''}; ` +
+      `${n} weeks compared, the widest being ${worstWk} (${worstGap}).` },
+  fc_dir_behind: { zh: '比計畫多', en: 'above plan' },
+  fc_dir_ahead: { zh: '比計畫少', en: 'below plan' },
+  fc_dir_level: { zh: '打平', en: 'level' },
+  fc_freeze_need_token: { zh: '凍結基準線要先填 GitHub token(右上角的鑰匙按鈕)', en: 'Freezing a baseline needs a GitHub token first (the key button, top right)' },
   fc_lg_target: { zh: '本週情境預測值', en: "This week's scenario target" },
   fc_target_tag: { zh: n => `情境 ${n}`, en: n => `scenario ${n}` },
   fc_inprogress_tag: { zh: '進行中', en: 'in progress' },
@@ -4642,6 +4757,8 @@ function renderStatsPanel() {
 
 
   renderForecastCard();
+  // A freeze made elsewhere should show up without waiting for the nightly rebuild.
+  refreshForecastBaseline().then(changed => { if (changed) renderForecastCard(); });
 
   // Restore this viewer's card order (if any) and re-arm dragging — renderStatsPanel
   // rebuilds the panel on every language switch, so both have to run again here.
@@ -4853,12 +4970,21 @@ function renderForecastCard() {
   const lastCompleteTag = partialTag
     ? (measured.weeks.length > 1 ? measured.weeks[measured.weeks.length - 2].tag : lastMeasuredTag)
     : lastMeasuredTag;
-  const cut = Math.max(0, allWeeks.findIndex(w => w.tag === lastCompleteTag));
-  // The in-progress week sits at cut+1 only when it really is the next week; if history
-  // skipped a week there is nothing honest to compare and the card just forecasts.
-  const currentIdx = (partialTag && allWeeks[cut + 1] && allWeeks[cut + 1].tag === partialTag)
-    ? cut + 1 : -1;
-  const anchorOpen = (measured.weeks.find(w => w.tag === lastCompleteTag) || {}).open ?? openNow;
+  // Where the scenario starts. Anchored on the last complete week it forecasts only
+  // forward and compares one week; anchored further back it also runs across weeks we
+  // have already measured, so every one of those bars can be read against it — and
+  // because the curve is recomputed on every change, moving a slider moves all of those
+  // readings at once. That is a fitting tool, not a commitment; the frozen baseline is
+  // the commitment. Only complete weeks can be an anchor: the week in progress has no
+  // final number to start from.
+  const anchorChoices = measured.weeks.filter(w => w.tag !== partialTag).map(w => w.tag);
+  const savedAnchor = anchorChoices.includes(saved.anchor) ? saved.anchor : lastCompleteTag;
+  const anchorTag = savedAnchor;
+  const cut = Math.max(0, allWeeks.findIndex(w => w.tag === anchorTag));
+  const anchorOpen = (measured.weeks.find(w => w.tag === anchorTag) || {}).open ?? openNow;
+  // Every measured week past the anchor is "tracked": it has both a real bar and a
+  // number the scenario expected for it.
+  const trackedTags = new Set(measured.weeks.filter(w => w.tag > anchorTag).map(w => w.tag));
   const futureIdx = allWeeks.map((w, i) => i).filter(i => i > cut);
 
   // Defaults: the peak at the first ISO week of the NEXT December, and zero by the last
@@ -4875,6 +5001,7 @@ function renderForecastCard() {
     return hits.length ? hits[hits.length - 1] : futureIdx[futureIdx.length - 1];
   };
   const st = {
+    anchor: anchorTag,
     dim: DIMS[saved.dim] ? saved.dim : 'status2',
     start: Number.isFinite(saved.start) ? saved.start : null,
     peak: futureIdx.includes(saved.peak) ? saved.peak : defPeak(),
@@ -4931,6 +5058,11 @@ function renderForecastCard() {
           `<button type="button" class="chip" data-fcbasis="${b.key}" title="${esc(b.detail)}">${esc(b.label)} ${b.value}</button>`).join('')}</span>
       </div>` : ''}
       <div class="fc-ctl">
+        <label for="fcAnchor">${esc(t('fc_anchor_label'))}</label>
+        <select id="fcAnchor">${anchorChoices.map(tag =>
+          `<option value="${esc(tag)}"${tag === anchorTag ? ' selected' : ''}>${esc(tag)}</option>`).join('')}</select>
+      </div>
+      <div class="fc-ctl">
         <label for="fcPeak">${esc(t('fc_peak_label'))}</label>
         <select id="fcPeak"></select>
       </div>
@@ -4945,7 +5077,10 @@ function renderForecastCard() {
       </div>
       <div class="fc-ctl">
         <label>&nbsp;</label>
-        <button type="button" class="btn small" id="fcReset">${esc(t('fc_reset'))}</button>
+        <span style="display:flex; gap:6px;">
+          <button type="button" class="btn small" id="fcReset">${esc(t('fc_reset'))}</button>
+          <button type="button" class="btn small" id="fcFreeze">${esc(t('fc_freeze'))}</button>
+        </span>
       </div>
     </div>
     <div class="fc-legend" id="fcLegend"></div>
@@ -5015,9 +5150,46 @@ function renderForecastCard() {
     if (st.zero <= st.peak) st.peak = futureIdx[0];
     commit();
   });
+  document.getElementById('fcAnchor').addEventListener('change', e => {
+    // The anchor decides where the forecast half begins, which changes the week
+    // pickers' option lists too — simplest and safest is a full rebuild of the card.
+    st.anchor = e.target.value;
+    fcSaveSettings(st);
+    renderForecastCard();
+  });
+
+  document.getElementById('fcFreeze').addEventListener('click', async () => {
+    const btn = document.getElementById('fcFreeze');
+    const rows = buildRows();
+    // Write the numbers out week by week. A baseline that stored only the parameters
+    // would silently move the day the model changed, which is the one thing a baseline
+    // must never do.
+    const weeks = {};
+    rows.forEach(r => {
+      if (r.kind === 'forecast') weeks[r.wk.tag] = Math.round(r.open);
+      else if (r.kind === 'current' && r.target != null) weeks[r.wk.tag] = Math.round(r.target);
+    });
+    const entry = {
+      frozen_at: new Date().toISOString(),
+      frozen_by: traceUserName(false) || t('notes_meta_unknown'),
+      anchor_week: allWeeks[cut].tag,
+      anchor_open: Math.round(anchorOpen),
+      params: { start: st.start, peak_week: allWeeks[st.peak].tag, peak_rate: st.peakRate,
+                zero_week: allWeeks[st.zero].tag },
+      weeks,
+    };
+    if (!confirm(t('fc_freeze_confirm', Object.keys(weeks).length,
+                   Object.keys(weeks)[0] || '—', allWeeks[st.zero].tag))) return;
+    btn.disabled = true;
+    const ok = await commitForecastBaseline(entry);
+    btn.disabled = false;
+    if (ok) draw();
+  });
+
   document.getElementById('fcReset').addEventListener('click', () => {
     st.dim = 'status2'; st.start = BASES.length ? BASES[0].value : 0; st.peakRate = 40;
     st.peak = defPeak(); st.zero = defZero(st.peak);
+    if (st.anchor !== lastCompleteTag) { st.anchor = lastCompleteTag; fcSaveSettings(st); renderForecastCard(); return; }
     commit();
   });
 
@@ -5063,13 +5235,14 @@ function renderForecastCard() {
           .sort((a, b) => dim.order.indexOf(a.key) - dim.order.indexOf(b.key));
       };
 
-      // The week in progress: a measured bar AND the number this plan expected for it.
-      // This is the only week where both exist, and the gap between them is the one
-      // "are we ahead or behind" reading the card can honestly give.
-      if (i === currentIdx && act) {
+      // A measured week that sits past the anchor: a real bar AND the number this plan
+      // expected for it. These are the weeks the card can say "ahead or behind" about.
+      if (act && trackedTags.has(wk.tag) && sc.open[i] != null) {
+        const partial = wk.tag === partialTag;
+        const fl = partial ? null : flowOf(wk.tag);
         return { wk, kind: 'current', open: act.open, segs: segsOf(act.snap), date: act.date,
-                 partial: true, target: sc.open[i], prevOpen: anchorOpen,
-                 arr: null, clo: null, measuredFlow: false };
+                 partial, target: sc.open[i], prevOpen: i === cut + 1 ? anchorOpen : sc.open[i - 1],
+                 arr: fl ? fl.added : null, clo: fl ? fl.closed : null, measuredFlow: !!fl };
       }
       if (i <= cut) {
         if (!act) return { wk, kind: 'none', open: null, segs: null };
@@ -5225,12 +5398,71 @@ function renderForecastCard() {
       });
     });
 
-    // The week in progress, against what the plan expected for it. Drawn as a target
-    // rule across the bar plus the gap in plain numbers — the bar is what we have, the
-    // rule is what this scenario asked for, and the distance between them is the point.
-    {
-      const i = rows.findIndex(r => r.kind === 'current');
-      const row = i >= 0 ? rows[i] : null;
+    // The frozen plan. Unlike the live scenario this does not re-anchor each week, so
+    // the distance between it and the bars is the drift since the day it was frozen —
+    // the accumulated track record, not a one-week reading.
+    const base = FORECAST_BASELINE.active;
+    const basePts = [];
+    if (base && base.weeks) {
+      rows.forEach((r, i) => {
+        const v = base.weeks[r.wk.tag];
+        if (v == null) return;
+        basePts.push({ x: PAD.l + i * (BAR_W + GAP) + GAP / 2 + BAR_W / 2, y: y(v), v, r });
+      });
+    }
+    if (basePts.length > 1) {
+      const d = basePts.map(p => `${p.x},${p.y}`).join(' ');
+      svg.appendChild(svgEl('polyline', { points: d, fill: 'none', stroke: 'var(--surface-1)',
+        'stroke-width': 5, 'stroke-linecap': 'round', opacity: .9, 'clip-path': 'url(#fcPlotClip)' }));
+      svg.appendChild(svgEl('polyline', { points: d, fill: 'none', stroke: 'var(--text-primary)',
+        'stroke-width': 2, 'stroke-dasharray': '6 4', opacity: .85, 'clip-path': 'url(#fcPlotClip)' }));
+      // Every measured week carries its own gap against the plan. These do not cancel
+      // out week to week: the bar is a stock, so a gap already contains everything that
+      // drifted before it.
+      basePts.forEach(p => {
+        if (p.r.kind !== 'actual' && p.r.kind !== 'current') return;
+        svg.appendChild(svgEl('circle', { cx: p.x, cy: p.y, r: 2.6,
+          fill: 'var(--surface-1)', stroke: 'var(--text-primary)', 'stroke-width': 1.4 }));
+        const gap = Math.round(p.r.open) - Math.round(p.v);
+        if (!gap) return;
+        const above = p.v > p.r.open;
+        const tx = svgEl('text', { x: p.x, y: p.y + (above ? -8 : 15), 'text-anchor': 'middle',
+          fill: gap > 0 ? 'var(--series-red)' : 'var(--series-green)',
+          'font-size': 9.5, 'font-weight': 700 });
+        tx.textContent = (gap > 0 ? '+' : '−') + Math.abs(gap);
+        svg.appendChild(tx);
+      });
+    }
+
+    // Without a baseline the only comparison available is the week in progress against
+    // the live scenario. Once a baseline exists the line above covers that week too, so
+    // this rule would be a second black mark meaning something different — drop it.
+    const trackedPts = rows.map((r, i) => (r.kind === 'current' && r.target != null)
+      ? { x: PAD.l + i * (BAR_W + GAP) + GAP / 2 + BAR_W / 2, y: y(r.target), r, i } : null).filter(Boolean);
+
+    // More than one measured week past the anchor: draw the plan as a line over those
+    // bars, same language as a frozen baseline. It stops at the divider — past it the
+    // hatched bars already ARE the plan, so continuing the line would just trace them.
+    if (!basePts.length && trackedPts.length > 1) {
+      const d = trackedPts.map(p => `${p.x},${p.y}`).join(' ');
+      svg.appendChild(svgEl('polyline', { points: d, fill: 'none', stroke: 'var(--surface-1)',
+        'stroke-width': 5, 'stroke-linecap': 'round', opacity: .9, 'clip-path': 'url(#fcPlotClip)' }));
+      svg.appendChild(svgEl('polyline', { points: d, fill: 'none', stroke: 'var(--text-primary)',
+        'stroke-width': 2, 'stroke-dasharray': '6 4', opacity: .85, 'clip-path': 'url(#fcPlotClip)' }));
+      trackedPts.forEach(p => {
+        svg.appendChild(svgEl('circle', { cx: p.x, cy: p.y, r: 2.6,
+          fill: 'var(--surface-1)', stroke: 'var(--text-primary)', 'stroke-width': 1.4 }));
+        const gap = Math.round(p.r.open) - Math.round(p.r.target);
+        if (!gap) return;
+        const above = p.r.target > p.r.open;
+        const tx = svgEl('text', { x: p.x, y: p.y + (above ? -8 : 15), 'text-anchor': 'middle',
+          fill: gap > 0 ? 'var(--series-red)' : 'var(--series-green)', 'font-size': 9.5, 'font-weight': 700 });
+        tx.textContent = (gap > 0 ? '+' : '−') + Math.abs(gap);
+        svg.appendChild(tx);
+      });
+    } else if (!basePts.length && trackedPts.length === 1) {
+      const i = trackedPts[0].i;
+      const row = rows[i];
       if (row && row.target != null) {
         const x = PAD.l + i * (BAR_W + GAP) + GAP / 2;
         const yT = y(row.target);
@@ -5270,9 +5502,14 @@ function renderForecastCard() {
     const cutX = PAD.l + (cut + 1) * (BAR_W + GAP);
     svg.appendChild(svgEl('line', { x1: cutX, x2: cutX, y1: PAD.t - 6, y2: y(0),
       stroke: 'var(--muted)', 'stroke-width': 1, 'stroke-dasharray': '3 3' }));
-    const l1 = svgEl('text', { x: cutX - 4, y: PAD.t + 4, 'text-anchor': 'end', fill: 'var(--muted)', 'font-size': 10 });
-    l1.textContent = t('fc_cut_left');
-    svg.appendChild(l1);
+    // With the anchor set to the very first week there is almost nothing left of the
+    // plot to the divider, and this label lands on the y-axis numbers. Drop it rather
+    // than overlap them; the divider itself still reads.
+    if (cutX - PAD.l > 46) {
+      const l1 = svgEl('text', { x: cutX - 4, y: PAD.t + 4, 'text-anchor': 'end', fill: 'var(--muted)', 'font-size': 10 });
+      l1.textContent = t('fc_cut_left');
+      svg.appendChild(l1);
+    }
     const l2 = svgEl('text', { x: cutX + 4, y: PAD.t + 4, fill: 'var(--muted)', 'font-size': 10 });
     l2.textContent = t('fc_cut_right');
     svg.appendChild(l2);
@@ -5302,7 +5539,9 @@ function renderForecastCard() {
       `<span><svg width="22" height="10" style="overflow:visible"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--flow-clo)" stroke-width="2.5"/><rect x="8" y="1.5" width="7" height="7" fill="var(--flow-clo)" stroke="var(--surface-1)" stroke-width="2"/></svg>${esc(t('fc_lg_clo'))}</span>` +
       (rows.some(r => r.partial) ? `<span><i class="fc-sw" style="background:var(--text-secondary);opacity:.45;outline:1px dashed var(--text-secondary);outline-offset:1px"></i>${esc(t('fc_lg_partial'))}</span>` : '') +
       `<span><i class="fc-sw fc-hatch"></i>${esc(t('fc_lg_forecast'))}</span>` +
-      (rows.some(r => r.kind === 'current')
+      (FORECAST_BASELINE.active
+        ? `<span><svg width="22" height="10" style="overflow:visible"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--text-primary)" stroke-width="2" stroke-dasharray="6 4" opacity=".85"/><circle cx="11" cy="5" r="2.6" fill="var(--surface-1)" stroke="var(--text-primary)" stroke-width="1.4"/></svg>${esc(t('fc_lg_baseline'))}</span>`
+        : rows.some(r => r.kind === 'current')
         ? `<span><svg width="22" height="10"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--text-primary)" stroke-width="2.5"/></svg>${esc(t('fc_lg_target'))}</span>` : '');
   }
 
@@ -5317,8 +5556,8 @@ function renderForecastCard() {
       rows.filter(r => r.kind !== 'none').map(r => {
         const by = {};
         (r.segs || []).forEach(s => { by[s.key] = s.n; });
-        return `<tr><td>${esc(r.wk.tag)}</td><td>${esc(r.kind === 'current' ? t('fc_actual_partial')
-          : r.kind === 'actual' ? t('fc_actual') : t('fc_forecast'))}</td>` +
+        return `<tr><td>${esc(r.wk.tag)}</td><td>${esc(r.kind === 'forecast' ? t('fc_forecast')
+          : r.partial ? t('fc_actual_partial') : t('fc_actual'))}</td>` +
           order.map(k => `<td>${r.segs ? Math.round(by[k] || 0) : '—'}</td>`).join('') +
           `<td>${Math.round(r.open)}</td></tr>`;
       }).join('') + '</tbody>';
@@ -5337,12 +5576,40 @@ function renderForecastCard() {
         Math.round(sc.work), Math.round(anchorOpen), futureArr) +
       '<br>' + t('fc_narr_capacity', Math.round(sc.peakClosure), rateClo, ratio) +
       '<br>' + t('fc_narr_peak', peakWeek ? peakWeek.wk.tag : '—', peakWeek ? Math.round(peakWeek.open) : '—') +
-      (cur && cur.target != null
+      (() => {
+        const base = FORECAST_BASELINE.active;
+        if (!base || !base.weeks) return '<br>' + t('fc_narr_nobaseline');
+        const pts = rows.filter(r => (r.kind === 'actual' || r.kind === 'current') && base.weeks[r.wk.tag] != null)
+          .map(r => ({ wk: r.wk.tag, gap: Math.round(r.open) - Math.round(base.weeks[r.wk.tag]) }));
+        const latest = pts[pts.length - 1];
+        const worst = pts.reduce((a, p) => (!a || Math.abs(p.gap) > Math.abs(a.gap)) ? p : a, null);
+        return '<br>' + t('fc_narr_baseline', (base.frozen_at || '').slice(0, 10), base.frozen_by || '?',
+          base.params ? base.params.start : '?', base.params ? base.params.peak_week : '?',
+          base.params ? base.params.peak_rate : '?', base.params ? base.params.zero_week : '?') +
+          (latest ? '<br>' + t('fc_narr_baseline_gap', latest.wk, Math.abs(latest.gap),
+            latest.gap > 0 ? t('fc_dir_behind') : latest.gap < 0 ? t('fc_dir_ahead') : t('fc_dir_level'),
+            pts.length, worst ? worst.wk : '—', worst ? (worst.gap > 0 ? '+' : '−') + Math.abs(worst.gap) : '—',
+            rows.some(r => r.kind === 'current' && r.wk.tag === latest.wk)) : '');
+      })() +
+      (!FORECAST_BASELINE.active
         ? (() => {
-            const shownTarget = Math.round(cur.target), shownOpen = Math.round(cur.open);
-            const d = shownOpen - shownTarget;
-            return '<br>' + t('fc_narr_current', cur.wk.tag, shownTarget, shownOpen, Math.abs(d),
-              d > 0 ? t('fc_narr_behind') : d < 0 ? t('fc_narr_ahead') : t('fc_narr_ontrack'));
+            const tracked = rows.filter(r => r.kind === 'current' && r.target != null)
+              .map(r => ({ wk: r.wk.tag, partial: r.partial,
+                           gap: Math.round(r.open) - Math.round(r.target),
+                           target: Math.round(r.target), open: Math.round(r.open) }));
+            if (!tracked.length) return '';
+            if (tracked.length === 1) {
+              const c = tracked[0], d = c.gap;
+              return '<br>' + t('fc_narr_current', c.wk, c.target, c.open, Math.abs(d),
+                d > 0 ? t('fc_narr_behind') : d < 0 ? t('fc_narr_ahead') : t('fc_narr_ontrack'));
+            }
+            const latest = tracked[tracked.length - 1];
+            const worst = tracked.reduce((a, p) => (!a || Math.abs(p.gap) > Math.abs(a.gap)) ? p : a, null);
+            const mae = (tracked.reduce((a, p) => a + Math.abs(p.gap), 0) / tracked.length).toFixed(1);
+            return '<br>' + t('fc_narr_tracked', allWeeks[cut].tag, tracked.length, mae,
+              latest.wk, Math.abs(latest.gap),
+              latest.gap > 0 ? t('fc_dir_behind') : latest.gap < 0 ? t('fc_dir_ahead') : t('fc_dir_level'),
+              latest.partial, worst.wk, (worst.gap > 0 ? '+' : '−') + Math.abs(worst.gap));
           })()
         : '') +
       '<br>' + t('fc_narr_mix', dim.label) +
@@ -5369,9 +5636,8 @@ function fcHideTip() { fcTipEl().style.opacity = 0; }
 function fcShowTip(e, row, dim) {
   const tip = fcTipEl();
   const head = `${esc(row.wk.tag)} <span style="color:var(--muted);font-weight:400">` +
-    (row.kind === 'current' ? esc(t('fc_actual_partial')) + ' · ' + esc(row.date)
-      : row.kind === 'actual' ? esc(t('fc_actual')) + ' · ' + esc(row.date)
-      : esc(t('fc_forecast'))) + '</span>';
+    (row.kind === 'forecast' ? esc(t('fc_forecast'))
+      : (row.partial ? esc(t('fc_actual_partial')) : esc(t('fc_actual'))) + ' · ' + esc(row.date)) + '</span>';
   let body = row.segs && row.segs.length
     ? row.segs.filter(s => s.n > 0.4).map(s =>
         `<div class="r"><span><i class="fc-sw" style="background:${s.color}"></i>${esc(s.label)}</span><b>${Math.round(s.n)}</b></div>`).join('')
@@ -5383,7 +5649,7 @@ function fcShowTip(e, row, dim) {
       `<div class="r"><span>${esc(d > 0 ? t('fc_tip_gap_more') : d < 0 ? t('fc_tip_gap_less') : t('fc_tip_gap_same'))}</span>` +
       `<b style="color:${d > 0 ? 'var(--series-red)' : d < 0 ? 'var(--series-green)' : 'var(--muted)'}">` +
       `${d > 0 ? '+' : d < 0 ? '−' : '±'}${Math.abs(d)}</b></div>` +
-      `<div class="r" style="color:var(--muted)"><span>${esc(t('fc_tip_partial_note'))}</span></div>`;
+      (row.partial ? `<div class="r" style="color:var(--muted)"><span>${esc(t('fc_tip_partial_note'))}</span></div>` : '');
   }
   if (row.arr != null) {
     extra += (row.kind === 'forecast' && row.prevOpen != null
