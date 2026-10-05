@@ -1198,6 +1198,8 @@ const STRINGS = {
   fc_lg_forecast: { zh: '情境(斜紋)', en: 'Scenario (hatched)' },
   fc_lg_back: { zh: '情境回推(對照用,不是預測)', en: 'Scenario back-run (a yardstick, not a forecast)' },
   fc_backrun_tag: { zh: '回推', en: 'back-run' },
+  fc_inprogress_tag: { zh: '進行中', en: 'in progress' },
+  fc_lg_partial: { zh: '本週進行中(淡色虛框)', en: 'Week in progress (faded, dashed)' },
   fc_tip_carry: { zh: '上週結轉', en: 'Carried from last week' },
 
   fc_th_week: { zh: '週', en: 'Week' },
@@ -5066,9 +5068,13 @@ function renderForecastCard() {
             .filter(s => s.n > 0)
             .sort((a, b) => dim.order.indexOf(a.key) - dim.order.indexOf(b.key));
         }
-        const fl = flowOf(wk.tag);
-        return { wk, kind: 'actual', open: act.open, segs, date: act.date, model,
-                 partial: wk.tag === partialTag,
+        // The week in progress is deliberately left off the flow lines. Its "weekly"
+        // arrivals and closures are only whatever happened since the last snapshot — a
+        // day or two — so plotting them as a full week's worth drags both lines down to
+        // near zero right at the divider, which reads as the work having stopped.
+        const partial = wk.tag === partialTag;
+        const fl = partial ? null : flowOf(wk.tag);
+        return { wk, kind: 'actual', open: act.open, segs, date: act.date, model, partial,
                  arr: fl ? fl.added : null, clo: fl ? fl.closed : null, measuredFlow: !!fl };
       }
       const open = sc.open[i];
@@ -5132,18 +5138,32 @@ function renderForecastCard() {
         row.segs.forEach(s => {
           if (s.n <= 0.01) { acc += s.n; return; }
           const yTop = y(acc + s.n), h = Math.max(1, y(acc) - yTop - SEG_GAP);
-          svg.appendChild(svgEl('rect', { x, y: yTop, width: BAR_W, height: h, rx: 3, fill: s.color }));
+          // The week in progress is drawn faded: it is a real measurement, but of a
+          // week that is only part-way through, so it must not read as a finished one —
+          // least of all when it sits next to a completed week with the same total.
+          svg.appendChild(svgEl('rect', { x, y: yTop, width: BAR_W, height: h, rx: 3,
+            fill: s.color, opacity: row.partial ? .45 : undefined }));
           if (row.kind === 'forecast') {
             svg.appendChild(svgEl('rect', { x, y: yTop, width: BAR_W, height: h, rx: 3, fill: 'url(#fcHatch)' }));
           }
           acc += s.n;
         });
+        if (row.partial) {
+          svg.appendChild(svgEl('rect', { x: x - 1, y: y(row.open) - 1, width: BAR_W + 2,
+            height: Math.max(2, y(0) - y(row.open) + 1), rx: 4, fill: 'none',
+            stroke: 'var(--text-secondary)', 'stroke-width': 1, 'stroke-dasharray': '3 2', opacity: .7 }));
+        }
       } else {
         // This week was snapshotted before the chosen dimension was recorded. One
         // honest grey total beats inventing a split.
         const yTop = y(row.open);
         svg.appendChild(svgEl('rect', { x, y: yTop, width: BAR_W, height: Math.max(1, y(0) - yTop),
-          rx: 3, fill: 'var(--grid)' }));
+          rx: 3, fill: 'var(--grid)', opacity: row.partial ? .5 : undefined }));
+        if (row.partial) {
+          svg.appendChild(svgEl('rect', { x: x - 1, y: yTop - 1, width: BAR_W + 2,
+            height: Math.max(2, y(0) - yTop + 1), rx: 4, fill: 'none',
+            stroke: 'var(--text-secondary)', 'stroke-width': 1, 'stroke-dasharray': '3 2', opacity: .7 }));
+        }
       }
 
       if (row.kind === 'actual' || i % 2 === 0) {
@@ -5155,9 +5175,16 @@ function renderForecastCard() {
       }
 
       const xt = svgEl('text', { x: x + BAR_W / 2, y: H - PAD.b + 15, 'text-anchor': 'middle',
-        fill: 'var(--muted)', 'font-size': 10 });
+        fill: row.partial ? 'var(--text-secondary)' : 'var(--muted)', 'font-size': 10,
+        'font-weight': row.partial ? 600 : 400 });
       xt.textContent = row.wk.short;
       svg.appendChild(xt);
+      if (row.partial) {
+        const tag = svgEl('text', { x: x + BAR_W / 2, y: PAD.t + plotH + 1, 'text-anchor': 'middle',
+          fill: 'var(--text-secondary)', 'font-size': 8.5 });
+        tag.textContent = t('fc_inprogress_tag');
+        svg.appendChild(tag);
+      }
       if (i === 0 || row.wk.month !== rows[i - 1].wk.month) {
         const mt = svgEl('text', { x: x + BAR_W / 2, y: H - PAD.b + 30, 'text-anchor': 'middle',
           fill: 'var(--text-secondary)', 'font-size': 10, 'font-weight': 600 });
@@ -5285,6 +5312,7 @@ function renderForecastCard() {
       `<i class="fc-divider"></i>` +
       `<span><svg width="22" height="10" style="overflow:visible"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--flow-arr)" stroke-width="2.5" stroke-dasharray="5 3"/><rect x="8" y="1.5" width="7" height="7" fill="var(--flow-arr)" stroke="var(--surface-1)" stroke-width="2"/></svg>${esc(t('fc_lg_arr'))}</span>` +
       `<span><svg width="22" height="10" style="overflow:visible"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--flow-clo)" stroke-width="2.5"/><rect x="8" y="1.5" width="7" height="7" fill="var(--flow-clo)" stroke="var(--surface-1)" stroke-width="2"/></svg>${esc(t('fc_lg_clo'))}</span>` +
+      (rows.some(r => r.partial) ? `<span><i class="fc-sw" style="background:var(--text-secondary);opacity:.45;outline:1px dashed var(--text-secondary);outline-offset:1px"></i>${esc(t('fc_lg_partial'))}</span>` : '') +
       `<span><i class="fc-sw fc-hatch"></i>${esc(t('fc_lg_forecast'))}</span>` +
       `<span><svg width="22" height="10" style="overflow:visible"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--text-primary)" stroke-width="2" stroke-dasharray="5 4" opacity=".7"/><circle cx="11" cy="5" r="3" fill="var(--surface-1)" stroke="var(--text-primary)" stroke-width="1.5"/></svg>${esc(t('fc_lg_back'))}</span>`;
   }
