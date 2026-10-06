@@ -3550,6 +3550,75 @@ const AUDIO_GUIDE_HTML = `
 // collapsed by default — this card is reference material, not a daily number.
 const ISSUE_NOTES = [
   {
+    id: 'bench-import-tariff',
+    date: '2026-10-06',
+    title: '認證測試台進口中國:29% 關稅砍不掉,能動的只有發票怎麼開',
+    html: `
+      <p class="issue-lead">認證測試台從美國直送中國,關稅 <b>29%</b>,第一批(1st launch)總成本到 <b>RMB 250K</b>。
+      我們查過繞道:美國 ➔ 台灣 ➔ 中國。<b>行不通</b> —— 關稅看的是<b>原產地</b>,只要原產地是美國,從哪裡中轉都一樣。
+      所以路線不是槓桿,<b>申報價值的拆法</b>才是:同一台機器,發票開「整台總價」和開「零組件個別價值」,稅基差很多。</p>
+
+      <h4>三件已經確認的事</h4>
+      <div class="issue-table-wrap">
+        <table class="issue-table">
+          <thead><tr><th>項目</th><th>現況</th><th>影響</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>關稅稅率</td>
+              <td>美國直送中國,稅率 29%</td>
+              <td>第一批總成本 RMB 250K</td>
+            </tr>
+            <tr>
+              <td>發票開立方式</td>
+              <td>目前標示整台測試台的總價值(total bench value)</td>
+              <td>稅基拉高,關稅跟著高</td>
+            </tr>
+            <tr>
+              <td>轉運路線</td>
+              <td>美國 ➔ 台灣 ➔ 中國<span class="issue-chip stop">已排除</span></td>
+              <td>原產地仍是美國,稅率不變,只多運費</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>海關目前卡在補件</h4>
+      <p>報關類別為<b>試驗台</b>,海關要求補傳隨附單證電子數據,說明商品的<b>結構、功能、原理、完整工作過程</b>,
+      並附客觀的產品資料(產品手冊、含網址的官網商品介紹等)。</p>
+      <ul>
+        <li>海關編號 <code>090220261000072789</code></li>
+        <li>回執號 <code>202600009100507527</code></li>
+      </ul>
+
+      <h4>待辦</h4>
+      <div class="issue-table-wrap">
+        <table class="issue-table">
+          <thead><tr><th>狀態</th><th>事項</th><th>備註</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="issue-chip start">進行中</span></td>
+              <td>補傳海關隨附單證</td>
+              <td>結構／功能／原理說明、完整工作過程表述、產品手冊與官網介紹(含網址)</td>
+            </tr>
+            <tr>
+              <td><span class="issue-chip start">下次發貨</span></td>
+              <td>發票改列零組件個別價值(parts value)</td>
+              <td>取代整台總價(total bench value),目的是降低稅基</td>
+            </tr>
+            <tr>
+              <td><span class="issue-chip stop">已結案</span></td>
+              <td>評估美國 ➔ 台灣 ➔ 中國轉運</td>
+              <td>無法,原產地是美國,中轉不改變稅率</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>下次再遇到同類問題,先確認的順序是:<b>原產地 ➔ 申報品名與稅則 ➔ 發票的拆法</b>。
+      路線和運費是最後才調的,因為它動不到稅率。</p>
+    `,
+  },
+  {
     id: 'carplay-src-placement',
     date: '2026-09-17',
     title: 'CarPlay 採樣率不統一:SRC 放在 Plugin,底層就不用切 Audio Path',
