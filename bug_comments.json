@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-06T02:37:03.095Z",
+  "updated_at": "2026-10-06T02:37:36.161Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -194,6 +194,14 @@
         "text": "NR1LB-151 Harman: RC identified, fix in progress",
         "by": "Leyo",
         "at": "2026-10-06T02:35:59.623Z"
+      }
+    ],
+    "NR1LT-4925": [
+      {
+        "id": "muw2j93s6xj83",
+        "text": "4924/4925 行為一樣，希望Oct 6可以結束",
+        "by": "Leyo",
+        "at": "2026-10-06T02:37:35.320Z"
       }
     ]
   }
