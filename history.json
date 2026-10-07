@@ -2144,7 +2144,7 @@
   "bugs_by_team": {
    "MDI_System": {
     "done": 0,
-    "total": 16
+    "total": 17
    },
    "MDT_App": {
     "done": 9,
@@ -2168,7 +2168,7 @@
    },
    "TS_FW": {
     "done": 25,
-    "total": 28
+    "total": 27
    },
    "Unassigned": {
     "done": 1,
