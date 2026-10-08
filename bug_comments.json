@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-08T02:54:06.338Z",
+  "updated_at": "2026-10-08T02:54:29.862Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -228,6 +228,12 @@
         "text": "同 Root casue\nNR1LT-4177, NR1LT-6756, NR1L-16150, NR1L-13505",
         "by": "Leyo",
         "at": "2026-10-07T02:44:02.686Z"
+      },
+      {
+        "id": "muyy0owejkcof",
+        "text": "建議參考一下舊R1L的機制，看AOSP10 有沒有自動重連機制",
+        "by": "Leyo",
+        "at": "2026-10-08T02:54:29.390Z"
       }
     ],
     "NR1LT-6747": [
