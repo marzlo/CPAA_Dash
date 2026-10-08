@@ -2191,16 +2191,16 @@
  },
  "2026-10-08": {
   "bugs": {
-   "done": 223,
-   "total": 309
+   "done": 221,
+   "total": 310
   },
   "bugs_by_rca": {
    "empty": {
-    "done": 155,
-    "total": 235
+    "done": 154,
+    "total": 236
    },
    "filled": {
-    "done": 68,
+    "done": 67,
     "total": 74
    }
   },
@@ -2210,8 +2210,8 @@
     "total": 20
    },
    "Done": {
-    "done": 192,
-    "total": 192
+    "done": 193,
+    "total": 193
    },
    "Eng build": {
     "done": 1,
@@ -2234,26 +2234,26 @@
     "total": 12
    },
    "Ready for test": {
-    "done": 15,
-    "total": 15
+    "done": 12,
+    "total": 12
    },
    "Reopen": {
     "done": 0,
-    "total": 7
+    "total": 9
    },
    "To Do": {
     "done": 0,
-    "total": 20
+    "total": 21
    }
   },
   "bugs_by_team": {
    "MDI_System": {
     "done": 0,
-    "total": 18
+    "total": 20
    },
    "MDT_App": {
     "done": 9,
-    "total": 24
+    "total": 25
    },
    "MDT_PM": {
     "done": 17,
@@ -2265,11 +2265,11 @@
    },
    "MDT_System": {
     "done": 1,
-    "total": 14
+    "total": 15
    },
    "TS_CPAA": {
-    "done": 171,
-    "total": 198
+    "done": 169,
+    "total": 195
    },
    "TS_FW": {
     "done": 24,
