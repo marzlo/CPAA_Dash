@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-08T02:32:59.785Z",
+  "updated_at": "2026-10-08T02:34:46.269Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -120,6 +120,12 @@
         "text": "R3應該就可以有從debug build拉下來的release",
         "by": "Leyo",
         "at": "2026-09-30T02:37:23.773Z"
+      },
+      {
+        "id": "muyxbbkivu0ae",
+        "text": "R3.1 來驗",
+        "by": "Leyo",
+        "at": "2026-10-08T02:34:45.714Z"
       }
     ],
     "NR1LT-4911": [
