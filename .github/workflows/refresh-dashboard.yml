@@ -5,6 +5,17 @@ on:
     # 每天 UTC 01:00 (台北時間 09:00) 自動抓一次 Jira 最新資料並重新部署
     - cron: '0 1 * * *'
   workflow_dispatch: {}
+  # 推了腳本就重建部署,不用等隔天的排程。
+  # paths 只列產生 dashboard 的東西,刻意不含 history.json 與各個 *_notes.json:
+  #   - history.json 是這個 workflow 自己 commit 回來的,監聽它會無限觸發自己
+  #   - team_overrides / bug_comments / traceability_notes / forecast_baseline
+  #     是頁面上直接存回 repo 的,而且頁面在執行期就會自己去 raw 讀最新版,
+  #     不需要重建;監聽它們會讓每留一則言就跑一次完整的 Jira 抓取
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/**'
+      - '.github/workflows/refresh-dashboard.yml'
 
 permissions:
   contents: write
