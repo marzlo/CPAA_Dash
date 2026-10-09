@@ -269,6 +269,31 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     padding: 6px 10px; font-size: 13px; color: var(--text-primary);
   }
   .table-wrap { max-height: 480px; overflow: auto; }
+  /* A save control that comes to you. The Traceability list is hundreds of rows long,
+     so a button that only lives at the top means editing a row near the bottom and then
+     scrolling back up — which is exactly the step people forget. */
+  .trace-savebar {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: 20px; z-index: 50;
+    display: flex; align-items: center; gap: 12px;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 999px;
+    padding: 8px 10px 8px 18px; box-shadow: 0 6px 24px rgba(0,0,0,.18);
+    font-size: 13px; color: var(--text-primary);
+  }
+  .trace-savebar[hidden] { display: none; }
+  .trace-savebar .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--warning, #eda100);
+    display: inline-block; flex-shrink: 0;
+  }
+  .trace-savebar .btn { white-space: nowrap; }
+  @media (max-width: 560px) { .trace-savebar { left: 12px; right: 12px; transform: none; justify-content: space-between; } }
+  /* Rows carrying an edit that is not in the repo yet. */
+  .trace-req.dirty { box-shadow: inset 3px 0 0 0 var(--warning, #eda100); }
+  .trace-dirty-tag {
+    font-size: 11px; color: #8a6200; background: color-mix(in srgb, var(--warning, #eda100) 20%, transparent);
+    border-radius: 4px; padding: 1px 7px; margin-left: 8px; white-space: nowrap;
+  }
+
   /* --- Forecast card ----------------------------------------------------------- */
   .fc-controls { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 14px; }
   .fc-ctl { display: flex; flex-direction: column; gap: 5px; }
@@ -1569,6 +1594,11 @@ const STRINGS = {
   trace_sug_caption: { zh: n => `已連結 SWE3 的 SWE2 不再給建議;其餘的會從 ${n} 張 SWE3 候選票裡,依標題相似度排序列出可能對應的票(點開才展開)。比對是每次開啟頁面時在瀏覽器裡即時算的`,
                        en: n => `A SWE2 that already has a SWE3 gets no suggestions; the rest are matched by title against ${n} SWE3 candidates, best first, collapsed until you open one. The matching runs in your browser on every page load` },
   trace_no_swe2: { zh: '此需求沒有對應的 SWE2 票', en: 'no SWE2 ticket for this requirement' },
+  trace_savebar_text: { zh: n => `有 ${n} 筆修改還沒存`, en: n => `${n} unsaved change${n === 1 ? '' : 's'}` },
+  trace_dirty_tag: { zh: '未儲存', en: 'unsaved' },
+  trace_discard: { zh: '捨棄', en: 'Discard' },
+  trace_discard_confirm: { zh: n => `捨棄這 ${n} 筆還沒儲存的修改?\n會重新讀取 repo 上的版本,改過的內容會消失。`,
+                           en: n => `Discard these ${n} unsaved change(s)?\nThe version in the repo will be re-read and your edits will be gone.` },
   trace_filter_lane_swe2: { zh: '只顯示 SWE2', en: 'SWE2 only' },
   trace_filter_lane_all: { zh: 'SWE1 + SWE2', en: 'SWE1 + SWE2' },
   trace_owner_summary_swe2: { zh: (req, s2, cov) => `${req} 需求 · ${s2} SWE2 · SWE3 覆蓋 ${cov}%`, en: (req, s2, cov) => `${req} reqs · ${s2} SWE2 · ${cov}% SWE3 coverage` },
@@ -6849,6 +6879,11 @@ function mergeTraceNotes(remote) {
   return out;
 }
 
+// renderTraceabilityPanel owns the save bar and the row markers, but the save itself
+// lives out here. This hook lets the save clear them the instant the commit lands,
+// instead of leaving "unsaved" on screen until the panel re-renders.
+let traceSaveStateHook = null;
+
 async function saveTraceNotes(btn) {
   const token = getGithubToken(false);
   if (!token) return;
@@ -6887,6 +6922,7 @@ async function saveTraceNotes(btn) {
     TRACE_NOTES.owners = payload.owners;
     TRACE_NOTES.updated_at = payload.updated_at;
     TRACE_NOTES.updated_by = payload.updated_by;
+    if (traceSaveStateHook) traceSaveStateHook();
     btn.textContent = t('trace_saved');
     setTimeout(() => renderTraceabilityPanel(), 900);
   } catch (err) {
@@ -7102,6 +7138,12 @@ function renderTraceabilityPanel() {
       ${SWE3_POOL.length ? `<p class="caption">${esc(t('trace_sug_caption', SWE3_POOL.length))}</p>` : ''}
       <div id="traceGroups"></div>
     </section>
+    <div class="trace-savebar" id="traceSaveBar" hidden>
+      <span class="dot"></span>
+      <span id="traceSaveBarText"></span>
+      <button type="button" class="btn primary" id="traceSaveBarBtn"></button>
+      <button type="button" class="btn small" id="traceDiscardBtn"></button>
+    </div>
   `;
 
   const ownerSel = document.getElementById('traceOwnerFilter');
@@ -7117,11 +7159,57 @@ function renderTraceabilityPanel() {
   const saveBtn = document.getElementById('traceSaveBtn');
   const metaEl = document.getElementById('traceNotesMeta');
 
+  const saveBar = document.getElementById('traceSaveBar');
+  const saveBarBtn = document.getElementById('traceSaveBarBtn');
+  const saveBarText = document.getElementById('traceSaveBarText');
+  const discardBtn = document.getElementById('traceDiscardBtn');
+
+  // Which requirement rows hold an edit that is not in the repo yet. Keyed by row id so
+  // the marker survives the group list being re-rendered by a filter change.
+  function traceDirtyRows() {
+    const dirty = new Set(Object.keys(tracePending.confirmed));
+    const keys = new Set([...Object.keys(tracePending.owners),
+                          ...Object.keys(tracePending.comments)]);
+    if (keys.size) {
+      rows.forEach(r => {
+        const rid = traceRowId(r);
+        const mine = [...(r.swe1 || []), ...(r.swe2 || [])].map(x => x.k);
+        if (mine.some(k => keys.has(k))) dirty.add(rid);
+      });
+    }
+    return dirty;
+  }
+
+  function markDirtyRows() {
+    const dirty = traceDirtyRows();
+    groupsEl.querySelectorAll('.trace-req').forEach(el => {
+      const on = dirty.has(el.dataset.row);
+      el.classList.toggle('dirty', on);
+      const head = el.querySelector('.trace-req-head');
+      let tag = head && head.querySelector('.trace-dirty-tag');
+      if (on && head && !tag) {
+        tag = document.createElement('span');
+        tag.className = 'trace-dirty-tag';
+        tag.textContent = t('trace_dirty_tag');
+        head.querySelector('.rmeta').after(tag);
+      } else if (!on && tag) {
+        tag.remove();
+      }
+    });
+  }
+
   function refreshSaveState() {
     const n = tracePendingCount();
     saveBtn.hidden = n === 0;
     saveBtn.disabled = false;
     saveBtn.textContent = t('trace_save_button', n);
+    saveBar.hidden = n === 0;
+    saveBarText.textContent = t('trace_savebar_text', n);
+    saveBarBtn.textContent = t('trace_save_button', n);
+    saveBarBtn.disabled = false;
+    discardBtn.textContent = t('trace_discard');
+    markDirtyRows();
+    traceSaveStateHook = refreshSaveState;
     const overrides = Object.entries(TRACE_NOTES.owners || {});
     const jiraOf = new Map();
     rows.forEach(r => [...(r.swe1 || []), ...(r.swe2 || [])].forEach(x => jiraOf.set(x.k, x.a || '')));
@@ -7277,10 +7365,27 @@ function renderTraceabilityPanel() {
   }
 
   [ownerSel, assigneeSel, laneSel, gapSel, confirmSel, sugThrSel, sugTopSel]
-    .filter(Boolean).forEach(el => el.addEventListener('change', () => renderGroups()));
+    .filter(Boolean).forEach(el => el.addEventListener('change', () => { renderGroups(); markDirtyRows(); }));
   saveBtn.addEventListener('click', () => saveTraceNotes(saveBtn));
+  saveBarBtn.addEventListener('click', () => saveTraceNotes(saveBarBtn));
+  discardBtn.addEventListener('click', () => {
+    if (!confirm(t('trace_discard_confirm', tracePendingCount()))) return;
+    // The in-memory notes were updated optimistically when each edit was made, so the
+    // only honest way to drop them is to re-read the file and rebuild from it.
+    tracePending.confirmed = {}; tracePending.owners = {}; tracePending.comments = {};
+    refreshTraceNotesFromGithub(() => { refreshSaveState(); refreshOwnerStats(); });
+  });
+
+  // The real cause of lost work: editing a row, not scrolling back up, and reloading.
+  // The browser's own prompt is the only thing that can interrupt that.
+  window.addEventListener('beforeunload', e => {
+    if (!tracePendingCount()) return;
+    e.preventDefault();
+    e.returnValue = '';
+    return '';
+  });
   document.getElementById('traceTokenBtn').addEventListener('click', () => { getGithubToken(true); traceUserName(true); });
-  search.addEventListener('input', () => renderGroups());
+  search.addEventListener('input', () => { renderGroups(); markDirtyRows(); });
 
   // Delegated: the group list is re-rendered whenever a filter changes, so handlers
   // live on the container rather than on each row.
