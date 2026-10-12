@@ -305,6 +305,24 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     border-radius: 6px; padding: 5px 8px; font-size: 13px;
   }
   .fc-val { font-size: 12px; color: var(--muted); }
+  /* Its own ink token rather than the #8a6200 the older chips hardcode, so the
+     badge keeps its contrast in dark mode instead of going muddy. */
+  .fc-anchor-badge {
+    --fc-badge-ink: #7a5600;
+    margin-left: 10px; vertical-align: middle;
+    font: inherit; font-size: 12px; font-weight: 500; line-height: 1.4;
+    padding: 2px 9px; border-radius: 999px; cursor: pointer;
+    color: var(--fc-badge-ink);
+    background: color-mix(in srgb, var(--warning) 20%, transparent);
+    border: 1px solid color-mix(in srgb, var(--warning) 55%, transparent);
+  }
+  .fc-anchor-badge:hover { background: color-mix(in srgb, var(--warning) 32%, transparent); }
+  .fc-anchor-badge:focus-visible { outline: 2px solid var(--warning); outline-offset: 2px; }
+  .fc-anchor-badge::after { content: ' \2715'; opacity: 0.55; }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .fc-anchor-badge { --fc-badge-ink: #f2c75c; }
+  }
+  :root[data-theme="dark"] .fc-anchor-badge { --fc-badge-ink: #f2c75c; }
   .fc-legend { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; font-size: 12px;
                color: var(--text-secondary); margin-bottom: 10px; }
   .fc-legend span { display: inline-flex; gap: 6px; align-items: center; }
@@ -1299,6 +1317,13 @@ const STRINGS = {
   fc_peakrate_label: { zh: '高峰時每週新增', en: 'Arrivals per week at the peak' },
   fc_zero_label: { zh: '全部解決於', en: 'All cleared by' },
   fc_reset: { zh: '回預設', en: 'Reset' },
+  // Shown next to the card heading only while the anchor week is NOT the default
+  // (the last complete week).  The anchor lives in localStorage, so it is per
+  // browser: without this badge the same dashboard quietly shows different
+  // numbers in Chrome and Edge and nothing on screen says why.
+  fc_anchor_badge: { zh: tag => `基準:${tag}(非預設)`, en: tag => `Baseline: ${tag} (not default)` },
+  fc_anchor_badge_title: { zh: tag => `情境是從你自己選的週起算的,不是預設的最後一個完整週(${tag})。點一下回到預設。`,
+                           en: tag => `The scenario starts at a week you picked, not the default last complete week (${tag}). Click to reset.` },
   fc_per_week: { zh: n => `${n} 張／週`, en: n => `${n} / week` },
 
   fc_cut_left: { zh: '實際 ←', en: 'actual ←' },
@@ -4651,7 +4676,7 @@ function renderStatsPanel() {
       <div id="bugInflowChartWrap"></div>
     </section>
     <section class="card" data-card="forecast">
-      <h2>${esc(t('fc_heading'))}</h2>
+      <h2>${esc(t('fc_heading'))}<button type="button" class="fc-anchor-badge" id="fcAnchorBadge" hidden></button></h2>
       <p class="caption" id="fcCaption"></p>
       <div id="fcBody"></div>
     </section>
@@ -5138,6 +5163,24 @@ function renderForecastCard() {
   if (st.start === null) st.start = BASES.length ? BASES[0].value : 0;
 
   caption.textContent = t('fc_caption', measured.weeks[0].tag, lastMeasuredTag, openNow);
+
+  // The anchor week sticks in localStorage, so it survives reloads and differs from
+  // browser to browser.  Say so on the card whenever it is not the default, and make
+  // the badge itself the way back.
+  const anchorBadge = document.getElementById('fcAnchorBadge');
+  if (anchorBadge) {
+    const anchorIsDefault = anchorTag === lastCompleteTag;
+    anchorBadge.hidden = anchorIsDefault;
+    if (!anchorIsDefault) {
+      anchorBadge.textContent = t('fc_anchor_badge', anchorTag);
+      anchorBadge.title = t('fc_anchor_badge_title', lastCompleteTag);
+    }
+    anchorBadge.onclick = () => {
+      st.anchor = lastCompleteTag;
+      fcSaveSettings(st);
+      renderForecastCard();
+    };
+  }
 
   host.innerHTML = `
     <div class="fc-controls">
