@@ -99,8 +99,11 @@ def fetch_issues(keys, headers):
     url = f"https://{JIRA_SITE}/rest/api/3/search/jql"
     out = {}
     keys = sorted(set(keys))
+    failed_chunks = 0
+    total_chunks = 0
     for i in range(0, len(keys), BATCH):
         chunk = keys[i:i + BATCH]
+        total_chunks += 1
         jql = "key in ({})".format(",".join(chunk))
         next_token = None
         while True:
@@ -108,7 +111,18 @@ def fetch_issues(keys, headers):
                     "fields": ["summary", "status", "assignee", "issuelinks"]}
             if next_token:
                 body["nextPageToken"] = next_token
-            data = post(url, body, headers)
+            # One bad batch (a key whose project was archived, a permission change,
+            # a malformed key) used to abort the whole daily build.  Skip it, say
+            # loudly which keys were in it, and carry on; the guard below still
+            # fails the build if a large share of the batches break.
+            try:
+                data = post(url, body, headers)
+            except RuntimeError as e:
+                failed_chunks += 1
+                print(f"  WARNING: batch {i}-{i + len(chunk) - 1} failed, skipping it", flush=True)
+                print(f"           keys: {', '.join(chunk)}", flush=True)
+                print(f"           {e}", flush=True)
+                break
             for issue in data.get("issues", []):
                 f = issue.get("fields", {})
                 status = f.get("status") or {}
@@ -138,6 +152,10 @@ def fetch_issues(keys, headers):
             if not next_token:
                 break
         print(f"  fetched {min(i + BATCH, len(keys))}/{len(keys)} issues", flush=True)
+    if failed_chunks and failed_chunks * 3 >= total_chunks:
+        raise RuntimeError(
+            f"{failed_chunks} of {total_chunks} Jira batches failed — too many to "
+            "publish a trustworthy traceability.json; see the warnings above.")
     missing = [k for k in keys if k not in out]
     if missing:
         print(f"  WARNING: {len(missing)} key(s) not found in Jira: {', '.join(missing[:10])}"
