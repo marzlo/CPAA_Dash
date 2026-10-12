@@ -9,6 +9,15 @@ git add -A
 echo Committing...
 git commit -m "Update dashboard (%date% %time%)"
 
+echo Catching up with GitHub (the daily workflow commits history.json itself)...
+git pull --rebase
+if errorlevel 1 (
+  echo.
+  echo *** The rebase stopped. Tell Claude what this window says before continuing.
+  pause
+  exit /b 1
+)
+
 echo Pushing to GitHub...
 git push
 
