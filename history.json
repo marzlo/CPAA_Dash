@@ -2697,7 +2697,7 @@
    },
    "MDT_System": {
     "done": 2,
-    "total": 11
+    "total": 12
    },
    "TS_CPAA": {
     "done": 181,
@@ -2706,10 +2706,6 @@
    "TS_FW": {
     "done": 24,
     "total": 29
-   },
-   "Unknown": {
-    "done": 0,
-    "total": 1
    }
   },
   "date": "2026-10-13",
