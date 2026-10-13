@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-08T02:56:10.115Z",
+  "updated_at": "2026-10-13T03:01:06.049Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -182,6 +182,12 @@
         "text": "10/7 找Nick看 Vehicle setting",
         "by": "Leyo",
         "at": "2026-10-07T02:57:49.796Z"
+      },
+      {
+        "id": "mv63gftoz6qi1",
+        "text": "10/13 要找更底層的framework來找問題",
+        "by": "Leyo",
+        "at": "2026-10-13T03:01:05.436Z"
       }
     ],
     "NR1LT-5623": [
