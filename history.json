@@ -2624,12 +2624,12 @@
  "2026-10-13": {
   "bugs": {
    "done": 240,
-   "total": 329
+   "total": 330
   },
   "bugs_by_rca": {
    "empty": {
     "done": 153,
-    "total": 233
+    "total": 234
    },
    "filled": {
     "done": 87,
@@ -2657,6 +2657,10 @@
     "done": 3,
     "total": 3
    },
+   "Need info": {
+    "done": 0,
+    "total": 1
+   },
    "Non-issue": {
     "done": 12,
     "total": 12
@@ -2671,11 +2675,11 @@
    },
    "Reopen": {
     "done": 0,
-    "total": 8
+    "total": 7
    },
    "To Do": {
     "done": 0,
-    "total": 29
+    "total": 30
    }
   },
   "bugs_by_team": {
@@ -2706,6 +2710,10 @@
    "TS_FW": {
     "done": 24,
     "total": 29
+   },
+   "Unassigned": {
+    "done": 0,
+    "total": 1
    }
   },
   "date": "2026-10-13",
