@@ -109,6 +109,12 @@ TEAM_MAP = {
     'JosephWDLee': 'MDT_PM',
     'KaiYKHuang(黃鈺凱)': 'MDT_Sys_QA',
     'sivaramkrishna': 'MDI_System',
+
+    # Added per user confirmation (2026-10-13). The bare-ASCII spelling is listed
+    # alongside it up front, because several people in this map had to be added twice
+    # after an export turned up without the Chinese name and dropped them into Unknown.
+    'AndreaHuang(黃麗蓉)': 'MDT_System',
+    'AndreaHuang': 'MDT_System',
 }
 
 # Per-assignee team corrections made from the dashboard itself and committed back to
