@@ -2732,17 +2732,17 @@
  },
  "2026-10-14": {
   "bugs": {
-   "done": 240,
+   "done": 242,
    "total": 333
   },
   "bugs_by_rca": {
    "empty": {
     "done": 153,
-    "total": 237
+    "total": 235
    },
    "filled": {
-    "done": 87,
-    "total": 96
+    "done": 89,
+    "total": 98
    }
   },
   "bugs_by_status": {
@@ -2760,7 +2760,7 @@
    },
    "In Progress": {
     "done": 0,
-    "total": 38
+    "total": 36
    },
    "Monitoring": {
     "done": 3,
@@ -2779,8 +2779,8 @@
     "total": 2
    },
    "Ready for test": {
-    "done": 3,
-    "total": 3
+    "done": 5,
+    "total": 5
    },
    "Reopen": {
     "done": 0,
@@ -2810,15 +2810,15 @@
    },
    "MDT_System": {
     "done": 2,
-    "total": 12
+    "total": 10
    },
    "TS_CPAA": {
-    "done": 182,
-    "total": 199
+    "done": 183,
+    "total": 200
    },
    "TS_FW": {
-    "done": 24,
-    "total": 29
+    "done": 25,
+    "total": 30
    }
   },
   "date": "2026-10-14",
