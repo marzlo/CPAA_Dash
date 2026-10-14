@@ -2733,12 +2733,12 @@
  "2026-10-14": {
   "bugs": {
    "done": 240,
-   "total": 332
+   "total": 333
   },
   "bugs_by_rca": {
    "empty": {
     "done": 153,
-    "total": 236
+    "total": 237
    },
    "filled": {
     "done": 87,
@@ -2788,13 +2788,13 @@
    },
    "To Do": {
     "done": 0,
-    "total": 28
+    "total": 29
    }
   },
   "bugs_by_team": {
    "MDI_System": {
     "done": 0,
-    "total": 30
+    "total": 31
    },
    "MDT_App": {
     "done": 11,
