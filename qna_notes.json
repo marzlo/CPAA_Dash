@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-15T07:17:15.024Z",
+  "updated_at": "2026-10-15T07:50:18.665Z",
   "updated_by": "Leyo",
   "status": {},
   "comments": {
@@ -17,6 +17,14 @@
         "text": "會去跟STLA Daniel confirm",
         "by": "Leyo",
         "at": "2026-10-15T07:17:13.937Z"
+      }
+    ],
+    "NR1LT-6670": [
+      {
+        "id": "mv98o2b06ocao",
+        "text": "MDI update polarion",
+        "by": "Leyo",
+        "at": "2026-10-15T07:50:17.772Z"
       }
     ]
   }
