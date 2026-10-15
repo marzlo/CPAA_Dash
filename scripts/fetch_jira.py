@@ -37,7 +37,7 @@ SEVERITY_FIELD_ID = "customfield_10230"
 RCA_FIELD_ID = "customfield_10985"
 RCA_MAX_CHARS = 300
 FIELDS = ["issuetype", "summary", "status", "assignee", "labels", "priority", SEVERITY_FIELD_ID,
-          RCA_FIELD_ID, "created", "issuelinks"]
+          RCA_FIELD_ID, "created", "updated", "reporter", "issuelinks"]
 
 
 def adf_text(node):
@@ -140,6 +140,7 @@ def main():
         labels = f.get("labels") or []
         max_labels = max(max_labels, len(labels))
         assignee = f.get("assignee") or {}
+        reporter = f.get("reporter") or {}
         priority = f.get("priority") or {}
         severity = f.get(SEVERITY_FIELD_ID)
         if isinstance(severity, dict):
@@ -152,6 +153,11 @@ def main():
             "Issue key": issue.get("key", ""),
             "Summary": f.get("summary") or "",
             "Assignee": assignee.get("displayName", ""),
+            # Who raised the ticket, and when it last moved. The Bug pipeline does not
+            # use either, but the Q&A tab is about questions waiting on an answer, so
+            # it needs to know who is waiting and whether anything has happened since.
+            "Reporter": reporter.get("displayName", ""),
+            "Updated": f.get("updated") or "",
             "Status": (f.get("status") or {}).get("name", ""),
             "Custom field (Severity)": severity_value,
             "Priority": priority.get("name", ""),
@@ -167,8 +173,8 @@ def main():
     header = (
         ["Issue Type", "Issue key", "Summary"]
         + ["Labels"] * max_labels
-        + ["Assignee", "Status", "Custom field (Severity)", "Priority", "Created", "Linked Issues",
-           "Custom field (Root Cause Analysis)"]
+        + ["Assignee", "Reporter", "Status", "Custom field (Severity)", "Priority", "Created",
+           "Updated", "Linked Issues", "Custom field (Root Cause Analysis)"]
     )
 
     with open(OUT_CSV, "w", newline="", encoding="utf-8-sig") as f:
@@ -180,8 +186,8 @@ def main():
             writer.writerow([
                 row["Issue Type"], row["Issue key"], row["Summary"],
                 *label_cells,
-                row["Assignee"], row["Status"], row["Custom field (Severity)"],
-                row["Priority"], row["Created"], row["Linked Issues"],
+                row["Assignee"], row["Reporter"], row["Status"], row["Custom field (Severity)"],
+                row["Priority"], row["Created"], row["Updated"], row["Linked Issues"],
                 row["Custom field (Root Cause Analysis)"],
             ])
 

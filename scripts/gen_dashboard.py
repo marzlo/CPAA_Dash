@@ -71,6 +71,17 @@ except FileNotFoundError:
 
 DATA["bug_comments"] = BUG_COMMENTS
 
+# The Q&A tab's own state: a handling status per question plus its comment thread.
+# Jira cannot carry the status (these tickets sit in "To Do" until a whole batch is
+# closed), so this file is the authority on where each question actually stands.
+try:
+    with open("qna_notes.json", encoding="utf-8") as f:
+        QNA_NOTES = json.load(f)
+except FileNotFoundError:
+    QNA_NOTES = {"updated_at": None, "updated_by": None, "status": {}, "comments": {}}
+
+DATA["qna_notes"] = QNA_NOTES
+
 # Requirement -> SWE1/SWE2 -> SWE3 traceability, built from the STLA SWRA analysis
 # report plus a Jira link lookup. Optional: without the file the Traceability tab
 # simply says the data hasn't been generated yet.
@@ -247,6 +258,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .bar-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; }
   .bar-fill span { font-size: 12px; color: white; padding-left: 8px; font-weight: 600; white-space: nowrap; }
   .bar-count { width: 46px; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--text-primary); }
+  /* Wide enough for "N open of M" instead of a bare number. */
+  .bar-count.wide { width: 128px; font-size: 12px; color: var(--text-secondary); }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--grid); }
   th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; }
@@ -369,6 +382,40 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     font-size: 12px; padding: 1px 6px; width: 140px; border-radius: 5px;
     border: 1px solid var(--series-cp); background: var(--surface-1); color: var(--text-primary);
   }
+  /* Q&A tab. The rows are a definition list of questions, not tabular data: each one
+     is a sentence plus a few small controls, so they are laid out as cards rather than
+     squeezed into table columns that would wrap badly on a phone. */
+  .panel-lead { margin: 0 0 16px; }
+  .panel-lead h2 { margin: 0 0 4px; font-size: 16px; }
+  .panel-lead p { margin: 0; color: var(--text-secondary); font-size: 12px; max-width: 76ch; }
+  .qna-group { margin-bottom: 18px; }
+  .qna-group > h3 {
+    margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--text-secondary);
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .qna-group > h3 .n { font-size: 12px; font-weight: 400; color: var(--muted); }
+  .qna-row {
+    border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px;
+    margin-bottom: 6px; background: var(--surface-1);
+  }
+  .qna-row.closed { opacity: 0.62; }
+  .qna-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .qna-head .k { font-size: 12px; font-weight: 600; white-space: nowrap;
+                 color: var(--series-cp); text-decoration: none; }
+  .qna-head .k:hover { text-decoration: underline; }
+  .qna-head .q { flex: 1; min-width: 220px; font-size: 13px; overflow-wrap: anywhere; }
+  .qna-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 7px; }
+  .qna-meta .who { font-size: 11px; color: var(--muted); }
+  .qna-wait { font-size: 11px; font-weight: 600; white-space: nowrap; color: var(--text-secondary); }
+  .qna-wait.warn { color: #7a5600; }
+  .qna-wait.late { color: var(--critical); }
+  .qna-row select { font: inherit; font-size: 12px; padding: 2px 6px; border-radius: 6px;
+                    border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); }
+  .qna-blocked { font-size: 11px; color: var(--critical); white-space: nowrap; }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .qna-wait.warn { color: #f2c75c; }
+  }
+  :root[data-theme="dark"] .qna-wait.warn { color: #f2c75c; }
   .cmt-btn {
     background: none; border: 1px solid var(--border); border-radius: 999px; cursor: pointer;
     font-size: 11px; color: var(--text-secondary); padding: 0 7px; line-height: 17px;
@@ -921,6 +968,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <button data-tab="Audio" data-i18n-tab="audio">Audio</button>
   <button data-tab="Pretest" data-i18n-tab="pretest">Pretest</button>
   <button data-tab="Traceability" data-i18n-tab="traceability">Traceability</button>
+  <button data-tab="QnA" data-i18n-tab="qna">Q&amp;A</button>
   <button data-tab="Compare" data-i18n-tab="compare">Compare</button>
   <button data-tab="Knowledge" data-i18n-tab="knowledge">Knowledge</button>
 </nav>
@@ -1010,6 +1058,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <div class="panel" id="panel-Audio"></div>
   <div class="panel" id="panel-Pretest"></div>
   <div class="panel" id="panel-Traceability"></div>
+  <div class="panel" id="panel-QnA"></div>
   <div class="panel" id="panel-Compare"></div>
   <div class="panel" id="panel-Knowledge"></div>
 
@@ -1030,6 +1079,12 @@ const OVERVIEW_NOTES = RAW.overview_notes || { updated_at: null, updated_by: nul
 const BUG_COMMENTS = Object.assign({ updated_at: null, updated_by: null, comments: {} },
                                    RAW.bug_comments || {});
 const WATCH = RAW.watch || [];
+// Clarification questions ThunderSoft raised against our requirement documents.
+// Their Jira status barely moves, so the real state of each one lives in
+// qna_notes.json beside the comments — see QNA_NOTES below.
+const QNA = RAW.qna || [];
+const QNA_NOTES = Object.assign({ updated_at: null, updated_by: null, status: {}, comments: {} },
+                                RAW.qna_notes || {});
 
 // --- Per-assignee team corrections -------------------------------------------------
 // build_data.py has already applied these when it stamped each ticket's team, so on a
@@ -1242,6 +1297,39 @@ const STRINGS = {
   tab_overview: { zh: '總覽', en: 'Overview' },
   tab_knowledge: { zh: '知識庫', en: 'Knowledge' },
   tab_compare: { zh: '對照', en: 'Compare' },
+  tab_qna: { zh: 'Q&A 釐清', en: 'Q&A' },
+  qna_heading: { zh: '需求釐清問題 (Q&A)', en: 'Requirement clarification questions (Q&A)' },
+  qna_caption: { zh: (n, src) => `Jira filter 12699 共 ${n} 題,來自 ${src} 份來源文件。這些票的 Jira 狀態不會隨回覆動,所以下面每題的處理狀態是在這個頁面上標的。`,
+                 en: (n, src) => `${n} questions from Jira filter 12699, across ${src} source documents. Their Jira status does not move as answers come in, so each question's handling status below is set on this page.` },
+  qna_tile_total: { zh: '問題總數', en: 'Questions' },
+  qna_tile_open: { zh: '待我回覆', en: 'Waiting on me' },
+  qna_tile_open_sub: { zh: (a, i) => `另有 ${a} 題已回覆待確認、${i} 題需內部討論`, en: (a, i) => `${a} answered pending confirmation, ${i} need internal discussion` },
+  qna_tile_oldest: { zh: '等待最久', en: 'Longest wait' },
+  qna_tile_oldest_sub: { zh: key => `${key} · 自建立起`, en: key => `${key} · since it was raised` },
+  qna_tile_avg: { zh: '平均等待', en: 'Average wait' },
+  qna_tile_avg_sub: { zh: n => `未結案的 ${n} 題平均`, en: n => `mean across the ${n} still open` },
+  qna_days: { zh: n => `${n} 天`, en: n => `${n}d` },
+  qna_days_long: { zh: n => `已等 ${n} 天`, en: n => `waiting ${n} days` },
+  qna_source_heading: { zh: '依來源文件', en: 'By source document' },
+  qna_source_desc: { zh: '取標題第二個中括號裡的字,例如「[Q&A][CFTS044]…」就歸到 CFTS044。認不出來的歸到 Other。',
+                     en: 'Taken from the second bracket in the title — "[Q&A][CFTS044]…" lands under CFTS044. Anything unparseable goes to Other.' },
+  qna_source_sub: { zh: (open_, total) => `${open_} 題未結案 / 共 ${total} 題`, en: (open_, total) => `${open_} open of ${total}` },
+  qna_list_heading: { zh: '問題清單', en: 'Questions' },
+  qna_list_desc: { zh: '依來源文件分組。點 💬 可以留言,處理狀態改了會直接存回 GitHub。',
+                   en: 'Grouped by source document. 💬 opens the thread; changing the handling status commits straight back to GitHub.' },
+  qna_st_pending: { zh: '待我回覆', en: 'Waiting on me' },
+  qna_st_answered: { zh: '已回覆待確認', en: 'Answered, pending confirmation' },
+  qna_st_internal: { zh: '需內部討論', en: 'Needs internal discussion' },
+  qna_st_closed: { zh: '已結案', en: 'Closed' },
+  qna_status_label: { zh: '處理狀態', en: 'Handling status' },
+  qna_status_saved: { zh: '已儲存', en: 'Saved' },
+  qna_status_saving: { zh: '儲存中…', en: 'Saving…' },
+  qna_asked_by: { zh: (who, when) => `${who} 於 ${when} 提出`, en: (who, when) => `raised by ${who} on ${when}` },
+  qna_jira_blocked: { zh: 'Jira 狀態:Blocked', en: 'Jira status: Blocked' },
+  qna_empty: { zh: '目前沒有 Q&A 問題 — 可能是 filter 12699 空的,或這次建置沒有抓到 qna_export.csv。',
+               en: 'No Q&A questions — either filter 12699 is empty, or this build had no qna_export.csv.' },
+  qna_need_token: { zh: '要改處理狀態或留言,需要先用右上角的 🔑 設定 GitHub token。',
+                    en: 'Setting a handling status or posting a comment needs a GitHub token — use the 🔑 button at the top right.' },
   team_edit: { zh: '修改這個人的團隊', en: 'Change this person\u2019s team' },
   team_edit_set: { zh: tm => `已改為 ${tm}(點擊可再修改)`, en: tm => `Set to ${tm} — click to change` },
   team_edit_clear: { zh: '(回到預設)', en: '(back to default)' },
@@ -7718,6 +7806,327 @@ function tabFromHash() {
   return tabNames().includes(raw) ? raw : null;
 }
 
+// ===== Q&A tab =====================================================================
+// ThunderSoft raises a ticket whenever one of our requirement documents is ambiguous.
+// They are questions waiting on an answer, so the tab is organised around two things
+// Jira cannot tell us: which document the question came from, and how long it has been
+// sitting. The handling status is ours, kept in qna_notes.json beside the comments.
+
+const GITHUB_QNA_NOTES_PATH = 'qna_notes.json';
+const GITHUB_QNA_NOTES_RAW = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/${GITHUB_QNA_NOTES_PATH}`;
+
+const QNA_STATES = ['pending', 'answered', 'internal', 'closed'];
+const QNA_STATE_LABEL = { pending: 'qna_st_pending', answered: 'qna_st_answered',
+                          internal: 'qna_st_internal', closed: 'qna_st_closed' };
+
+// A question counts as closed when somebody marked it closed here, or when Jira itself
+// says the ticket is done. Everything else is still outstanding in some form.
+function qnaState(r) {
+  const set = QNA_NOTES.status[r.key];
+  if (QNA_STATES.includes(set)) return set;
+  return r.cat === 'done' ? 'closed' : 'pending';
+}
+function qnaIsOpen(r) { return qnaState(r) !== 'closed'; }
+
+// Calendar days since the question was raised — the difference between the two dates,
+// which is what someone counting on a calendar gets, rather than elapsed hours divided
+// by 24 (that reports a question raised 22 days and 23 hours ago as 22 days old).
+// Snapping both ends to midnight through Date.UTC also keeps a DST change from moving
+// the answer. Computed in the browser rather than baked in at build time, so a page
+// left open overnight does not quietly understate the wait.
+function qnaDayIndex(d) { return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000; }
+function qnaWaitDays(r) {
+  if (!r.created) return null;
+  const from = new Date(r.created);
+  if (isNaN(from)) return null;
+  const to = qnaIsOpen(r) ? new Date() : new Date(r.updated || r.created);
+  if (isNaN(to)) return null;
+  return Math.max(0, Math.round(qnaDayIndex(to) - qnaDayIndex(from)));
+}
+function qnaWaitClass(d) { return d >= 21 ? 'late' : (d >= 10 ? 'warn' : ''); }
+
+function qnaComments(key) { return QNA_NOTES.comments[key] || []; }
+
+async function refreshQnaNotes() {
+  try {
+    const resp = await fetch(GITHUB_QNA_NOTES_RAW + '?t=' + Date.now(), { cache: 'no-store' });
+    if (!resp.ok) return;
+    const fresh = await resp.json();
+    if (!fresh || typeof fresh !== 'object') return;
+    // raw.githubusercontent is CDN-cached and can still be serving the pre-commit copy
+    // right after a save, so anything older than what we hold is ignored.
+    if (QNA_NOTES.updated_at &&
+        (!fresh.updated_at || new Date(fresh.updated_at) < new Date(QNA_NOTES.updated_at))) return;
+    QNA_NOTES.status = fresh.status || {};
+    QNA_NOTES.comments = fresh.comments || {};
+    QNA_NOTES.updated_at = fresh.updated_at;
+    QNA_NOTES.updated_by = fresh.updated_by;
+  } catch (e) { /* offline, or the file does not exist yet */ }
+}
+
+// `apply` is handed {status, comments} as they currently stand on GitHub and mutates
+// them; whatever it leaves behind is committed. GET immediately before PUT, so two
+// people working on different questions merge instead of overwriting each other.
+async function commitQnaNotes(apply, statusEl) {
+  const token = getGithubToken(false);
+  if (!token) { alert(t('qna_need_token')); return false; }
+  if (statusEl) statusEl.textContent = t('qna_status_saving');
+  try {
+    const apiBase = `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_QNA_NOTES_PATH}`;
+    const getResp = await fetch(apiBase + '?ref=main&t=' + Date.now(),
+      { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+    let sha, remote = {};
+    if (getResp.ok) {
+      const meta = await getResp.json();
+      sha = meta.sha;
+      try { remote = JSON.parse(decodeURIComponent(escape(atob((meta.content || '').replace(/\n/g, ''))))); }
+      catch (e) { remote = {}; }
+    } else if (getResp.status !== 404) {
+      throw new Error('GET ' + getResp.status);
+    }
+    // Remote wins: it is the authority, so two people working on different questions
+    // merge instead of overwriting each other, and a delete made elsewhere stays
+    // deleted. The one exception is a 404 — no file on GitHub at all — where there is
+    // nothing to merge with and nothing that could be resurrected, so whatever this
+    // page is already holding is carried in rather than silently dropped.
+    const base = (getResp.status === 404) ? QNA_NOTES : remote;
+    const state = { status: Object.assign({}, base.status || {}),
+                    comments: Object.assign({}, base.comments || {}) };
+    apply(state);
+    const payload = {
+      updated_at: new Date().toISOString(),
+      updated_by: traceUserName(false) || t('notes_meta_unknown'),
+      status: state.status,
+      comments: state.comments,
+    };
+    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+    const putResp = await fetch(apiBase, {
+      method: 'PUT',
+      headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'Update Q&A notes via dashboard', content: b64, sha, branch: 'main' }),
+    });
+    if (!putResp.ok) throw new Error('PUT ' + putResp.status + ': ' + (await putResp.text()).slice(0, 200));
+    QNA_NOTES.status = payload.status;
+    QNA_NOTES.comments = payload.comments;
+    QNA_NOTES.updated_at = payload.updated_at;
+    QNA_NOTES.updated_by = payload.updated_by;
+    return true;
+  } catch (err) {
+    if (statusEl) statusEl.textContent = '';
+    alert(t('trace_save_error', String((err && err.message) || err)));
+    return false;
+  }
+}
+
+function qnaCommentPanelHtml(key) {
+  const list = qnaComments(key);
+  const body = list.length
+    ? list.map(c => `<div class="cmt-item"><span class="body">${esc(c.text)}</span>` +
+        `<span class="who">— ${esc(c.by || '?')} · ${esc((c.at || '').slice(0, 10))}</span>` +
+        (c.id ? `<button type="button" class="del" data-qna-cmt-del="${esc(c.id)}" title="${esc(t('bug_comment_delete_title'))}">✕</button>` : '') +
+        `</div>`).join('')
+    : `<div class="cmt-item" style="color:var(--muted)">${esc(t('trace_comment_empty'))}</div>`;
+  return `<div class="cmt-box" data-qna-cmt-box="${esc(key)}">
+    <div class="cmt-list">${body}</div>
+    <div class="cmt-form">
+      <textarea data-qna-cmt-input="${esc(key)}" placeholder="${esc(t('trace_comment_placeholder'))}"></textarea>
+      <button type="button" class="btn small" data-qna-cmt-post="${esc(key)}">${esc(t('trace_comment_add'))}</button>
+      <span class="cmt-status" data-qna-cmt-status="${esc(key)}"></span>
+    </div>
+  </div>`;
+}
+
+function qnaRowHtml(r) {
+  const st = qnaState(r);
+  const d = qnaWaitDays(r);
+  const n = qnaComments(r.key).length;
+  const asked = r.created ? t('qna_asked_by', r.reporter || '?', r.created.slice(0, 10)) : (r.reporter || '');
+  return `<div class="qna-row${st === 'closed' ? ' closed' : ''}" data-qna-row="${esc(r.key)}">
+    <div class="qna-head">
+      <a class="k" href="https://mobiledrivetech.atlassian.net/browse/${esc(r.key)}" target="_blank" rel="noopener">${esc(r.key)}</a>
+      <span class="q">${esc(r.question)}</span>
+    </div>
+    <div class="qna-meta">
+      <select data-qna-state="${esc(r.key)}" title="${esc(t('qna_status_label'))}">
+        ${QNA_STATES.map(v => `<option value="${v}"${v === st ? ' selected' : ''}>${esc(t(QNA_STATE_LABEL[v]))}</option>`).join('')}
+      </select>
+      ${d === null ? '' : `<span class="qna-wait ${qnaWaitClass(d)}">${esc(t('qna_days_long', d))}</span>`}
+      ${r.status === 'Blocked' ? `<span class="qna-blocked">${esc(t('qna_jira_blocked'))}</span>` : ''}
+      <button type="button" class="cmt-btn${n ? ' has' : ''}" data-qna-cmt="${esc(r.key)}" title="${esc(t('bug_comment_col'))}">💬${n || ''}</button>
+      <span class="who">${esc(asked)}</span>
+      <span class="cmt-status" data-qna-cmt-status="${esc(r.key)}"></span>
+    </div>
+  </div>`;
+}
+
+function renderQnaPanel() {
+  const panel = document.getElementById('panel-QnA');
+  if (!panel) return;
+
+  if (!QNA.length) {
+    panel.innerHTML = `<section class="card"><h2>${esc(t('qna_heading'))}</h2>
+      <p class="caption">${esc(t('qna_empty'))}</p></section>`;
+    return;
+  }
+
+  const open = QNA.filter(qnaIsOpen);
+  const byState = {};
+  QNA.forEach(r => { const k = qnaState(r); byState[k] = (byState[k] || 0) + 1; });
+
+  // Oldest and mean wait are taken over the still-open questions only: a closed one's
+  // elapsed time says how long it took, not how long anybody is still waiting.
+  const waits = open.map(r => ({ r, d: qnaWaitDays(r) })).filter(x => x.d !== null);
+  const oldest = waits.reduce((a, b) => (a && a.d >= b.d ? a : b), null);
+  const avg = waits.length ? Math.round(waits.reduce((a, x) => a + x.d, 0) / waits.length) : 0;
+
+  const sources = [...new Set(QNA.map(r => r.source))].map(src => {
+    const rows = QNA.filter(r => r.source === src);
+    return { src, rows, total: rows.length, open: rows.filter(qnaIsOpen).length };
+  }).sort((a, b) => b.open - a.open || b.total - a.total || a.src.localeCompare(b.src));
+  // One measure per bar — the questions still outstanding, which is the thing anybody
+  // reads this chart to find. The total rides along as a label rather than a second
+  // encoding, so there is no second scale to misread.
+  const maxOpen = Math.max(...sources.map(g => g.open), 1);
+
+  panel.innerHTML = `
+    <div class="panel-lead">
+      <h2>${esc(t('qna_heading'))}</h2>
+      <p>${esc(t('qna_caption', QNA.length, sources.length))}</p>
+    </div>
+    <div class="stat-row">
+      <div class="stat-tile">
+        <div class="label">${esc(t('qna_tile_total'))}</div>
+        <div class="value">${QNA.length}</div>
+        <div class="sub">${esc(t('qna_source_sub', open.length, QNA.length))}</div>
+      </div>
+      <div class="stat-tile">
+        <div class="label">${esc(t('qna_tile_open'))}</div>
+        <div class="value">${byState.pending || 0}</div>
+        <div class="sub">${esc(t('qna_tile_open_sub', byState.answered || 0, byState.internal || 0))}</div>
+      </div>
+      <div class="stat-tile">
+        <div class="label">${esc(t('qna_tile_oldest'))}</div>
+        <div class="value">${oldest ? esc(t('qna_days', oldest.d)) : '—'}</div>
+        <div class="sub">${oldest ? esc(t('qna_tile_oldest_sub', oldest.r.key)) : ''}</div>
+      </div>
+      <div class="stat-tile">
+        <div class="label">${esc(t('qna_tile_avg'))}</div>
+        <div class="value">${esc(t('qna_days', avg))}</div>
+        <div class="sub">${esc(t('qna_tile_avg_sub', waits.length))}</div>
+      </div>
+    </div>
+    <section class="card">
+      <h2>${esc(t('qna_source_heading'))}</h2>
+      <p class="caption">${esc(t('qna_source_desc'))}</p>
+      ${sources.map(g => `
+        <div class="bar-row">
+          <span class="name wide">${esc(g.src)}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.max(2, Math.round(g.open / maxOpen * 100))}%; background:var(--series-cp)"><span>${g.open}</span></div></div>
+          <span class="bar-count wide">${esc(t('qna_source_sub', g.open, g.total))}</span>
+        </div>`).join('')}
+    </section>
+    <section class="card">
+      <h2>${esc(t('qna_list_heading'))}</h2>
+      <p class="caption">${esc(t('qna_list_desc'))}</p>
+      <div id="qnaList">
+        ${sources.map(g => `
+          <div class="qna-group">
+            <h3>${esc(g.src)} <span class="n">${esc(t('qna_source_sub', g.open, g.total))}</span></h3>
+            ${g.rows.slice().sort((a, b) => (qnaWaitDays(b) || 0) - (qnaWaitDays(a) || 0)).map(qnaRowHtml).join('')}
+          </div>`).join('')}
+      </div>
+    </section>`;
+
+  const list = document.getElementById('qnaList');
+
+  function qnaCmtStatus(key, msg) {
+    const el = list.querySelector(`[data-qna-cmt-status="${CSS.escape(key)}"]`);
+    if (!el) return;
+    el.textContent = msg;
+    if (msg) setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 1800);
+  }
+
+  // Redraws one question's open thread and its 💬 badge, leaving everybody else's
+  // half-typed comment alone.
+  function refreshQnaCommentUi(key) {
+    list.querySelectorAll(`[data-qna-cmt-box="${CSS.escape(key)}"]`).forEach(box => {
+      box.outerHTML = qnaCommentPanelHtml(key);
+    });
+    const n = qnaComments(key).length;
+    list.querySelectorAll(`[data-qna-cmt="${CSS.escape(key)}"]`).forEach(b => {
+      b.textContent = '💬' + (n || '');
+      b.classList.toggle('has', !!n);
+    });
+  }
+
+  list.addEventListener('change', async e => {
+    const sel = e.target.closest('[data-qna-state]');
+    if (!sel) return;
+    const key = sel.dataset.qnaState;
+    const want = sel.value;
+    const before = qnaState(QNA.find(r => r.key === key));
+    sel.disabled = true;
+    const ok = await commitQnaNotes(state => { state.status[key] = want; },
+                                    list.querySelector(`[data-qna-cmt-status="${CSS.escape(key)}"]`));
+    sel.disabled = false;
+    if (!ok) { sel.value = before; return; }
+    qnaCmtStatus(key, t('qna_status_saved'));
+    // The tiles, the per-document counts and the sort order all key off this status,
+    // so the whole panel is redrawn rather than just the row that changed.
+    renderQnaPanel();
+  });
+
+  list.addEventListener('click', async e => {
+    const toggle = e.target.closest('[data-qna-cmt]');
+    if (toggle) {
+      const row = toggle.closest('.qna-row');
+      const existing = row.querySelector('.cmt-box');
+      if (existing) { existing.remove(); return; }
+      row.insertAdjacentHTML('beforeend', qnaCommentPanelHtml(row.dataset.qnaRow));
+      const ta = row.querySelector('textarea');
+      if (ta) ta.focus();
+      return;
+    }
+
+    const post = e.target.closest('[data-qna-cmt-post]');
+    if (post) {
+      const key = post.dataset.qnaCmtPost;
+      const box = post.closest('.cmt-box');
+      const input = box.querySelector('textarea');
+      const text = (input.value || '').trim();
+      if (!text) return;
+      const who = traceUserName(false) || t('notes_meta_unknown');
+      const comment = { id: bugCommentId(), text, by: who, at: new Date().toISOString() };
+      post.disabled = true;
+      const ok = await commitQnaNotes(state => {
+        state.comments[key] = (state.comments[key] || []).concat([comment]);
+      }, box.querySelector('.cmt-status'));
+      post.disabled = false;
+      if (!ok) return;
+      input.value = '';
+      refreshQnaCommentUi(key);
+      qnaCmtStatus(key, t('bug_comment_saved'));
+      return;
+    }
+
+    const del = e.target.closest('[data-qna-cmt-del]');
+    if (del) {
+      const box = del.closest('.cmt-box');
+      const key = box.dataset.qnaCmtBox;
+      const id = del.dataset.qnaCmtDel;
+      if (!confirm(t('bug_comment_delete_confirm'))) return;
+      del.disabled = true;
+      const ok = await commitQnaNotes(state => {
+        const left = (state.comments[key] || []).filter(c => c.id !== id);
+        if (left.length) state.comments[key] = left; else delete state.comments[key];
+      }, box.querySelector('.cmt-status'));
+      if (!ok) { del.disabled = false; return; }
+      refreshQnaCommentUi(key);
+      qnaCmtStatus(key, t('bug_comment_saved'));
+    }
+  });
+}
+
 function showTab(tab) {
   const btn = document.querySelector(`nav.tabs button[data-tab="${CSS.escape(tab)}"]`);
   const panel = document.getElementById('panel-' + tab);
@@ -7801,6 +8210,7 @@ document.getElementById('langToggle').addEventListener('click', () => {
   renderBugPanel();
   renderAudioPanel();
   renderComparePanel();
+  renderQnaPanel();
   renderKnowledgePanel();
   renderPretestPanel();
   renderTraceabilityPanel();
@@ -7825,6 +8235,11 @@ renderStatsPanel();
 renderBugPanel();
 renderAudioPanel();
 renderComparePanel();
+renderQnaPanel();
+
+// Someone else may have answered a question or left a comment since this page was
+// built, so pull qna_notes.json straight from the repo and redraw if it moved.
+refreshQnaNotes().then(() => renderQnaPanel());
 renderKnowledgePanel();
 renderPretestPanel();
 renderTraceabilityPanel();

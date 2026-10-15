@@ -594,9 +594,71 @@ if s_header:
         })
     print("\nSWE3 candidate pool:", len(swe3_pool))
 
+# --- Q&A clarification tickets (a fourth saved filter) ------------------------------
+# ThunderSoft raises these to ask us to clarify a requirement, so they are questions
+# waiting on an answer rather than defects: what matters is which source document the
+# question came from and how long it has been sitting. Their Jira status barely moves
+# (almost everything stays "To Do" until the whole batch is closed), so the dashboard
+# carries the dates and lets the browser compute the waiting time live — a figure baked
+# in at build time would be wrong by the time anybody looked at it.
+QNA_SRC = os.environ.get("QNA_CSV_PATH", "qna_export.csv")
+
+# "[Q&A][CFTS044]Clarify ..." -> source "CFTS044", question "Clarify ...". The spacing
+# around the tags is inconsistent across reporters, hence the tolerant pattern; anything
+# that does not match keeps its full summary and lands under "Other" rather than being
+# dropped.
+QNA_TITLE_RE = re.compile(r"^\s*\[\s*Q\s*&\s*A\s*\]\s*\[([^\]]+)\]\s*(.*)$", re.I)
+
+qna_records = []
+try:
+    q_header, q_data = read_jira_csv(QNA_SRC)
+except FileNotFoundError:
+    q_header, q_data = None, []
+    print(f"\nNo {QNA_SRC} — skipping the Q&A tab")
+
+if q_header:
+    Q_KEY = q_header.index("Issue key")
+    Q_SUMMARY = q_header.index("Summary")
+    Q_STATUS = q_header.index("Status")
+    Q_TYPE = q_header.index("Issue Type")
+    Q_ASSIGNEE = q_header.index("Assignee") if "Assignee" in q_header else None
+    Q_REPORTER = q_header.index("Reporter") if "Reporter" in q_header else None
+    Q_CREATED = q_header.index("Created") if "Created" in q_header else None
+    Q_UPDATED = q_header.index("Updated") if "Updated" in q_header else None
+
+    def _cell(row, idx):
+        return (row[idx] if idx is not None and idx < len(row) else None) or ""
+
+    for r in q_data:
+        summary = r[Q_SUMMARY] or ""
+        m = QNA_TITLE_RE.match(summary)
+        source = (m.group(1).strip() if m else "") or "Other"
+        question = (m.group(2).strip() if m else summary).strip() or summary
+        status = r[Q_STATUS]
+        qna_records.append({
+            "key": r[Q_KEY],
+            "summary": summary,
+            "question": question,
+            "source": source,
+            "issueType": r[Q_TYPE],
+            "status": status,
+            "cat": status_category(status),
+            "assignee": _cell(r, Q_ASSIGNEE) or "Unassigned",
+            "reporter": _cell(r, Q_REPORTER),
+            "created": created_iso(_cell(r, Q_CREATED) or None),
+            "updated": created_iso(_cell(r, Q_UPDATED) or None),
+        })
+
+    print("\nTotal Q&A questions:", len(qna_records))
+    qna_source_counts = {}
+    for r in qna_records:
+        qna_source_counts[r["source"]] = qna_source_counts.get(r["source"], 0) + 1
+    print("Q&A by source document:", dict(sorted(qna_source_counts.items(), key=lambda x: -x[1])))
+
 with open("dashboard_data.json", "w", encoding="utf-8") as f:
     json.dump({"tickets": records, "bugs": bug_records, "audio": audio_records,
                "pretest": pretest_records, "watch": watch_records, "swe3": swe3_pool,
+               "qna": qna_records,
                "team_overrides": TEAM_OVERRIDES},
               f, ensure_ascii=False, indent=1)
 print("\nWrote dashboard_data.json")

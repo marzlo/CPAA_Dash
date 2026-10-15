@@ -71,6 +71,18 @@ jobs:
           OUT_CSV: 'swe3_export.csv'
         run: python scripts/fetch_jira.py
 
+      # The clarification questions ThunderSoft raises against our requirement
+      # documents. Questions, not defects — they get their own tab, so they stay in
+      # their own file rather than being mixed into the Bug list.
+      - name: Fetch the Q&A questions from Jira
+        env:
+          JIRA_SITE: mobiledrivetech.atlassian.net
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_JQL: 'filter=12699'
+          OUT_CSV: 'qna_export.csv'
+        run: python scripts/fetch_jira.py
+
       - name: Build dashboard_data.json
         run: python scripts/build_data.py
 
