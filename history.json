@@ -2865,7 +2865,7 @@
    },
    "In Progress": {
     "done": 0,
-    "total": 39
+    "total": 40
    },
    "Monitoring": {
     "done": 2,
@@ -2893,7 +2893,7 @@
    },
    "To Do": {
     "done": 0,
-    "total": 24
+    "total": 23
    }
   },
   "bugs_by_team": {
@@ -2919,11 +2919,11 @@
    },
    "TS_CPAA": {
     "done": 183,
-    "total": 202
+    "total": 201
    },
    "TS_FW": {
     "done": 25,
-    "total": 29
+    "total": 30
    }
   },
   "date": "2026-10-15",
