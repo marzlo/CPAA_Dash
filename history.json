@@ -3276,12 +3276,12 @@
     "total": 20
    },
    "Done": {
-    "done": 223,
-    "total": 223
+    "done": 225,
+    "total": 225
    },
    "Eng build": {
-    "done": 11,
-    "total": 11
+    "done": 8,
+    "total": 8
    },
    "In Progress": {
     "done": 0,
@@ -3293,7 +3293,7 @@
    },
    "Need info": {
     "done": 0,
-    "total": 1
+    "total": 2
    },
    "Non-issue": {
     "done": 13,
@@ -3304,12 +3304,12 @@
     "total": 2
    },
    "Ready for test": {
-    "done": 2,
-    "total": 2
+    "done": 3,
+    "total": 3
    },
    "Reopen": {
     "done": 0,
-    "total": 6
+    "total": 5
    },
    "To Do": {
     "done": 0,
