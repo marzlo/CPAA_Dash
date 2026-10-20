@@ -3390,7 +3390,7 @@
    },
    "In Progress": {
     "done": 0,
-    "total": 41
+    "total": 44
    },
    "Monitoring": {
     "done": 2,
@@ -3414,11 +3414,11 @@
    },
    "Reopen": {
     "done": 0,
-    "total": 6
+    "total": 5
    },
    "To Do": {
     "done": 0,
-    "total": 27
+    "total": 25
    }
   },
   "bugs_by_team": {
@@ -3440,19 +3440,15 @@
    },
    "MDT_System": {
     "done": 0,
-    "total": 6
+    "total": 7
    },
    "TS_CPAA": {
     "done": 190,
-    "total": 213
+    "total": 214
    },
    "TS_FW": {
     "done": 26,
     "total": 30
-   },
-   "Unassigned": {
-    "done": 0,
-    "total": 2
    },
    "Unknown": {
     "done": 1,
