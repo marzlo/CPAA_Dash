@@ -3553,7 +3553,7 @@
    },
    "MDT_System": {
     "done": 1,
-    "total": 6
+    "total": 5
    },
    "TS_CPAA": {
     "done": 201,
@@ -3561,7 +3561,7 @@
    },
    "TS_FW": {
     "done": 27,
-    "total": 30
+    "total": 31
    },
    "Unknown": {
     "done": 3,
