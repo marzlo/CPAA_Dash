@@ -3475,7 +3475,7 @@
  },
  "2026-10-21": {
   "bugs": {
-   "done": 275,
+   "done": 276,
    "total": 361
   },
   "bugs_by_rca": {
@@ -3484,7 +3484,7 @@
     "total": 236
    },
    "filled": {
-    "done": 116,
+    "done": 117,
     "total": 125
    }
   },
@@ -3494,8 +3494,8 @@
     "total": 17
    },
    "Done": {
-    "done": 231,
-    "total": 231
+    "done": 233,
+    "total": 233
    },
    "Eng build": {
     "done": 9,
@@ -3522,12 +3522,12 @@
     "total": 7
    },
    "Ready for test": {
-    "done": 14,
-    "total": 14
+    "done": 13,
+    "total": 13
    },
    "Reopen": {
     "done": 0,
-    "total": 4
+    "total": 3
    },
    "To Do": {
     "done": 0,
@@ -3540,7 +3540,7 @@
     "total": 38
    },
    "MDT_App": {
-    "done": 11,
+    "done": 12,
     "total": 27
    },
    "MDT_PM": {
