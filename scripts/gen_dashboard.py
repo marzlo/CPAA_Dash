@@ -507,9 +507,17 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   }
   .gantt-name { padding-left: 10px; }
   .gantt-row:not(.gantt-group):not(.gantt-head) .gantt-name { padding-left: 20px; }
-  .gantt-head { display: flex; height: 20px; position: sticky; top: 0; z-index: 3; background: var(--surface-1); }
-  .gantt-head .lbl { position: absolute; font-size: 10px; color: var(--muted); white-space: nowrap;
-                     font-variant-numeric: tabular-nums; }
+  .gantt-row.gantt-head { height: 34px; }
+  .gantt-head { display: flex; position: sticky; top: 0; z-index: 3; background: var(--surface-1);
+                border-bottom: 1px solid var(--border); }
+  .gantt-head .gantt-name { line-height: 34px; }
+  .gantt-head .lbl { position: absolute; top: 2px; white-space: nowrap; line-height: 1.25;
+                     font-variant-numeric: tabular-nums; padding-left: 2px;
+                     border-left: 1px solid var(--grid); }
+  .gantt-head .lbl b { display: block; font-size: 10px; font-weight: 600; color: var(--text-secondary); }
+  .gantt-head .lbl i { display: block; font-size: 9px; font-style: normal; color: var(--muted); }
+  .gantt-head .lbl.now { border-left-color: var(--critical); }
+  .gantt-head .lbl.now b, .gantt-head .lbl.now i { color: var(--critical); }
   .gantt-grid { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--grid); }
   .sch-legend { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; font-size: 11px;
                 color: var(--text-secondary); margin-bottom: 10px; }
@@ -8574,10 +8582,27 @@ function schGanttHtml(tasks) {
   const cur = schCurWeek();
   const nW = SCHEDULE.weeks.length;
   const trackW = nW * SCH_WEEK_PX;
-  const head = [];
-  for (let i = 0; i < nW; i += 4) {
-    head.push(`<span class="lbl" style="left:${i * SCH_WEEK_PX}px">${esc(SCHEDULE.weeks[i].label.replace('-W', '/'))}</span>`);
+  // Two lines per tick: the ISO week on top, the Monday it starts on underneath.
+  // The year goes on the date line, and only where it turns over — on the week line
+  // "2026-W01" is wider than the gap between ticks and runs into its neighbour.
+  const LBL_EVERY = 4;
+  function schHeadLabel(i, isNow) {
+    const w = SCHEDULE.weeks[i];
+    if (!w) return '';
+    const prev = SCHEDULE.weeks[i - LBL_EVERY];
+    const newYear = !prev || prev.date.slice(0, 4) !== w.date.slice(0, 4);
+    const d = (newYear ? w.date.slice(2).replace(/-/g, '/') : w.date.slice(5).replace('-', '/'));
+    return `<span class="lbl${isNow ? ' now' : ''}" style="left:${i * SCH_WEEK_PX}px" title="${esc(w.label + ' · ' + w.date)}">` +
+           `<b>W${esc(w.label.split('-W')[1])}</b><i>${esc(d)}</i></span>`;
   }
+
+  const head = [];
+  for (let i = 0; i < nW; i += LBL_EVERY) {
+    // Leave room for the current week's own label rather than letting the two collide.
+    if (Math.abs(i - cur) < LBL_EVERY && i !== cur) continue;
+    head.push(schHeadLabel(i, i === cur));
+  }
+  if (cur >= 0 && cur < nW && cur % LBL_EVERY !== 0) head.push(schHeadLabel(cur, true));
   const grid = [];
   for (let i = 0; i < nW; i += 4) grid.push(`<div class="gantt-grid" style="left:${i * SCH_WEEK_PX}px"></div>`);
   const todayLine = (cur >= 0 && cur < nW)
