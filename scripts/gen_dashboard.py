@@ -437,8 +437,15 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .sch-row.is-done { opacity: .62; }
   .sch-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
   .sch-head .nm { flex: 1; min-width: 200px; font-size: 13px; font-weight: 500; overflow-wrap: anywhere; }
+  /* CarPlay and Android Auto keep the same two hues they wear on every other tab,
+     so a row is identifiable at a glance and across tabs. */
   .sch-feat { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px;
-              background: color-mix(in srgb, var(--gantt-ours) 14%, transparent); color: var(--gantt-ours); white-space: nowrap; }
+              white-space: nowrap; --f: var(--series-cp);
+              background: color-mix(in srgb, var(--f) 16%, transparent); color: var(--f); }
+  .sch-feat.aa { --f: var(--series-aa); }
+  .gantt-name .gf { font-weight: 600; }
+  .gantt-name .gf.cp { color: var(--series-cp); }
+  .gantt-name .gf.aa { color: var(--series-aa); }
   .sch-phase { font-size: 11px; color: var(--muted); white-space: nowrap; }
   .sch-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 7px; }
   .sch-when { font-size: 11px; color: var(--text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -3855,6 +3862,63 @@ const AUDIO_GUIDE_HTML = `
 // need no login to read; add a new entry by prepending an object here. Entries are
 // collapsed by default — this card is reference material, not a daily number.
 const ISSUE_NOTES = [
+  {
+    id: 'esiri-sys2-underspecified',
+    date: '2026-10-19',
+    title: 'Enhanced Siri 當初在 SYS2 沒寫清楚,現在拆成三條新需求重談',
+    html: `
+      <p class="issue-lead">Harman ↔ MDT 的 CP/AA 認證音訊需求(RAR)對齊,走到 2026-10-19 這一版,
+      <b>Enhanced Siri(e-Siri)相關的未決項目被整包抽出來,重新拆成三條專屬需求</b>
+      <code>NEW-eSiri-01 / 02 / 03</code> 另外談。這是 Harman 提的,MDT 接受。</p>
+
+      <p>會走到這一步的原因不是技術難,是<b>當初 SYS2 對 Enhanced Siri 的描述不夠明確</b> ——
+      需求邊界沒定義清楚,雙方各自照自己的理解往下做,等到認證階段要逐條對齊時,
+      散在各處的歧義一次爆出來,只能停下來重新定義。</p>
+
+      <h4>2026-10-19 這一版改了什麼</h4>
+      <div class="issue-table-wrap">
+        <table class="issue-table">
+          <thead><tr><th>項目</th><th>內容</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Column C</td>
+              <td>雙方已有共識的條目,更新成議定後的需求文字</td>
+            </tr>
+            <tr>
+              <td>Enhanced Siri</td>
+              <td>原本散落的未決項目,整併成 <code>NEW-eSiri-01/02/03</code> 三條獨立需求<span class="issue-chip start">待討論</span></td>
+            </tr>
+            <tr>
+              <td>Column G</td>
+              <td>MDT 這次的意見(MDT Comments 2026.10.19),與 Column F 的舊意見分開放</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>那份 Excel 的顏色怎麼讀</h4>
+      <div class="issue-table-wrap">
+        <table class="issue-table">
+          <thead><tr><th>顏色</th><th>狀態</th></tr></thead>
+          <tbody>
+            <tr><td>白</td><td>雙方已同意</td></tr>
+            <tr><td>紅</td><td>Out of Scope</td></tr>
+            <tr><td>黃</td><td>討論中(NRL-392361)</td></tr>
+            <tr><td>綠</td><td>本次新增待討論(NEW-eSiri-01/02/03)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>留這則的用意</h4>
+      <p><b>需求在 SYS2 階段就要想清楚,否則之後反覆會很花時間。</b>
+      Enhanced Siri 這條線從 SYS2 沒定義清楚,一路拖到認證期才要重新拆條目對齊,
+      中間所有基於各自理解做掉的東西都要重新確認。下次寫 SYS2 遇到
+      「這段行為邊界好像有兩種讀法」的時候,當場問清楚比留到認證期便宜得多。</p>
+
+      <p class="issue-lead">對應信件:<i>Re: Harman - MDT discussion related to audio requirements for CP/AA cert</i>
+      (JesseCHHuang,2026-10-19,附件 <code>Harman_RAR_MDT_feedback_20261019.xlsx</code>)。</p>
+    `,
+  },
   {
     id: 'bench-import-tariff',
     date: '2026-10-06',
@@ -8459,7 +8523,7 @@ function schRowHtml(task) {
   const marks = task.marks.map(m => `<b>${esc(m.text)}</b> ${esc(schWeekLabel(m.i))}`).join(' · ');
   return `<div class="sch-row is-${st.k}" data-sch-row="${esc(task.id)}">
     <div class="sch-head">
-      <span class="sch-feat">${esc(task.feature === 'CarPlay' ? 'CP' : 'AA')}</span>
+      <span class="sch-feat${task.feature === 'CarPlay' ? '' : ' aa'}">${esc(task.feature === 'CarPlay' ? 'CP' : 'AA')}</span>
       <span class="nm">${esc(task.name)}</span>
       <span class="sch-phase">${esc(task.phase)}</span>
     </div>
@@ -8505,7 +8569,8 @@ function schGanttHtml(tasks) {
   const rows = tasks.map(task => {
     const group = `${task.feature} · ${task.phase}`;
     const header = group === lastGroup ? '' :
-      `<div class="gantt-row gantt-group"><div class="gantt-name">${esc(group)}</div>` +
+      `<div class="gantt-row gantt-group"><div class="gantt-name">` +
+      `<span class="gf ${task.feature === 'CarPlay' ? 'cp' : 'aa'}">${esc(task.feature)}</span> · ${esc(task.phase)}</div>` +
       `<div class="gantt-track" style="width:${trackW}px">${grid.join('')}</div></div>`;
     lastGroup = group;
     const st = schStatus(task);
