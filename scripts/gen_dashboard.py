@@ -99,7 +99,7 @@ try:
     with open("schedule_notes.json", encoding="utf-8") as f:
         SCHEDULE_NOTES = json.load(f)
 except FileNotFoundError:
-    SCHEDULE_NOTES = {"updated_at": None, "updated_by": None, "state": {}, "comments": {}}
+    SCHEDULE_NOTES = {"updated_at": None, "updated_by": None, "state": {}, "notes": {}, "comments": {}}
 
 DATA["schedule_notes"] = SCHEDULE_NOTES
 
@@ -462,6 +462,23 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .sch-btn.on { border-color: var(--good); color: var(--good); font-weight: 600; }
   .sch-btn:disabled { opacity: .5; cursor: default; }
   .sch-marks { font-size: 11px; color: var(--muted); }
+  /* A note box that is always on screen, unlike the comment thread behind 💬. It is
+     the running state of the task; the thread is a conversation about it. */
+  .sch-note { margin-top: 8px; }
+  .sch-note textarea {
+    width: 100%; min-height: 44px; resize: vertical; font: inherit; font-size: 12px;
+    line-height: 1.5; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--page); color: var(--text-primary);
+  }
+  .sch-note textarea:focus { outline: none; border-color: var(--gantt-ours); background: var(--surface-1); }
+  .sch-note.dirty textarea { border-color: var(--warning); }
+  .sch-note-bar { display: flex; align-items: center; gap: 8px; margin-top: 4px; min-height: 20px; }
+  .sch-note-meta { font-size: 11px; color: var(--muted); }
+  .sch-note-flag { font-size: 11px; font-weight: 600; color: #7a5600; }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .sch-note-flag { color: #f2c75c; }
+  }
+  :root[data-theme="dark"] .sch-note-flag { color: #f2c75c; }
   .sch-marks b { font-weight: 600; color: var(--text-secondary); }
 
   .gantt-wrap { overflow-x: auto; overflow-y: visible; position: relative; padding-bottom: 6px;
@@ -1223,7 +1240,7 @@ const WATCH = RAW.watch || [];
 // Their Jira status barely moves, so the real state of each one lives in
 // qna_notes.json beside the comments — see QNA_NOTES below.
 const SCHEDULE = RAW.schedule || null;
-const SCHED_NOTES = Object.assign({ updated_at: null, updated_by: null, state: {}, comments: {} },
+const SCHED_NOTES = Object.assign({ updated_at: null, updated_by: null, state: {}, notes: {}, comments: {} },
                                   RAW.schedule_notes || {});
 const QNA = RAW.qna || [];
 const QNA_NOTES = Object.assign({ updated_at: null, updated_by: null, status: {}, comments: {} },
@@ -1492,6 +1509,13 @@ const STRINGS = {
   sch_phase_all: { zh: n => `全部階段(${n})`, en: n => `All phases (${n})` },
   sch_phase_n: { zh: (name, n) => `${name}(${n})`, en: (name, n) => `${name} (${n})` },
   sch_filtered_note: { zh: (shown, total) => `顯示 ${shown} / ${total} 項`, en: (shown, total) => `showing ${shown} of ${total}` },
+  sch_note_ph: { zh: '備註 —— 這一項的進度、卡在哪、誰在追。打完按儲存,會存回 GitHub,換台電腦也看得到。',
+                 en: 'Notes — where this one stands, what it is waiting on, who is chasing it. Save commits it to GitHub, so it follows you to another machine.' },
+  sch_note_save: { zh: '儲存備註', en: 'Save note' },
+  sch_note_saved: { zh: '已儲存', en: 'Saved' },
+  sch_note_dirty: { zh: '未儲存', en: 'unsaved' },
+  sch_note_meta: { zh: (who, when) => `${who} · ${when}`, en: (who, when) => `${who} · ${when}` },
+  sch_note_leave: { zh: '有備註還沒儲存,確定要離開嗎?', en: 'Some notes are not saved yet. Leave anyway?' },
   sch_filter_feature: { zh: '全部產品', en: 'All features' },
   sch_filter_status: { zh: '全部狀態', en: 'All statuses' },
   sch_hide_done: { zh: '隱藏已完成', en: 'Hide done' },
@@ -8106,18 +8130,22 @@ function qnaComments(key) { return QNA_NOTES.comments[key] || []; }
 async function refreshQnaNotes() {
   try {
     const resp = await fetch(GITHUB_QNA_NOTES_RAW + '?t=' + Date.now(), { cache: 'no-store' });
-    if (!resp.ok) return;
+    if (!resp.ok) return false;
     const fresh = await resp.json();
-    if (!fresh || typeof fresh !== 'object') return;
+    if (!fresh || typeof fresh !== 'object') return false;
     // raw.githubusercontent is CDN-cached and can still be serving the pre-commit copy
     // right after a save, so anything older than what we hold is ignored.
     if (QNA_NOTES.updated_at &&
-        (!fresh.updated_at || new Date(fresh.updated_at) < new Date(QNA_NOTES.updated_at))) return;
+        (!fresh.updated_at || new Date(fresh.updated_at) < new Date(QNA_NOTES.updated_at))) return false;
+    const same = JSON.stringify([QNA_NOTES.status, QNA_NOTES.comments])
+              === JSON.stringify([fresh.status || {}, fresh.comments || {}]);
     QNA_NOTES.status = fresh.status || {};
     QNA_NOTES.comments = fresh.comments || {};
     QNA_NOTES.updated_at = fresh.updated_at;
     QNA_NOTES.updated_by = fresh.updated_by;
+    return !same;
   } catch (e) { /* offline, or the file does not exist yet */ }
+  return false;
 }
 
 // `apply` is handed {status, comments} as they currently stand on GitHub and mutates
@@ -8458,19 +8486,42 @@ function schStatusText(st) {
 
 function schComments(id) { return SCHED_NOTES.comments[id] || []; }
 
+// Text typed into a note box but not committed yet, kept outside the DOM so a redraw
+// (someone ticks another task off, a filter changes) cannot throw it away.
+const schDrafts = Object.create(null);
+function schSavedNote(id) { return (SCHED_NOTES.notes || {})[id] || null; }
+function schSavedNoteText(id) { const nt = schSavedNote(id); return nt ? (nt.text || '') : ''; }
+function schNoteText(id) { return (id in schDrafts) ? schDrafts[id] : schSavedNoteText(id); }
+function schNoteDirty(id) { return (id in schDrafts) && schDrafts[id] !== schSavedNoteText(id); }
+function schAnyNoteDirty() { return Object.keys(schDrafts).some(schNoteDirty); }
+
+// Typing into a note and closing the tab should not lose it silently.
+window.addEventListener('beforeunload', e => {
+  if (!schAnyNoteDirty()) return;
+  e.preventDefault(); e.returnValue = ''; return '';
+});
+
+// Resolves true only when the repo actually held something different. The caller
+// redraws on true and leaves the DOM alone otherwise — a redraw a second after load
+// can land between a mousedown and a mouseup and swallow the click.
 async function refreshSchedNotes() {
   try {
     const resp = await fetch(GITHUB_SCHED_NOTES_RAW + '?t=' + Date.now(), { cache: 'no-store' });
-    if (!resp.ok) return;
+    if (!resp.ok) return false;
     const fresh = await resp.json();
-    if (!fresh || typeof fresh !== 'object') return;
+    if (!fresh || typeof fresh !== 'object') return false;
     if (SCHED_NOTES.updated_at &&
-        (!fresh.updated_at || new Date(fresh.updated_at) < new Date(SCHED_NOTES.updated_at))) return;
+        (!fresh.updated_at || new Date(fresh.updated_at) < new Date(SCHED_NOTES.updated_at))) return false;
+    const same = JSON.stringify([SCHED_NOTES.state, SCHED_NOTES.notes, SCHED_NOTES.comments])
+              === JSON.stringify([fresh.state || {}, fresh.notes || {}, fresh.comments || {}]);
     SCHED_NOTES.state = fresh.state || {};
+    SCHED_NOTES.notes = fresh.notes || {};
     SCHED_NOTES.comments = fresh.comments || {};
     SCHED_NOTES.updated_at = fresh.updated_at;
     SCHED_NOTES.updated_by = fresh.updated_by;
+    return !same;
   } catch (e) { /* offline, or the file does not exist yet */ }
+  return false;
 }
 
 async function commitSchedNotes(apply, statusEl) {
@@ -8494,12 +8545,14 @@ async function commitSchedNotes(apply, statusEl) {
     // no file yet, so carry in whatever this page already holds rather than dropping it.
     const base = (getResp.status === 404) ? SCHED_NOTES : remote;
     const state = { state: Object.assign({}, base.state || {}),
+                    notes: Object.assign({}, base.notes || {}),
                     comments: Object.assign({}, base.comments || {}) };
     apply(state);
     const payload = {
       updated_at: new Date().toISOString(),
       updated_by: traceUserName(false) || t('notes_meta_unknown'),
       state: state.state,
+      notes: state.notes,
       comments: state.comments,
     };
     const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
@@ -8510,6 +8563,7 @@ async function commitSchedNotes(apply, statusEl) {
     });
     if (!putResp.ok) throw new Error('PUT ' + putResp.status + ': ' + (await putResp.text()).slice(0, 200));
     SCHED_NOTES.state = payload.state;
+    SCHED_NOTES.notes = payload.notes;
     SCHED_NOTES.comments = payload.comments;
     SCHED_NOTES.updated_at = payload.updated_at;
     SCHED_NOTES.updated_by = payload.updated_by;
@@ -8568,6 +8622,21 @@ function schRowHtml(task) {
       <span class="cmt-status" data-sch-cmt-status="${esc(task.id)}"></span>
     </div>
     ${marks ? `<div class="sch-meta"><span class="sch-marks">${marks}</span></div>` : ''}
+    ${schNoteHtml(task.id)}
+  </div>`;
+}
+
+function schNoteHtml(id) {
+  const saved = schSavedNote(id);
+  const dirty = schNoteDirty(id);
+  return `<div class="sch-note${dirty ? ' dirty' : ''}" data-sch-note-box="${esc(id)}">
+    <textarea data-sch-note="${esc(id)}" placeholder="${esc(t('sch_note_ph'))}">${esc(schNoteText(id))}</textarea>
+    <div class="sch-note-bar">
+      <button type="button" class="btn small" data-sch-note-save="${esc(id)}"${dirty ? '' : ' hidden'}>${esc(t('sch_note_save'))}</button>
+      <span class="sch-note-flag"${dirty ? '' : ' hidden'}>${esc(t('sch_note_dirty'))}</span>
+      <span class="sch-note-meta">${saved && saved.at ? esc(t('sch_note_meta', saved.by || '?', String(saved.at).slice(0, 10))) : ''}</span>
+      <span class="cmt-status" data-sch-note-status="${esc(id)}"></span>
+    </div>
   </div>`;
 }
 
@@ -8824,17 +8893,42 @@ function renderSchedulePanel() {
     ${body}`;
 
   const ganttWrap = panel.querySelector('.gantt-wrap');
-  if (ganttWrap) {
-    schAttachGanttDrag(ganttWrap, cur);
-    ganttWrap.addEventListener('click', e => {
+  if (ganttWrap) schAttachGanttDrag(ganttWrap, cur);
+
+  // The chips and task names are rebuilt on every render, so binding to them directly
+  // leaves a window where a click can land on a node that is about to be replaced and
+  // never reach a handler. The panel itself is never replaced — delegate from it, once.
+  if (!panel.dataset.schWired) {
+    panel.dataset.schWired = '1';
+
+    panel.addEventListener('click', e => {
+      const view = e.target.closest('[data-sch-view]');
+      if (view) {
+        try { localStorage.setItem(SCH_VIEW_KEY, view.dataset.schView); } catch (err) { /* private mode */ }
+        renderSchedulePanel();
+        return;
+      }
+      const ph = e.target.closest('[data-sch-phase]');
+      if (ph) {
+        try { localStorage.setItem(SCH_PHASE_KEY, ph.dataset.schPhase); } catch (err) { /* private mode */ }
+        renderSchedulePanel();
+        return;
+      }
+      if (e.target.closest('#schHideDone')) {
+        try { localStorage.setItem(SCH_HIDE_DONE_KEY, schHideDone() ? '0' : '1'); } catch (err) { /* private mode */ }
+        renderSchedulePanel();
+        return;
+      }
       const pick = e.target.closest('[data-sch-pick]');
-      if (!pick) return;
-      // Clicking the already-selected task clears it, so the detail card can be
-      // dismissed without hunting for a close button.
-      schGanttSel = (schGanttSel === pick.dataset.schPick) ? null : pick.dataset.schPick;
-      renderSchedulePanel();
+      if (pick) {
+        // Clicking the already-selected task clears it, so the detail card can be
+        // dismissed without hunting for a close button.
+        schGanttSel = (schGanttSel === pick.dataset.schPick) ? null : pick.dataset.schPick;
+        renderSchedulePanel();
+      }
     });
-    ganttWrap.addEventListener('keydown', e => {
+
+    panel.addEventListener('keydown', e => {
       if (e.key !== 'Enter' && e.key !== ' ') return;
       const pick = e.target.closest('[data-sch-pick]');
       if (!pick) return;
@@ -8844,28 +8938,13 @@ function renderSchedulePanel() {
     });
   }
 
-  panel.querySelectorAll('[data-sch-phase]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      try { localStorage.setItem(SCH_PHASE_KEY, btn.dataset.schPhase); } catch (e) { /* private mode */ }
-      renderSchedulePanel();
-    });
-  });
-
-  const hideBtn = document.getElementById('schHideDone');
-  if (hideBtn) hideBtn.addEventListener('click', () => {
-    try { localStorage.setItem(SCH_HIDE_DONE_KEY, schHideDone() ? '0' : '1'); } catch (e) { /* private mode */ }
-    renderSchedulePanel();
-  });
-
-  panel.querySelectorAll('[data-sch-view]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      try { localStorage.setItem(SCH_VIEW_KEY, btn.dataset.schView); } catch (e) { /* private mode */ }
-      renderSchedulePanel();
-    });
-  });
-
-  const list = document.getElementById('schList');
-  if (!list) return;
+  // Same reasoning as the chips above: #schList is rebuilt on every render, so these
+  // are delegated from the panel and wired exactly once. Every selector below is a
+  // data-attribute that only ever appears inside the list, so widening the root is
+  // safe, and `tasks` is SCHEDULE.tasks, which does not change between renders.
+  if (panel.dataset.schListWired) return;
+  panel.dataset.schListWired = '1';
+  const list = panel;
 
   function schCmtStatus(id, msg) {
     const el = list.querySelector(`[data-sch-cmt-status="${CSS.escape(id)}"]`);
@@ -8884,7 +8963,62 @@ function renderSchedulePanel() {
     });
   }
 
+  // --- the always-on note box --------------------------------------------------
+  // Typing only updates the draft and the dirty markers in place; it never redraws
+  // the panel, so the caret stays where it is and nothing commits per keystroke.
+  function schPaintNote(id) {
+    const box = list.querySelector(`[data-sch-note-box="${CSS.escape(id)}"]`);
+    if (!box) return;
+    const dirty = schNoteDirty(id);
+    box.classList.toggle('dirty', dirty);
+    const btn = box.querySelector('[data-sch-note-save]');
+    const flag = box.querySelector('.sch-note-flag');
+    if (btn) btn.hidden = !dirty;
+    if (flag) flag.hidden = !dirty;
+    const meta = box.querySelector('.sch-note-meta');
+    const saved = schSavedNote(id);
+    if (meta) meta.textContent = saved && saved.at ? t('sch_note_meta', saved.by || '?', String(saved.at).slice(0, 10)) : '';
+  }
+
+  list.addEventListener('input', e => {
+    const ta = e.target.closest('[data-sch-note]');
+    if (!ta) return;
+    schDrafts[ta.dataset.schNote] = ta.value;
+    schPaintNote(ta.dataset.schNote);
+  });
+
+  async function schSaveNote(id) {
+    const text = (schNoteText(id) || '').trim();
+    const box = list.querySelector(`[data-sch-note-box="${CSS.escape(id)}"]`);
+    const btn = box && box.querySelector('[data-sch-note-save]');
+    if (btn) btn.disabled = true;
+    const ok = await commitSchedNotes(st => {
+      // An emptied note is a removal, not a blank entry, so the file does not fill
+      // up with keys nobody is using.
+      if (text) st.notes[id] = { text, at: new Date().toISOString(), by: traceUserName(false) || t('notes_meta_unknown') };
+      else delete st.notes[id];
+    }, box && box.querySelector('.cmt-status'));
+    if (btn) btn.disabled = false;
+    if (!ok) return;
+    delete schDrafts[id];
+    // Put back what was actually committed — trimmed — so the box matches the file.
+    const ta = box && box.querySelector('[data-sch-note]');
+    if (ta && ta.value !== text) ta.value = text;
+    schPaintNote(id);
+    const st = list.querySelector(`[data-sch-note-status="${CSS.escape(id)}"]`);
+    if (st) { st.textContent = t('sch_note_saved'); setTimeout(() => { if (st.textContent === t('sch_note_saved')) st.textContent = ''; }, 1800); }
+  }
+
+  list.addEventListener('keydown', e => {
+    const ta = e.target.closest('[data-sch-note]');
+    if (!ta) return;
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); schSaveNote(ta.dataset.schNote); }
+  });
+
   list.addEventListener('click', async e => {
+    const noteSave = e.target.closest('[data-sch-note-save]');
+    if (noteSave) { await schSaveNote(noteSave.dataset.schNoteSave); return; }
+
     const toggle = e.target.closest('[data-sch-toggle]');
     if (toggle) {
       const id = toggle.dataset.schToggle;
@@ -9065,11 +9199,11 @@ renderQnaPanel();
 renderSchedulePanel();
 
 // Someone else may have marked a schedule task done since this page was built.
-refreshSchedNotes().then(() => renderSchedulePanel());
+refreshSchedNotes().then(changed => { if (changed) renderSchedulePanel(); });
 
 // Someone else may have answered a question or left a comment since this page was
 // built, so pull qna_notes.json straight from the repo and redraw if it moved.
-refreshQnaNotes().then(() => renderQnaPanel());
+refreshQnaNotes().then(changed => { if (changed) renderQnaPanel(); });
 renderKnowledgePanel();
 renderPretestPanel();
 renderTraceabilityPanel();
