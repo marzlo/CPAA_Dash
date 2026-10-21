@@ -1,6 +1,6 @@
 {
  "source": "NR1L_CPAA_Certification.xlsx",
- "built_at": "2026-10-21T04:26:55+00:00",
+ "built_at": "2026-10-21T10:44:51+00:00",
  "anchor": "2025-12-29",
  "assume_done_before": 42,
  "weeks": [
@@ -820,22 +820,22 @@
    "feature": "CarPlay",
    "phase": "Certification(1st)",
    "name": "Location Test & Wireless Performance",
-   "s": 48,
-   "e": 58,
+   "s": 53,
+   "e": 63,
    "segs": [
     {
-     "s": 48,
-     "e": 58,
+     "s": 53,
+     "e": 63,
      "kind": "ours"
     }
    ],
    "marks": [
     {
-     "i": 48,
+     "i": 53,
      "text": "pre test + Issue Fix"
     },
     {
-     "i": 53,
+     "i": 58,
      "text": "Audit"
     }
    ],
@@ -1574,12 +1574,12 @@
    "feature": "Android Auto",
    "phase": "Certification(1st)",
    "name": "InVehicleTest",
-   "s": 48,
+   "s": 53,
    "e": 66,
    "segs": [
     {
-     "s": 48,
-     "e": 56,
+     "s": 53,
+     "e": 61,
      "kind": "ours"
     },
     {
@@ -1590,7 +1590,7 @@
    ],
    "marks": [
     {
-     "i": 48,
+     "i": 53,
      "text": "pre test"
     },
     {
