@@ -467,6 +467,16 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .gantt-wrap { overflow-x: auto; overflow-y: visible; position: relative; padding-bottom: 6px;
                 cursor: grab; }
   .gantt-wrap.dragging { cursor: grabbing; user-select: none; }
+  .gantt-row:not(.gantt-group):not(.gantt-head) .gantt-name { cursor: pointer; }
+  .gantt-row:not(.gantt-group):not(.gantt-head):hover .gantt-name { color: var(--gantt-ours); }
+  .gantt-row.sel .gantt-name { color: var(--gantt-ours); font-weight: 600; }
+  .gantt-row.sel .gantt-name::before {
+    content: ''; position: absolute; left: 0; top: 2px; bottom: 2px; width: 3px;
+    background: var(--gantt-ours); border-radius: 2px;
+  }
+  .gantt-name { position: sticky; }
+  .sch-pick-hint { font-size: 12px; color: var(--muted); padding: 2px; }
+  .sch-filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
   .gantt-row { display: flex; align-items: stretch; height: 24px; }
   .gantt-name {
     position: sticky; left: 0; z-index: 2; flex: 0 0 240px; width: 240px;
@@ -1466,6 +1476,11 @@ const STRINGS = {
   sch_kind_final: { zh: '最終審查', en: 'Final review' },
   sch_today: { zh: '本週', en: 'Today' },
   sch_drag_hint: { zh: '可直接拖曳左右移動', en: 'drag to pan' },
+  sch_hide_done_n: { zh: n => `隱藏已完成(${n})`, en: n => `Hide done (${n})` },
+  sch_pick_hint: { zh: '點左邊的任務名稱,這裡會顯示那一項的細節 —— 可以直接標記完成或留言。',
+                   en: 'Click a task name on the left and its details appear here, ready to mark done or comment on.' },
+  sch_pick_gone: { zh: '這項已經不在上面的圖裡了(被「隱藏已完成」濾掉)。',
+                   en: 'This one is no longer in the chart above — "hide done" is filtering it out.' },
   sch_filter_feature: { zh: '全部產品', en: 'All features' },
   sch_filter_status: { zh: '全部狀態', en: 'All statuses' },
   sch_hide_done: { zh: '隱藏已完成', en: 'Hide done' },
@@ -8586,8 +8601,9 @@ function schGanttHtml(tasks) {
     const tick = st.k === 'done'
       ? `<div class="gantt-tick" style="left:${(task.e + 1) * SCH_WEEK_PX + 2}px"></div>` : '';
     const title = `${task.feature} · ${task.phase} · ${task.name}\n${t('sch_range', schWeekLabel(task.s), schWeekLabel(task.e))}\n${schStatusText(st)}`;
-    return `${header}<div class="gantt-row" title="${esc(title)}">
-      <div class="gantt-name${st.k === 'done' ? ' done' : ''}">${esc(task.name)}</div>
+    return `${header}<div class="gantt-row${task.id === schGanttSel ? ' sel' : ''}" title="${esc(title)}">
+      <div class="gantt-name${st.k === 'done' ? ' done' : ''}" data-sch-pick="${esc(task.id)}"
+           role="button" tabindex="0">${esc(task.name)}</div>
       <div class="gantt-track" style="width:${trackW}px">${grid.join('')}${bars}${over}${tick}</div>
     </div>`;
   }).join('');
@@ -8607,6 +8623,15 @@ function schGanttHtml(tasks) {
 // ticked a task off) leaves the view exactly where they had it.
 let schGanttScroll = null;
 
+// Which task the Gantt has selected, so its detail card below survives the redraw
+// that marking it done triggers.
+let schGanttSel = null;
+
+const SCH_HIDE_DONE_KEY = 'cpaaScheduleHideDone';
+function schHideDone() {
+  try { return localStorage.getItem(SCH_HIDE_DONE_KEY) === '1'; } catch (e) { return false; }
+}
+
 // Drag anywhere on the chart to pan it. 89 weeks is a long way to travel on a
 // scrollbar, and nothing inside the track is clickable, so a plain grab is safe.
 // Touch and trackpads keep their native scrolling: this only takes over a mouse drag.
@@ -8621,33 +8646,44 @@ function schAttachGanttDrag(wrap, cur) {
   schGanttScroll = wrap.scrollLeft;
   wrap.addEventListener('scroll', () => { schGanttScroll = wrap.scrollLeft; });
 
-  let down = false, startX = 0, startLeft = 0, moved = 0;
+  // Capturing the pointer on pointerdown would retarget the click to the wrapper, and
+  // the task names underneath would stop being clickable. So the drag only arms itself
+  // once the pointer has actually travelled: a plain click never captures anything.
+  const DRAG_SLOP = 4;
+  let down = false, dragging = false, startX = 0, startLeft = 0, moved = 0;
   wrap.addEventListener('pointerdown', e => {
     if (e.pointerType !== 'mouse' || e.button !== 0) return;
-    down = true; moved = 0;
+    down = true; dragging = false; moved = 0;
     startX = e.clientX; startLeft = wrap.scrollLeft;
-    wrap.classList.add('dragging');
-    try { wrap.setPointerCapture(e.pointerId); } catch (err) { /* older engines */ }
   });
   wrap.addEventListener('pointermove', e => {
     if (!down) return;
     const dx = e.clientX - startX;
     moved = Math.max(moved, Math.abs(dx));
+    if (!dragging && moved <= DRAG_SLOP) return;
+    if (!dragging) {
+      dragging = true;
+      wrap.classList.add('dragging');
+      try { wrap.setPointerCapture(e.pointerId); } catch (err) { /* older engines */ }
+    }
     wrap.scrollLeft = startLeft - dx;
     e.preventDefault();
   });
   const end = e => {
     if (!down) return;
     down = false;
-    wrap.classList.remove('dragging');
-    try { wrap.releasePointerCapture(e.pointerId); } catch (err) { /* already released */ }
+    if (dragging) {
+      dragging = false;
+      wrap.classList.remove('dragging');
+      try { wrap.releasePointerCapture(e.pointerId); } catch (err) { /* already released */ }
+    }
   };
   wrap.addEventListener('pointerup', end);
   wrap.addEventListener('pointercancel', end);
   wrap.addEventListener('pointerleave', end);
   // A drag that happens to finish on something clickable should pan, not activate it.
   wrap.addEventListener('click', e => {
-    if (moved > 4) { e.preventDefault(); e.stopPropagation(); }
+    if (moved > DRAG_SLOP) { e.preventDefault(); e.stopPropagation(); }
   }, true);
 }
 
@@ -8676,7 +8712,21 @@ function renderSchedulePanel() {
 
   let body;
   if (view === 'gantt') {
-    body = `<section class="card">${legend}${schGanttHtml(tasks)}</section>`;
+    const hide = schHideDone();
+    const shown = hide ? tasks.filter(x => schStatus(x).k !== 'done') : tasks;
+    const picked = schGanttSel ? tasks.find(x => x.id === schGanttSel) : null;
+    // The detail card carries id="schList" so the mark-done and comment handlers
+    // further down bind to it exactly as they do in the other two views.
+    const detail = picked
+      ? (shown.includes(picked) ? '' : `<div class="sch-pick-hint">${esc(t('sch_pick_gone'))}</div>`) + schRowHtml(picked)
+      : `<div class="sch-pick-hint">${esc(t('sch_pick_hint'))}</div>`;
+    body = `<section class="card">
+        <div class="sch-filters">
+          <button type="button" class="chip${hide ? ' active' : ''}" id="schHideDone">${esc(t('sch_hide_done_n', done.length))}</button>
+        </div>
+        ${legend}${schGanttHtml(shown)}
+      </section>
+      <section class="card"><div id="schList">${detail}</div></section>`;
   } else if (view === 'list') {
     const order = { late: 0, active: 1, todo: 2, done: 3 };
     const all = tasks.slice().sort((a, b) => {
@@ -8717,7 +8767,31 @@ function renderSchedulePanel() {
     ${body}`;
 
   const ganttWrap = panel.querySelector('.gantt-wrap');
-  if (ganttWrap) schAttachGanttDrag(ganttWrap, cur);
+  if (ganttWrap) {
+    schAttachGanttDrag(ganttWrap, cur);
+    ganttWrap.addEventListener('click', e => {
+      const pick = e.target.closest('[data-sch-pick]');
+      if (!pick) return;
+      // Clicking the already-selected task clears it, so the detail card can be
+      // dismissed without hunting for a close button.
+      schGanttSel = (schGanttSel === pick.dataset.schPick) ? null : pick.dataset.schPick;
+      renderSchedulePanel();
+    });
+    ganttWrap.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const pick = e.target.closest('[data-sch-pick]');
+      if (!pick) return;
+      e.preventDefault();
+      schGanttSel = (schGanttSel === pick.dataset.schPick) ? null : pick.dataset.schPick;
+      renderSchedulePanel();
+    });
+  }
+
+  const hideBtn = document.getElementById('schHideDone');
+  if (hideBtn) hideBtn.addEventListener('click', () => {
+    try { localStorage.setItem(SCH_HIDE_DONE_KEY, schHideDone() ? '0' : '1'); } catch (e) { /* private mode */ }
+    renderSchedulePanel();
+  });
 
   panel.querySelectorAll('[data-sch-view]').forEach(btn => {
     btn.addEventListener('click', () => {
