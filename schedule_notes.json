@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-21T10:35:02.329Z",
+  "updated_at": "2026-10-21T10:35:31.525Z",
   "updated_by": "Leyo",
   "state": {},
   "notes": {
@@ -11,6 +11,11 @@
     "carplay|certification-1st|itut-siri-esiri": {
       "text": "Prerequisite: Resolve critical Audio issues by the end of October.​​\n\nKey Blockers: APQM, Siri Distortion, Premium Audio, Enhanced Siri.​​\n\nRisk: Unresolved Audio issues may delay ITU-T testing. Vehicle availability is currently assumed only through mid-December.​​",
       "at": "2026-10-21T10:35:02.329Z",
+      "by": "Leyo"
+    },
+    "carplay|certification-1st|location-test-wireless-performance": {
+      "text": "Vehicle Allocation:​​\n\nCarPlay: Internal Amplifier.​​\n\nAndroid Auto: External Amplifier.​​\n\nPrerequisites: GPS Location and Dead Reckoning validation.​​\n\nRisks: Lab availability, Christmas/New Year holidays, and potential vehicle scheduling conflicts.​​\n\nAction: MD to validate GPS Location and Harman's Dead Reckoning algorithm ASAP to enable early lab booking and potentially advance Location Testing.​​\n\n​​",
+      "at": "2026-10-21T10:35:31.525Z",
       "by": "Leyo"
     }
   },
