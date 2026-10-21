@@ -1,7 +1,14 @@
 {
-  "updated_at": "2026-10-21T06:23:08.883Z",
+  "updated_at": "2026-10-21T10:32:51.703Z",
   "updated_by": "Leyo",
   "state": {},
+  "notes": {
+    "carplay|certification-1st|vehicle-assessment": {
+      "text": "Milestone: Full Function Ready by October 31.​\n\nRisk: If Full Function Ready is delayed beyond October 31, the Pretest completion schedule will slip day by day (Day-for-Day Slip).​\n\nKey Blockers: Audio, Premium Audio, Enhanced Siri, Cold Boot,knob and ecall etc.​",
+      "at": "2026-10-21T10:32:51.703Z",
+      "by": "Leyo"
+    }
+  },
   "comments": {
     "carplay|certification-1st|usb-performance": [
       {
