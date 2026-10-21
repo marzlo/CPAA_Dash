@@ -16,6 +16,11 @@ on:
     paths:
       - 'scripts/**'
       - '.github/workflows/refresh-dashboard.yml'
+      # The certification Gantt's source workbook. Dropping a new revision in has to
+      # rebuild the page, or schedule.json updates in the repo while the deployed
+      # dashboard carries on showing the old dates.
+      - 'NR1L_CPAA_Certification.xlsx'
+      - 'traceability_source.csv'
 
 permissions:
   contents: write
