@@ -3476,12 +3476,12 @@
  "2026-10-21": {
   "bugs": {
    "done": 275,
-   "total": 360
+   "total": 361
   },
   "bugs_by_rca": {
    "empty": {
     "done": 159,
-    "total": 235
+    "total": 236
    },
    "filled": {
     "done": 116,
@@ -3531,7 +3531,7 @@
    },
    "To Do": {
     "done": 0,
-    "total": 19
+    "total": 20
    }
   },
   "bugs_by_team": {
@@ -3557,7 +3557,7 @@
    },
    "TS_CPAA": {
     "done": 201,
-    "total": 218
+    "total": 219
    },
    "TS_FW": {
     "done": 27,
