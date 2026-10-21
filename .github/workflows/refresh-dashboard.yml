@@ -101,6 +101,12 @@ jobs:
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
         run: python scripts/build_traceability.py
 
+      # The certification Gantt. Its source workbook lives in the repo and only changes
+      # when somebody drops a new revision in, so this is a pure local transform — no
+      # Jira, no network. Progress ticks live in schedule_notes.json and are untouched.
+      - name: Build schedule.json
+        run: python scripts/build_schedule.py
+
       - name: Record today's snapshot into history.json
         run: python scripts/update_history.py
 

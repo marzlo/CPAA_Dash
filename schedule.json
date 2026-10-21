@@ -1,0 +1,1983 @@
+{
+ "source": "NR1L_CPAA_Certification.xlsx",
+ "built_at": "2026-10-21T04:26:55+00:00",
+ "anchor": "2025-12-29",
+ "assume_done_before": 42,
+ "weeks": [
+  {
+   "i": 0,
+   "date": "2025-12-29",
+   "label": "2026-W01"
+  },
+  {
+   "i": 1,
+   "date": "2026-01-05",
+   "label": "2026-W02"
+  },
+  {
+   "i": 2,
+   "date": "2026-01-12",
+   "label": "2026-W03"
+  },
+  {
+   "i": 3,
+   "date": "2026-01-19",
+   "label": "2026-W04"
+  },
+  {
+   "i": 4,
+   "date": "2026-01-26",
+   "label": "2026-W05"
+  },
+  {
+   "i": 5,
+   "date": "2026-02-02",
+   "label": "2026-W06"
+  },
+  {
+   "i": 6,
+   "date": "2026-02-09",
+   "label": "2026-W07"
+  },
+  {
+   "i": 7,
+   "date": "2026-02-16",
+   "label": "2026-W08"
+  },
+  {
+   "i": 8,
+   "date": "2026-02-23",
+   "label": "2026-W09"
+  },
+  {
+   "i": 9,
+   "date": "2026-03-02",
+   "label": "2026-W10"
+  },
+  {
+   "i": 10,
+   "date": "2026-03-09",
+   "label": "2026-W11"
+  },
+  {
+   "i": 11,
+   "date": "2026-03-16",
+   "label": "2026-W12"
+  },
+  {
+   "i": 12,
+   "date": "2026-03-23",
+   "label": "2026-W13"
+  },
+  {
+   "i": 13,
+   "date": "2026-03-30",
+   "label": "2026-W14"
+  },
+  {
+   "i": 14,
+   "date": "2026-04-06",
+   "label": "2026-W15"
+  },
+  {
+   "i": 15,
+   "date": "2026-04-13",
+   "label": "2026-W16"
+  },
+  {
+   "i": 16,
+   "date": "2026-04-20",
+   "label": "2026-W17"
+  },
+  {
+   "i": 17,
+   "date": "2026-04-27",
+   "label": "2026-W18"
+  },
+  {
+   "i": 18,
+   "date": "2026-05-04",
+   "label": "2026-W19"
+  },
+  {
+   "i": 19,
+   "date": "2026-05-11",
+   "label": "2026-W20"
+  },
+  {
+   "i": 20,
+   "date": "2026-05-18",
+   "label": "2026-W21"
+  },
+  {
+   "i": 21,
+   "date": "2026-05-25",
+   "label": "2026-W22"
+  },
+  {
+   "i": 22,
+   "date": "2026-06-01",
+   "label": "2026-W23"
+  },
+  {
+   "i": 23,
+   "date": "2026-06-08",
+   "label": "2026-W24"
+  },
+  {
+   "i": 24,
+   "date": "2026-06-15",
+   "label": "2026-W25"
+  },
+  {
+   "i": 25,
+   "date": "2026-06-22",
+   "label": "2026-W26"
+  },
+  {
+   "i": 26,
+   "date": "2026-06-29",
+   "label": "2026-W27"
+  },
+  {
+   "i": 27,
+   "date": "2026-07-06",
+   "label": "2026-W28"
+  },
+  {
+   "i": 28,
+   "date": "2026-07-13",
+   "label": "2026-W29"
+  },
+  {
+   "i": 29,
+   "date": "2026-07-20",
+   "label": "2026-W30"
+  },
+  {
+   "i": 30,
+   "date": "2026-07-27",
+   "label": "2026-W31"
+  },
+  {
+   "i": 31,
+   "date": "2026-08-03",
+   "label": "2026-W32"
+  },
+  {
+   "i": 32,
+   "date": "2026-08-10",
+   "label": "2026-W33"
+  },
+  {
+   "i": 33,
+   "date": "2026-08-17",
+   "label": "2026-W34"
+  },
+  {
+   "i": 34,
+   "date": "2026-08-24",
+   "label": "2026-W35"
+  },
+  {
+   "i": 35,
+   "date": "2026-08-31",
+   "label": "2026-W36"
+  },
+  {
+   "i": 36,
+   "date": "2026-09-07",
+   "label": "2026-W37"
+  },
+  {
+   "i": 37,
+   "date": "2026-09-14",
+   "label": "2026-W38"
+  },
+  {
+   "i": 38,
+   "date": "2026-09-21",
+   "label": "2026-W39"
+  },
+  {
+   "i": 39,
+   "date": "2026-09-28",
+   "label": "2026-W40"
+  },
+  {
+   "i": 40,
+   "date": "2026-10-05",
+   "label": "2026-W41"
+  },
+  {
+   "i": 41,
+   "date": "2026-10-12",
+   "label": "2026-W42"
+  },
+  {
+   "i": 42,
+   "date": "2026-10-19",
+   "label": "2026-W43"
+  },
+  {
+   "i": 43,
+   "date": "2026-10-26",
+   "label": "2026-W44"
+  },
+  {
+   "i": 44,
+   "date": "2026-11-02",
+   "label": "2026-W45"
+  },
+  {
+   "i": 45,
+   "date": "2026-11-09",
+   "label": "2026-W46"
+  },
+  {
+   "i": 46,
+   "date": "2026-11-16",
+   "label": "2026-W47"
+  },
+  {
+   "i": 47,
+   "date": "2026-11-23",
+   "label": "2026-W48"
+  },
+  {
+   "i": 48,
+   "date": "2026-11-30",
+   "label": "2026-W49"
+  },
+  {
+   "i": 49,
+   "date": "2026-12-07",
+   "label": "2026-W50"
+  },
+  {
+   "i": 50,
+   "date": "2026-12-14",
+   "label": "2026-W51"
+  },
+  {
+   "i": 51,
+   "date": "2026-12-21",
+   "label": "2026-W52"
+  },
+  {
+   "i": 52,
+   "date": "2026-12-28",
+   "label": "2026-W53"
+  },
+  {
+   "i": 53,
+   "date": "2027-01-04",
+   "label": "2027-W01"
+  },
+  {
+   "i": 54,
+   "date": "2027-01-11",
+   "label": "2027-W02"
+  },
+  {
+   "i": 55,
+   "date": "2027-01-18",
+   "label": "2027-W03"
+  },
+  {
+   "i": 56,
+   "date": "2027-01-25",
+   "label": "2027-W04"
+  },
+  {
+   "i": 57,
+   "date": "2027-02-01",
+   "label": "2027-W05"
+  },
+  {
+   "i": 58,
+   "date": "2027-02-08",
+   "label": "2027-W06"
+  },
+  {
+   "i": 59,
+   "date": "2027-02-15",
+   "label": "2027-W07"
+  },
+  {
+   "i": 60,
+   "date": "2027-02-22",
+   "label": "2027-W08"
+  },
+  {
+   "i": 61,
+   "date": "2027-03-01",
+   "label": "2027-W09"
+  },
+  {
+   "i": 62,
+   "date": "2027-03-08",
+   "label": "2027-W10"
+  },
+  {
+   "i": 63,
+   "date": "2027-03-15",
+   "label": "2027-W11"
+  },
+  {
+   "i": 64,
+   "date": "2027-03-22",
+   "label": "2027-W12"
+  },
+  {
+   "i": 65,
+   "date": "2027-03-29",
+   "label": "2027-W13"
+  },
+  {
+   "i": 66,
+   "date": "2027-04-05",
+   "label": "2027-W14"
+  },
+  {
+   "i": 67,
+   "date": "2027-04-12",
+   "label": "2027-W15"
+  },
+  {
+   "i": 68,
+   "date": "2027-04-19",
+   "label": "2027-W16"
+  },
+  {
+   "i": 69,
+   "date": "2027-04-26",
+   "label": "2027-W17"
+  },
+  {
+   "i": 70,
+   "date": "2027-05-03",
+   "label": "2027-W18"
+  },
+  {
+   "i": 71,
+   "date": "2027-05-10",
+   "label": "2027-W19"
+  },
+  {
+   "i": 72,
+   "date": "2027-05-17",
+   "label": "2027-W20"
+  },
+  {
+   "i": 73,
+   "date": "2027-05-24",
+   "label": "2027-W21"
+  },
+  {
+   "i": 74,
+   "date": "2027-05-31",
+   "label": "2027-W22"
+  },
+  {
+   "i": 75,
+   "date": "2027-06-07",
+   "label": "2027-W23"
+  },
+  {
+   "i": 76,
+   "date": "2027-06-14",
+   "label": "2027-W24"
+  },
+  {
+   "i": 77,
+   "date": "2027-06-21",
+   "label": "2027-W25"
+  },
+  {
+   "i": 78,
+   "date": "2027-06-28",
+   "label": "2027-W26"
+  },
+  {
+   "i": 79,
+   "date": "2027-07-05",
+   "label": "2027-W27"
+  },
+  {
+   "i": 80,
+   "date": "2027-07-12",
+   "label": "2027-W28"
+  },
+  {
+   "i": 81,
+   "date": "2027-07-19",
+   "label": "2027-W29"
+  },
+  {
+   "i": 82,
+   "date": "2027-07-26",
+   "label": "2027-W30"
+  },
+  {
+   "i": 83,
+   "date": "2027-08-02",
+   "label": "2027-W31"
+  },
+  {
+   "i": 84,
+   "date": "2027-08-09",
+   "label": "2027-W32"
+  },
+  {
+   "i": 85,
+   "date": "2027-08-16",
+   "label": "2027-W33"
+  },
+  {
+   "i": 86,
+   "date": "2027-08-23",
+   "label": "2027-W34"
+  },
+  {
+   "i": 87,
+   "date": "2027-08-30",
+   "label": "2027-W35"
+  },
+  {
+   "i": 88,
+   "date": "2027-09-06",
+   "label": "2027-W36"
+  }
+ ],
+ "tasks": [
+  {
+   "feature": "CarPlay",
+   "phase": "Function development",
+   "name": "Function development",
+   "s": 5,
+   "e": 31,
+   "segs": [
+    {
+     "s": 5,
+     "e": 30,
+     "kind": "ours"
+    },
+    {
+     "s": 31,
+     "e": 31,
+     "kind": "final"
+    }
+   ],
+   "marks": [],
+   "id": "carplay|function-development|function-development"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Hardware Certification",
+   "name": "USB IF & USB Signal Integrity",
+   "s": 31,
+   "e": 44,
+   "segs": [
+    {
+     "s": 31,
+     "e": 43,
+     "kind": "supplier"
+    },
+    {
+     "s": 44,
+     "e": 44,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 44,
+     "text": "Submit report & Approval"
+    }
+   ],
+   "id": "carplay|hardware-certification|usb-if-usb-signal-integrity"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Hardware Certification",
+   "name": "WIFI",
+   "s": 27,
+   "e": 44,
+   "segs": [
+    {
+     "s": 27,
+     "e": 43,
+     "kind": "supplier"
+    },
+    {
+     "s": 44,
+     "e": 44,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 44,
+     "text": "Submit report & Approval"
+    }
+   ],
+   "id": "carplay|hardware-certification|wifi"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(1st)",
+   "name": "Vehicle Available",
+   "s": 34,
+   "e": 34,
+   "segs": [
+    {
+     "s": 34,
+     "e": 34,
+     "kind": "ours"
+    }
+   ],
+   "marks": [],
+   "id": "carplay|certification-1st|vehicle-available"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(1st)",
+   "name": "PPID",
+   "s": 0,
+   "e": 7,
+   "segs": [
+    {
+     "s": 0,
+     "e": 2,
+     "kind": "ours"
+    },
+    {
+     "s": 5,
+     "e": 7,
+     "kind": "resubmit"
+    }
+   ],
+   "marks": [
+    {
+     "i": 5,
+     "text": "Re-Submit"
+    },
+    {
+     "i": 7,
+     "text": "Approval"
+    }
+   ],
+   "id": "carplay|certification-1st|ppid"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(1st)",
+   "name": "Submit CCR",
+   "s": 2,
+   "e": 12,
+   "segs": [
+    {
+     "s": 2,
+     "e": 7,
+     "kind": "ours"
+    },
+    {
+     "s": 8,
+     "e": 12,
+     "kind": "resubmit"
+    }
+   ],
+   "marks": [
+    {
+     "i": 4,
+     "text": "Submit"
+    },
+    {
+     "i": 8,
+     "text": "Re-Submit"
+    },
+    {
+     "i": 12,
+     "text": "Approval"
+    }
+   ],
+   "id": "carplay|certification-1st|submit-ccr"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(1st)",
+   "name": "Submit CarPlay Integration Design - User Experience",
+   "s": 4,
+   "e": 20,
+   "segs": [
+    {
+     "s": 4,
+     "e": 20,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 12,
+     "text": "Submit"
+    },
+    {
+     "i": 20,
+     "text": "Approval"
+    }
+   ],
+   "id": "carplay|certification-1st|submit-carplay-integration-design-user-experience"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(1st)",
+   "name": "Submit CarPlay Integration Design - Graphics",
+   "s": 4,
+   "e": 20,
+   "segs": [
+    {
+     "s": 4,
+     "e": 20,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 12,
+     "text": "Submit"
+    },
+    {
+     "i": 20,
+     "text": "Approval"
+    }
+   ],
+   "id": "carplay|certification-1st|submit-carplay-integration-design-graphics"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(1st)",
+   "name": "Bench production(DT/HDCC)",
+   "s": 0,
+   "e": 8,
+   "segs": [
+    {
+     "s": 0,
+     "e": 8,
+     "kind": "supplier"
+    }
+   ],
+   "marks": [],
+   "id": "carplay|certification-1st|bench-production-dt-hdcc"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(1st)",
+   "name": "Video Decoder",
+   "s": 21,
+   "e": 25,
+   "segs": [
+    {
+     "s": 21,
+     "e": 24,
+     "kind": "supplier"
+    },
+    {
+     "s": 25,
+     "e": 25,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 21,
+     "text": "Test"
+    },
+    {
+     "i": 25,
+     "text": "Submit report & Approval"
+    }
+   ],
+   "id": "carplay|certification-1st|video-decoder"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(1st)",
+   "name": "Pre-Test",
+   "s": 36,
+   "e": 52,
+   "segs": [
+    {
+     "s": 36,
+     "e": 52,
+     "kind": "ours"
+    }
+   ],
+   "marks": [],
+   "id": "carplay|certification-1st|pre-test"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(1st)",
+   "name": "USB performance",
+   "s": 40,
+   "e": 43,
+   "segs": [
+    {
+     "s": 40,
+     "e": 43,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 40,
+     "text": "Test"
+    },
+    {
+     "i": 43,
+     "text": "Submit report & Approval"
+    }
+   ],
+   "id": "carplay|certification-1st|usb-performance"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(1st)",
+   "name": "Bench shipment to CarPlay lab",
+   "s": 50,
+   "e": 51,
+   "segs": [
+    {
+     "s": 50,
+     "e": 51,
+     "kind": "ours"
+    }
+   ],
+   "marks": [],
+   "id": "carplay|certification-1st|bench-shipment-to-carplay-lab"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(1st)",
+   "name": "AuditTest",
+   "s": 53,
+   "e": 60,
+   "segs": [
+    {
+     "s": 53,
+     "e": 60,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 53,
+     "text": "Round 1"
+    },
+    {
+     "i": 55,
+     "text": "Issue Fix"
+    },
+    {
+     "i": 58,
+     "text": "Round 2"
+    }
+   ],
+   "id": "carplay|certification-1st|audittest"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(1st)",
+   "name": "ITUT & siri&esiri",
+   "s": 44,
+   "e": 55,
+   "segs": [
+    {
+     "s": 44,
+     "e": 51,
+     "kind": "supplier"
+    },
+    {
+     "s": 52,
+     "e": 55,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 52,
+     "text": "Submit report"
+    },
+    {
+     "i": 55,
+     "text": "Approval"
+    }
+   ],
+   "id": "carplay|certification-1st|itut-siri-esiri"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(1st)",
+   "name": "Location Test & Wireless Performance",
+   "s": 48,
+   "e": 58,
+   "segs": [
+    {
+     "s": 48,
+     "e": 58,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 48,
+     "text": "pre test + Issue Fix"
+    },
+    {
+     "i": 53,
+     "text": "Audit"
+    }
+   ],
+   "id": "carplay|certification-1st|location-test-wireless-performance"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(1st)",
+   "name": "Vehicle Assessment",
+   "s": 61,
+   "e": 67,
+   "segs": [
+    {
+     "s": 61,
+     "e": 67,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 61,
+     "text": "Round 1"
+    },
+    {
+     "i": 63,
+     "text": "Issue Fix"
+    },
+    {
+     "i": 66,
+     "text": "Round 2"
+    }
+   ],
+   "id": "carplay|certification-1st|vehicle-assessment"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(1st)",
+   "name": "Exception Request",
+   "s": 68,
+   "e": 69,
+   "segs": [
+    {
+     "s": 68,
+     "e": 69,
+     "kind": "ours"
+    }
+   ],
+   "marks": [],
+   "id": "carplay|certification-1st|exception-request"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(1st)",
+   "name": "Apple Final Review",
+   "s": 70,
+   "e": 70,
+   "segs": [
+    {
+     "s": 70,
+     "e": 70,
+     "kind": "final"
+    }
+   ],
+   "marks": [
+    {
+     "i": 70,
+     "text": "Approval"
+    }
+   ],
+   "id": "carplay|certification-1st|apple-final-review"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(2nd)",
+   "name": "Vehicle Available",
+   "s": 49,
+   "e": 49,
+   "segs": [
+    {
+     "s": 49,
+     "e": 49,
+     "kind": "ours"
+    }
+   ],
+   "marks": [],
+   "id": "carplay|certification-2nd|vehicle-available"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(2nd)",
+   "name": "USB IF & USB Signal Integrity",
+   "s": 31,
+   "e": 44,
+   "segs": [
+    {
+     "s": 31,
+     "e": 43,
+     "kind": "supplier"
+    },
+    {
+     "s": 44,
+     "e": 44,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 44,
+     "text": "Submit report & Approval"
+    }
+   ],
+   "id": "carplay|certification-2nd|usb-if-usb-signal-integrity"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(2nd)",
+   "name": "PPID",
+   "s": 0,
+   "e": 7,
+   "segs": [
+    {
+     "s": 0,
+     "e": 2,
+     "kind": "ours"
+    },
+    {
+     "s": 5,
+     "e": 7,
+     "kind": "resubmit"
+    }
+   ],
+   "marks": [
+    {
+     "i": 5,
+     "text": "Re-Submit"
+    },
+    {
+     "i": 7,
+     "text": "Approval"
+    }
+   ],
+   "id": "carplay|certification-2nd|ppid"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(2nd)",
+   "name": "Submit CCR",
+   "s": 12,
+   "e": 16,
+   "segs": [
+    {
+     "s": 12,
+     "e": 16,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 12,
+     "text": "Submit"
+    },
+    {
+     "i": 16,
+     "text": "Approval"
+    }
+   ],
+   "id": "carplay|certification-2nd|submit-ccr"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(2nd)",
+   "name": "Submit CarPlay Integration Design - User Experience",
+   "s": 12,
+   "e": 26,
+   "segs": [
+    {
+     "s": 12,
+     "e": 26,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 17,
+     "text": "Submit"
+    },
+    {
+     "i": 26,
+     "text": "Approval"
+    }
+   ],
+   "id": "carplay|certification-2nd|submit-carplay-integration-design-user-experience"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(2nd)",
+   "name": "Submit CarPlay Integration Design - Graphics",
+   "s": 12,
+   "e": 26,
+   "segs": [
+    {
+     "s": 12,
+     "e": 26,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 17,
+     "text": "Submit"
+    },
+    {
+     "i": 26,
+     "text": "Approval"
+    }
+   ],
+   "id": "carplay|certification-2nd|submit-carplay-integration-design-graphics"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(2nd)",
+   "name": "Bench production(Promaster/Fastback/Toro)",
+   "s": 13,
+   "e": 32,
+   "segs": [
+    {
+     "s": 13,
+     "e": 32,
+     "kind": "supplier"
+    }
+   ],
+   "marks": [],
+   "id": "carplay|certification-2nd|bench-production-promaster-fastback-toro"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(2nd)",
+   "name": "Video Decoder",
+   "s": 27,
+   "e": 31,
+   "segs": [
+    {
+     "s": 27,
+     "e": 30,
+     "kind": "supplier"
+    },
+    {
+     "s": 31,
+     "e": 31,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 27,
+     "text": "Test"
+    },
+    {
+     "i": 31,
+     "text": "Submit report & Approval"
+    }
+   ],
+   "id": "carplay|certification-2nd|video-decoder"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(2nd)",
+   "name": "Pre-Test",
+   "s": 50,
+   "e": 67,
+   "segs": [
+    {
+     "s": 50,
+     "e": 67,
+     "kind": "ours"
+    }
+   ],
+   "marks": [],
+   "id": "carplay|certification-2nd|pre-test"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(2nd)",
+   "name": "USB performance",
+   "s": 59,
+   "e": 62,
+   "segs": [
+    {
+     "s": 59,
+     "e": 62,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 59,
+     "text": "Test"
+    },
+    {
+     "i": 62,
+     "text": "Submit report & Approval"
+    }
+   ],
+   "id": "carplay|certification-2nd|usb-performance"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(2nd)",
+   "name": "Bench shipment to CarPlay lab",
+   "s": 65,
+   "e": 66,
+   "segs": [
+    {
+     "s": 65,
+     "e": 66,
+     "kind": "ours"
+    }
+   ],
+   "marks": [],
+   "id": "carplay|certification-2nd|bench-shipment-to-carplay-lab"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(2nd)",
+   "name": "AuditTest",
+   "s": 68,
+   "e": 78,
+   "segs": [
+    {
+     "s": 68,
+     "e": 78,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 68,
+     "text": "Round 1"
+    },
+    {
+     "i": 71,
+     "text": "Issue Fix"
+    },
+    {
+     "i": 76,
+     "text": "Round 2"
+    }
+   ],
+   "id": "carplay|certification-2nd|audittest"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(2nd)",
+   "name": "ITUT & siri&esiri",
+   "s": 50,
+   "e": 62,
+   "segs": [
+    {
+     "s": 50,
+     "e": 58,
+     "kind": "supplier"
+    },
+    {
+     "s": 59,
+     "e": 62,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 59,
+     "text": "Submit"
+    },
+    {
+     "i": 62,
+     "text": "Approval"
+    }
+   ],
+   "id": "carplay|certification-2nd|itut-siri-esiri"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(2nd)",
+   "name": "Vehicle Assessment",
+   "s": 79,
+   "e": 85,
+   "segs": [
+    {
+     "s": 79,
+     "e": 85,
+     "kind": "supplier"
+    }
+   ],
+   "marks": [
+    {
+     "i": 79,
+     "text": "Round 1"
+    },
+    {
+     "i": 81,
+     "text": "Issue Fix"
+    },
+    {
+     "i": 84,
+     "text": "Round 2"
+    }
+   ],
+   "id": "carplay|certification-2nd|vehicle-assessment"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(2nd)",
+   "name": "Exception Request",
+   "s": 86,
+   "e": 87,
+   "segs": [
+    {
+     "s": 86,
+     "e": 87,
+     "kind": "ours"
+    }
+   ],
+   "marks": [],
+   "id": "carplay|certification-2nd|exception-request"
+  },
+  {
+   "feature": "CarPlay",
+   "phase": "Certification(2nd)",
+   "name": "Apple Final Review",
+   "s": 88,
+   "e": 88,
+   "segs": [
+    {
+     "s": 88,
+     "e": 88,
+     "kind": "final"
+    }
+   ],
+   "marks": [
+    {
+     "i": 88,
+     "text": "Approval"
+    }
+   ],
+   "id": "carplay|certification-2nd|apple-final-review"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Function development",
+   "name": "Function development",
+   "s": 5,
+   "e": 31,
+   "segs": [
+    {
+     "s": 5,
+     "e": 30,
+     "kind": "ours"
+    },
+    {
+     "s": 31,
+     "e": 31,
+     "kind": "final"
+    }
+   ],
+   "marks": [],
+   "id": "android-auto|function-development|function-development"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(1st)",
+   "name": "Vehicle Available",
+   "s": 34,
+   "e": 34,
+   "segs": [
+    {
+     "s": 34,
+     "e": 34,
+     "kind": "ours"
+    }
+   ],
+   "marks": [],
+   "id": "android-auto|certification-1st|vehicle-available"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(1st)",
+   "name": "Submit Application",
+   "s": 2,
+   "e": 14,
+   "segs": [
+    {
+     "s": 2,
+     "e": 14,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 5,
+     "text": "Submit"
+    },
+    {
+     "i": 14,
+     "text": "Approval"
+    }
+   ],
+   "id": "android-auto|certification-1st|submit-application"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(1st)",
+   "name": "Submit Project Specification",
+   "s": 15,
+   "e": 26,
+   "segs": [
+    {
+     "s": 15,
+     "e": 26,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 17,
+     "text": "Submit"
+    },
+    {
+     "i": 26,
+     "text": "Approval"
+    }
+   ],
+   "id": "android-auto|certification-1st|submit-project-specification"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(1st)",
+   "name": "Deliver SSLKey",
+   "s": 27,
+   "e": 28,
+   "segs": [
+    {
+     "s": 27,
+     "e": 28,
+     "kind": "ours"
+    }
+   ],
+   "marks": [],
+   "id": "android-auto|certification-1st|deliver-sslkey"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(1st)",
+   "name": "Submit Design Assessment",
+   "s": 36,
+   "e": 49,
+   "segs": [
+    {
+     "s": 36,
+     "e": 49,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 36,
+     "text": "Start"
+    },
+    {
+     "i": 42,
+     "text": "Submit"
+    },
+    {
+     "i": 49,
+     "text": "Approval"
+    }
+   ],
+   "id": "android-auto|certification-1st|submit-design-assessment"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(1st)",
+   "name": "Submit System Testing Assessment",
+   "s": 36,
+   "e": 57,
+   "segs": [
+    {
+     "s": 36,
+     "e": 57,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 36,
+     "text": "Start"
+    },
+    {
+     "i": 50,
+     "text": "Submit"
+    },
+    {
+     "i": 57,
+     "text": "Approval"
+    }
+   ],
+   "id": "android-auto|certification-1st|submit-system-testing-assessment"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(1st)",
+   "name": "Precertification Approval",
+   "s": 58,
+   "e": 59,
+   "segs": [
+    {
+     "s": 58,
+     "e": 59,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 58,
+     "text": "Submit"
+    },
+    {
+     "i": 59,
+     "text": "Approval"
+    }
+   ],
+   "id": "android-auto|certification-1st|precertification-approval"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(1st)",
+   "name": "Testing Schedule Approval",
+   "s": 60,
+   "e": 61,
+   "segs": [
+    {
+     "s": 60,
+     "e": 61,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 60,
+     "text": "Submit"
+    },
+    {
+     "i": 61,
+     "text": "Approval"
+    }
+   ],
+   "id": "android-auto|certification-1st|testing-schedule-approval"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(1st)",
+   "name": "Bench production(DT/HDCC)",
+   "s": 0,
+   "e": 8,
+   "segs": [
+    {
+     "s": 0,
+     "e": 8,
+     "kind": "supplier"
+    }
+   ],
+   "marks": [],
+   "id": "android-auto|certification-1st|bench-production-dt-hdcc"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(1st)",
+   "name": "Bench Pretest",
+   "s": 36,
+   "e": 53,
+   "segs": [
+    {
+     "s": 36,
+     "e": 53,
+     "kind": "ours"
+    }
+   ],
+   "marks": [],
+   "id": "android-auto|certification-1st|bench-pretest"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(1st)",
+   "name": "Bench shipment to AA Lab",
+   "s": 49,
+   "e": 51,
+   "segs": [
+    {
+     "s": 49,
+     "e": 51,
+     "kind": "ours"
+    }
+   ],
+   "marks": [],
+   "id": "android-auto|certification-1st|bench-shipment-to-aa-lab"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(1st)",
+   "name": "3PL Bench Test",
+   "s": 54,
+   "e": 66,
+   "segs": [
+    {
+     "s": 54,
+     "e": 66,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 54,
+     "text": "Round1"
+    },
+    {
+     "i": 57,
+     "text": "Issue Fix"
+    },
+    {
+     "i": 64,
+     "text": "Round 2"
+    }
+   ],
+   "id": "android-auto|certification-1st|3pl-bench-test"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(1st)",
+   "name": "InVehicleTest",
+   "s": 48,
+   "e": 66,
+   "segs": [
+    {
+     "s": 48,
+     "e": 56,
+     "kind": "ours"
+    },
+    {
+     "s": 64,
+     "e": 66,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 48,
+     "text": "pre test"
+    },
+    {
+     "i": 64,
+     "text": "pre test"
+    },
+    {
+     "i": 66,
+     "text": "Vehicle Audit"
+    }
+   ],
+   "id": "android-auto|certification-1st|invehicletest"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(1st)",
+   "name": "Bench shipment to Google",
+   "s": 61,
+   "e": 64,
+   "segs": [
+    {
+     "s": 61,
+     "e": 64,
+     "kind": "ours"
+    }
+   ],
+   "marks": [],
+   "id": "android-auto|certification-1st|bench-shipment-to-google"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(1st)",
+   "name": "Google Final Review",
+   "s": 67,
+   "e": 70,
+   "segs": [
+    {
+     "s": 67,
+     "e": 70,
+     "kind": "final"
+    }
+   ],
+   "marks": [
+    {
+     "i": 70,
+     "text": "Approval"
+    }
+   ],
+   "id": "android-auto|certification-1st|google-final-review"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(2nd)",
+   "name": "Vehicle Available",
+   "s": 49,
+   "e": 49,
+   "segs": [
+    {
+     "s": 49,
+     "e": 49,
+     "kind": "ours"
+    }
+   ],
+   "marks": [],
+   "id": "android-auto|certification-2nd|vehicle-available"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(2nd)",
+   "name": "Submit Application",
+   "s": 17,
+   "e": 31,
+   "segs": [
+    {
+     "s": 17,
+     "e": 31,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 22,
+     "text": "Submit"
+    },
+    {
+     "i": 31,
+     "text": "Approval"
+    }
+   ],
+   "id": "android-auto|certification-2nd|submit-application"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(2nd)",
+   "name": "Submit Project Specification",
+   "s": 32,
+   "e": 43,
+   "segs": [
+    {
+     "s": 32,
+     "e": 43,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 34,
+     "text": "Submit"
+    },
+    {
+     "i": 43,
+     "text": "Approval"
+    }
+   ],
+   "id": "android-auto|certification-2nd|submit-project-specification"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(2nd)",
+   "name": "Deliver SSLKey",
+   "s": 44,
+   "e": 45,
+   "segs": [
+    {
+     "s": 44,
+     "e": 45,
+     "kind": "ours"
+    }
+   ],
+   "marks": [],
+   "id": "android-auto|certification-2nd|deliver-sslkey"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(2nd)",
+   "name": "Submit Design Assessment",
+   "s": 50,
+   "e": 66,
+   "segs": [
+    {
+     "s": 50,
+     "e": 66,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 50,
+     "text": "Start"
+    },
+    {
+     "i": 59,
+     "text": "Submit"
+    },
+    {
+     "i": 66,
+     "text": "Approval"
+    }
+   ],
+   "id": "android-auto|certification-2nd|submit-design-assessment"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(2nd)",
+   "name": "Submit System Testing Assessment",
+   "s": 50,
+   "e": 74,
+   "segs": [
+    {
+     "s": 50,
+     "e": 74,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 50,
+     "text": "Start"
+    },
+    {
+     "i": 67,
+     "text": "Submit"
+    },
+    {
+     "i": 74,
+     "text": "Approval"
+    }
+   ],
+   "id": "android-auto|certification-2nd|submit-system-testing-assessment"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(2nd)",
+   "name": "Precertification Approval",
+   "s": 75,
+   "e": 76,
+   "segs": [
+    {
+     "s": 75,
+     "e": 76,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 75,
+     "text": "Submit"
+    },
+    {
+     "i": 76,
+     "text": "Approval"
+    }
+   ],
+   "id": "android-auto|certification-2nd|precertification-approval"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(2nd)",
+   "name": "Testing Schedule Approval",
+   "s": 77,
+   "e": 78,
+   "segs": [
+    {
+     "s": 77,
+     "e": 78,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 77,
+     "text": "Submit"
+    },
+    {
+     "i": 78,
+     "text": "Approval"
+    }
+   ],
+   "id": "android-auto|certification-2nd|testing-schedule-approval"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(2nd)",
+   "name": "Bench production(Promaster/Fastback/Toro)",
+   "s": 13,
+   "e": 32,
+   "segs": [
+    {
+     "s": 13,
+     "e": 32,
+     "kind": "supplier"
+    }
+   ],
+   "marks": [],
+   "id": "android-auto|certification-2nd|bench-production-promaster-fastback-toro"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(2nd)",
+   "name": "Bench Pretest",
+   "s": 50,
+   "e": 67,
+   "segs": [
+    {
+     "s": 50,
+     "e": 67,
+     "kind": "ours"
+    }
+   ],
+   "marks": [],
+   "id": "android-auto|certification-2nd|bench-pretest"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(2nd)",
+   "name": "Bench shipment to AA Lab",
+   "s": 69,
+   "e": 71,
+   "segs": [
+    {
+     "s": 69,
+     "e": 71,
+     "kind": "ours"
+    }
+   ],
+   "marks": [],
+   "id": "android-auto|certification-2nd|bench-shipment-to-aa-lab"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(2nd)",
+   "name": "3PL Bench Test",
+   "s": 74,
+   "e": 84,
+   "segs": [
+    {
+     "s": 74,
+     "e": 84,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 74,
+     "text": "Round1"
+    },
+    {
+     "i": 77,
+     "text": "Issue Fix"
+    },
+    {
+     "i": 82,
+     "text": "Round 2"
+    }
+   ],
+   "id": "android-auto|certification-2nd|3pl-bench-test"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(2nd)",
+   "name": "InVehicleTest",
+   "s": 50,
+   "e": 84,
+   "segs": [
+    {
+     "s": 50,
+     "e": 58,
+     "kind": "ours"
+    },
+    {
+     "s": 82,
+     "e": 84,
+     "kind": "ours"
+    }
+   ],
+   "marks": [
+    {
+     "i": 50,
+     "text": "pretest"
+    },
+    {
+     "i": 82,
+     "text": "pre test"
+    },
+    {
+     "i": 84,
+     "text": "Vehicle Audit"
+    }
+   ],
+   "id": "android-auto|certification-2nd|invehicletest"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(2nd)",
+   "name": "Bench shipment to Google",
+   "s": 79,
+   "e": 82,
+   "segs": [
+    {
+     "s": 79,
+     "e": 82,
+     "kind": "ours"
+    }
+   ],
+   "marks": [],
+   "id": "android-auto|certification-2nd|bench-shipment-to-google"
+  },
+  {
+   "feature": "Android Auto",
+   "phase": "Certification(2nd)",
+   "name": "Google Final Review",
+   "s": 85,
+   "e": 88,
+   "segs": [
+    {
+     "s": 85,
+     "e": 88,
+     "kind": "final"
+    }
+   ],
+   "marks": [
+    {
+     "i": 88,
+     "text": "Approval"
+    }
+   ],
+   "id": "android-auto|certification-2nd|google-final-review"
+  }
+ ]
+}

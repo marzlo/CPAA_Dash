@@ -82,6 +82,27 @@ except FileNotFoundError:
 
 DATA["qna_notes"] = QNA_NOTES
 
+# The certification schedule, built from the Gantt workbook by build_schedule.py.
+# Optional: without it the Schedule tab says there is nothing loaded.
+try:
+    with open("schedule.json", encoding="utf-8") as f:
+        SCHEDULE = json.load(f)
+except FileNotFoundError:
+    SCHEDULE = None
+
+DATA["schedule"] = SCHEDULE
+
+# Which schedule tasks have been confirmed finished, and the comment threads on them.
+# Separate from schedule.json so rebuilding from a new workbook never erases what
+# anybody has ticked off.
+try:
+    with open("schedule_notes.json", encoding="utf-8") as f:
+        SCHEDULE_NOTES = json.load(f)
+except FileNotFoundError:
+    SCHEDULE_NOTES = {"updated_at": None, "updated_by": None, "state": {}, "comments": {}}
+
+DATA["schedule_notes"] = SCHEDULE_NOTES
+
 # Requirement -> SWE1/SWE2 -> SWE3 traceability, built from the STLA SWRA analysis
 # report plus a Jira link lookup. Optional: without the file the Traceability tab
 # simply says the data hasn't been generated yet.
@@ -137,6 +158,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     /* Reserved for the forecast card's two flow lines — never used by a stack. */
     --flow-arr: #4a3aa7;
     --flow-clo: #0f7a52;
+    /* Gantt bar kinds, carried over from the workbook's own colour coding. */
+    --gantt-ours: #2a78d6;
+    --gantt-supplier: #95551a;
+    --gantt-resubmit: #4a3aa7;
+    --gantt-final: #d03b3b;
     --series-red: #e34948;
     /* 9th categorical slot, added for the MDT_Sys_QA team line. */
     --series-brown: #8a5a2b;
@@ -165,6 +191,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       --series-violet: #9085e9;
       --flow-arr: #9085e9;
       --flow-clo: #29a876;
+      --gantt-ours: #3987e5;
+      --gantt-supplier: #bb8640;
+      --gantt-resubmit: #9085e9;
+      --gantt-final: #e66767;
       --series-red: #e66767;
       --series-brown: #b5834f;
     }
@@ -188,6 +218,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     --series-violet: #9085e9;
     --flow-arr: #9085e9;
     --flow-clo: #29a876;
+    --gantt-ours: #3987e5;
+    --gantt-supplier: #bb8640;
+    --gantt-resubmit: #9085e9;
+    --gantt-final: #e66767;
     --series-red: #e66767;
     --series-brown: #b5834f;
   }
@@ -385,6 +419,83 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   /* Q&A tab. The rows are a definition list of questions, not tabular data: each one
      is a sentence plus a few small controls, so they are laid out as cards rather than
      squeezed into table columns that would wrap badly on a phone. */
+  /* --- Schedule tab -------------------------------------------------------------
+     The Gantt is one scrolling track per task, with the bars positioned by week
+     index. A table would need 89 columns; this keeps the markup to one element per
+     drawn segment and lets the task names stay pinned while the weeks scroll. */
+  .sch-views { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+  .sch-sec { margin-bottom: 20px; }
+  .sch-sec > h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; display: flex; align-items: baseline; gap: 8px; }
+  .sch-sec > h3 .n { font-size: 12px; font-weight: 400; color: var(--muted); }
+  .sch-empty { font-size: 12px; color: var(--muted); padding: 6px 2px; }
+  .sch-row {
+    border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px;
+    margin-bottom: 6px; background: var(--surface-1);
+  }
+  .sch-row.is-late { border-left: 3px solid var(--critical); }
+  .sch-row.is-active { border-left: 3px solid var(--gantt-ours); }
+  .sch-row.is-done { opacity: .62; }
+  .sch-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .sch-head .nm { flex: 1; min-width: 200px; font-size: 13px; font-weight: 500; overflow-wrap: anywhere; }
+  .sch-feat { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px;
+              background: color-mix(in srgb, var(--gantt-ours) 14%, transparent); color: var(--gantt-ours); white-space: nowrap; }
+  .sch-phase { font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .sch-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 7px; }
+  .sch-when { font-size: 11px; color: var(--text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .sch-stat { font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .sch-stat.late { color: var(--critical); }
+  .sch-stat.active { color: var(--gantt-ours); }
+  .sch-stat.done { color: var(--good); }
+  .sch-stat.todo { color: var(--muted); }
+  .sch-btn {
+    font: inherit; font-size: 12px; padding: 3px 10px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); white-space: nowrap;
+  }
+  .sch-btn:hover { border-color: var(--gantt-ours); color: var(--gantt-ours); }
+  .sch-btn.on { border-color: var(--good); color: var(--good); font-weight: 600; }
+  .sch-btn:disabled { opacity: .5; cursor: default; }
+  .sch-marks { font-size: 11px; color: var(--muted); }
+  .sch-marks b { font-weight: 600; color: var(--text-secondary); }
+
+  .gantt-wrap { overflow-x: auto; overflow-y: visible; position: relative; padding-bottom: 6px; }
+  .gantt-row { display: flex; align-items: stretch; height: 24px; }
+  .gantt-name {
+    position: sticky; left: 0; z-index: 2; flex: 0 0 240px; width: 240px;
+    background: var(--surface-1); border-right: 1px solid var(--border);
+    font-size: 11px; line-height: 24px; padding-right: 8px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .gantt-name.done { color: var(--muted); text-decoration: line-through; }
+  .gantt-track { position: relative; flex: 0 0 auto; height: 24px; }
+  .gantt-bar { position: absolute; top: 7px; height: 10px; border-radius: 2px; }
+  /* A 2px surface gap so touching segments of different kinds stay two bars. */
+  .gantt-bar + .gantt-bar { box-shadow: -2px 0 0 0 var(--surface-1); }
+  .gantt-bar.ours { background: var(--gantt-ours); }
+  .gantt-bar.supplier { background: var(--gantt-supplier); }
+  .gantt-bar.resubmit { background: var(--gantt-resubmit); }
+  .gantt-bar.final { background: var(--gantt-final); }
+  .gantt-over {
+    position: absolute; top: 9px; height: 6px; border-radius: 2px;
+    background: repeating-linear-gradient(45deg, var(--critical) 0 3px, transparent 3px 6px);
+  }
+  .gantt-tick { position: absolute; top: 9px; width: 7px; height: 7px; transform: rotate(45deg);
+                background: var(--good); border-radius: 1px; }
+  .gantt-today { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--critical); opacity: .55; z-index: 1; }
+  .gantt-row.gantt-group { height: 22px; }
+  .gantt-row.gantt-group .gantt-name {
+    font-weight: 600; color: var(--text-primary); line-height: 22px;
+    border-top: 1px solid var(--border);
+  }
+  .gantt-name { padding-left: 10px; }
+  .gantt-row:not(.gantt-group):not(.gantt-head) .gantt-name { padding-left: 20px; }
+  .gantt-head { display: flex; height: 20px; position: sticky; top: 0; z-index: 3; background: var(--surface-1); }
+  .gantt-head .lbl { position: absolute; font-size: 10px; color: var(--muted); white-space: nowrap;
+                     font-variant-numeric: tabular-nums; }
+  .gantt-grid { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--grid); }
+  .sch-legend { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; font-size: 11px;
+                color: var(--text-secondary); margin-bottom: 10px; }
+  .sch-legend i { display: inline-block; width: 14px; height: 8px; border-radius: 2px; margin-right: 5px;
+                  vertical-align: middle; font-style: normal; }
   .panel-lead { margin: 0 0 16px; }
   .panel-lead h2 { margin: 0 0 4px; font-size: 16px; }
   .panel-lead p { margin: 0; color: var(--text-secondary); font-size: 12px; max-width: 76ch; }
@@ -968,6 +1079,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <button data-tab="Audio" data-i18n-tab="audio">Audio</button>
   <button data-tab="Pretest" data-i18n-tab="pretest">Pretest</button>
   <button data-tab="Traceability" data-i18n-tab="traceability">Traceability</button>
+  <button data-tab="Schedule" data-i18n-tab="schedule">Schedule</button>
   <button data-tab="QnA" data-i18n-tab="qna">Q&amp;A</button>
   <button data-tab="Compare" data-i18n-tab="compare">Compare</button>
   <button data-tab="Knowledge" data-i18n-tab="knowledge">Knowledge</button>
@@ -1058,6 +1170,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <div class="panel" id="panel-Audio"></div>
   <div class="panel" id="panel-Pretest"></div>
   <div class="panel" id="panel-Traceability"></div>
+  <div class="panel" id="panel-Schedule"></div>
   <div class="panel" id="panel-QnA"></div>
   <div class="panel" id="panel-Compare"></div>
   <div class="panel" id="panel-Knowledge"></div>
@@ -1082,6 +1195,9 @@ const WATCH = RAW.watch || [];
 // Clarification questions ThunderSoft raised against our requirement documents.
 // Their Jira status barely moves, so the real state of each one lives in
 // qna_notes.json beside the comments — see QNA_NOTES below.
+const SCHEDULE = RAW.schedule || null;
+const SCHED_NOTES = Object.assign({ updated_at: null, updated_by: null, state: {}, comments: {} },
+                                  RAW.schedule_notes || {});
 const QNA = RAW.qna || [];
 const QNA_NOTES = Object.assign({ updated_at: null, updated_by: null, status: {}, comments: {} },
                                 RAW.qna_notes || {});
@@ -1298,6 +1414,53 @@ const STRINGS = {
   tab_knowledge: { zh: '知識庫', en: 'Knowledge' },
   tab_compare: { zh: '對照', en: 'Compare' },
   tab_qna: { zh: 'Q&A 釐清', en: 'Q&A' },
+  tab_schedule: { zh: '認證時程', en: 'Schedule' },
+  sch_heading: { zh: 'CPAA 認證時程', en: 'CPAA certification schedule' },
+  sch_caption: { zh: (src, n, w) => `來源:${src},共 ${n} 項任務、${w} 週。完成與否是在這個頁面上按的,按鈕的紀錄跟 Excel 分開存,所以換新版 Excel 不會把你按過的清掉。`,
+                 en: (src, n, w) => `From ${src}: ${n} tasks over ${w} weeks. Completion is marked on this page and stored separately from the workbook, so a new workbook never erases what you have ticked.` },
+  sch_empty: { zh: '還沒有時程資料 — repo 裡找不到 schedule.json(或這次建置沒有跑 build_schedule.py)。',
+               en: 'No schedule loaded — schedule.json is not in the repo, or this build did not run build_schedule.py.' },
+  sch_view_now: { zh: '本週焦點', en: 'This week' },
+  sch_view_gantt: { zh: '甘特圖', en: 'Gantt' },
+  sch_view_list: { zh: '全部清單', en: 'All tasks' },
+  sch_now_week: { zh: (w, d) => `本週 ${w}(${d} 起)`, en: (w, d) => `This week: ${w} (from ${d})` },
+  sch_grp_late: { zh: '逾期', en: 'Overdue' },
+  sch_grp_active: { zh: '進行中', en: 'In progress' },
+  sch_grp_soon: { zh: '四週內開始', en: 'Starting within 4 weeks' },
+  sch_grp_done: { zh: '已完成', en: 'Done' },
+  sch_grp_todo: { zh: '未開始', en: 'Not started' },
+  sch_none_late: { zh: '沒有逾期的任務。', en: 'Nothing overdue.' },
+  sch_none_active: { zh: '本週沒有應該進行的任務。', en: 'Nothing is scheduled for this week.' },
+  sch_none_soon: { zh: '未來四週沒有新任務開始。', en: 'No new task starts in the next four weeks.' },
+  sch_st_active: { zh: n => n > 0 ? `進行中 · 剩 ${n} 週` : '進行中 · 本週到期', en: n => n > 0 ? `in progress, ${n} weeks left` : 'in progress, due this week' },
+  sch_st_late: { zh: n => `逾期 ${n} 週`, en: n => `${n} weeks overdue` },
+  sch_st_todo: { zh: n => `${n} 週後開始`, en: n => `starts in ${n} weeks` },
+  sch_st_done_on: { zh: '已完成 · 準時', en: 'done, on time' },
+  sch_st_done_early: { zh: n => `已完成 · 提早 ${n} 週`, en: n => `done, ${n} weeks early` },
+  sch_st_done_late: { zh: n => `已完成 · 延遲 ${n} 週`, en: n => `done, ${n} weeks late` },
+  sch_st_done_assumed: { zh: '已完成(追認)', en: 'done (assumed)' },
+  sch_assumed_note: { zh: w => `計畫結束在 ${w} 之前的任務預設視為已完成。其中哪一項其實還沒做完,把它的勾取消,它就會回到逾期。`,
+                      en: w => `Anything planned to finish before ${w} is taken as done. Un-tick one that is not, and it goes back to overdue.` },
+  sch_mark_done: { zh: '標記完成', en: 'Mark done' },
+  sch_mark_undone: { zh: '取消完成', en: 'Re-open' },
+  sch_done_by: { zh: (who, when) => `${who} 於 ${when} 確認`, en: (who, when) => `confirmed by ${who} on ${when}` },
+  sch_range: { zh: (a, b) => a === b ? a : `${a} → ${b}`, en: (a, b) => a === b ? a : `${a} → ${b}` },
+  sch_tile_late: { zh: '逾期', en: 'Overdue' },
+  sch_tile_active: { zh: '本週進行中', en: 'Active this week' },
+  sch_tile_soon: { zh: '四週內開始', en: 'Starting soon' },
+  sch_tile_done: { zh: '已完成', en: 'Done' },
+  sch_tile_done_sub: { zh: (d, n) => `共 ${n} 項任務`, en: (d, n) => `of ${n} tasks` },
+  sch_legend: { zh: '條顏色沿用 Excel 的分類', en: 'Bar colour follows the workbook' },
+  sch_kind_ours: { zh: '我方任務', en: 'Ours' },
+  sch_kind_supplier: { zh: '硬體/供應商', en: 'Hardware / supplier' },
+  sch_kind_resubmit: { zh: '重送循環', en: 'Re-submission' },
+  sch_kind_final: { zh: '最終審查', en: 'Final review' },
+  sch_today: { zh: '本週', en: 'Today' },
+  sch_filter_feature: { zh: '全部產品', en: 'All features' },
+  sch_filter_status: { zh: '全部狀態', en: 'All statuses' },
+  sch_hide_done: { zh: '隱藏已完成', en: 'Hide done' },
+  sch_need_token: { zh: '要標記完成或留言,需要先用右上角的 🔑 設定 GitHub token。',
+                    en: 'Marking a task done or posting a comment needs a GitHub token — use the 🔑 button at the top right.' },
   qna_heading: { zh: '需求釐清問題 (Q&A)', en: 'Requirement clarification questions (Q&A)' },
   qna_caption: { zh: (n, src) => `Jira filter 12699 共 ${n} 題,來自 ${src} 份來源文件。這些票的 Jira 狀態不會隨回覆動,所以下面每題的處理狀態是在這個頁面上標的。`,
                  en: (n, src) => `${n} questions from Jira filter 12699, across ${src} source documents. Their Jira status does not move as answers come in, so each question's handling status below is set on this page.` },
@@ -8127,6 +8290,409 @@ function renderQnaPanel() {
   });
 }
 
+// ===== Schedule tab ================================================================
+// The CPAA certification Gantt, built from the workbook by build_schedule.py. Two
+// things the workbook cannot answer are the point of the tab: what is supposed to be
+// running right now, and what has slipped. Whether a task is finished is marked here
+// and kept in schedule_notes.json, so rebuilding from a newer workbook never erases it.
+
+const GITHUB_SCHED_NOTES_PATH = 'schedule_notes.json';
+const GITHUB_SCHED_NOTES_RAW = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/${GITHUB_SCHED_NOTES_PATH}`;
+
+const SCH_VIEW_KEY = 'cpaaScheduleView';
+const SCH_WEEK_PX = 13;
+const SCH_NAME_PX = 240;
+const SCH_SOON_WEEKS = 4;
+
+// Which week column today falls in. Derived from the anchor rather than the week
+// labels, because the labels repeat across the two years the schedule spans.
+function schCurWeek() {
+  if (!SCHEDULE) return 0;
+  const a = new Date(SCHEDULE.anchor + 'T00:00:00');
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.floor((today - a) / 604800000);
+}
+function schWeekOfDate(iso) {
+  const a = new Date(SCHEDULE.anchor + 'T00:00:00');
+  const d = new Date(iso);
+  if (isNaN(d)) return null;
+  const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  return Math.floor((day - a) / 604800000);
+}
+function schWeekLabel(i) {
+  const w = SCHEDULE.weeks[i];
+  if (w) return w.label;
+  // Past the end of the built axis — keep counting rather than showing a blank.
+  const d = new Date(new Date(SCHEDULE.anchor + 'T00:00:00').getTime() + i * 604800000);
+  return `${d.getFullYear()}-W??`;
+}
+
+// Absent from the notes means "nobody has said", which is where assume_done_before
+// applies; once the button is pressed either way the answer is explicit and the
+// assumption no longer has a vote.
+function schState(t) {
+  const n = SCHED_NOTES.state[t.id];
+  if (n && typeof n.done === 'boolean') return n;
+  if (t.e < (SCHEDULE.assume_done_before || 0)) return { done: true, assumed: true };
+  return { done: false, assumed: false };
+}
+
+function schStatus(t) {
+  const cur = schCurWeek();
+  const st = schState(t);
+  if (st.done) {
+    if (st.assumed) return { k: 'done', assumed: true };
+    const w = st.at ? schWeekOfDate(st.at) : null;
+    return { k: 'done', slip: (w === null) ? 0 : w - t.e };
+  }
+  if (cur < t.s) return { k: 'todo', n: t.s - cur };
+  if (cur <= t.e) return { k: 'active', n: t.e - cur };
+  return { k: 'late', n: cur - t.e };
+}
+
+function schStatusText(st) {
+  if (st.k === 'done') {
+    if (st.assumed) return t('sch_st_done_assumed');
+    if (st.slip > 0) return t('sch_st_done_late', st.slip);
+    if (st.slip < 0) return t('sch_st_done_early', -st.slip);
+    return t('sch_st_done_on');
+  }
+  if (st.k === 'late') return t('sch_st_late', st.n);
+  if (st.k === 'active') return t('sch_st_active', st.n);
+  return t('sch_st_todo', st.n);
+}
+
+function schComments(id) { return SCHED_NOTES.comments[id] || []; }
+
+async function refreshSchedNotes() {
+  try {
+    const resp = await fetch(GITHUB_SCHED_NOTES_RAW + '?t=' + Date.now(), { cache: 'no-store' });
+    if (!resp.ok) return;
+    const fresh = await resp.json();
+    if (!fresh || typeof fresh !== 'object') return;
+    if (SCHED_NOTES.updated_at &&
+        (!fresh.updated_at || new Date(fresh.updated_at) < new Date(SCHED_NOTES.updated_at))) return;
+    SCHED_NOTES.state = fresh.state || {};
+    SCHED_NOTES.comments = fresh.comments || {};
+    SCHED_NOTES.updated_at = fresh.updated_at;
+    SCHED_NOTES.updated_by = fresh.updated_by;
+  } catch (e) { /* offline, or the file does not exist yet */ }
+}
+
+async function commitSchedNotes(apply, statusEl) {
+  const token = getGithubToken(false);
+  if (!token) { alert(t('sch_need_token')); return false; }
+  if (statusEl) statusEl.textContent = t('qna_status_saving');
+  try {
+    const apiBase = `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_SCHED_NOTES_PATH}`;
+    const getResp = await fetch(apiBase + '?ref=main&t=' + Date.now(),
+      { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+    let sha, remote = {};
+    if (getResp.ok) {
+      const meta = await getResp.json();
+      sha = meta.sha;
+      try { remote = JSON.parse(decodeURIComponent(escape(atob((meta.content || '').replace(/\n/g, ''))))); }
+      catch (e) { remote = {}; }
+    } else if (getResp.status !== 404) {
+      throw new Error('GET ' + getResp.status);
+    }
+    // Remote wins so two people editing different tasks merge; a 404 means there is
+    // no file yet, so carry in whatever this page already holds rather than dropping it.
+    const base = (getResp.status === 404) ? SCHED_NOTES : remote;
+    const state = { state: Object.assign({}, base.state || {}),
+                    comments: Object.assign({}, base.comments || {}) };
+    apply(state);
+    const payload = {
+      updated_at: new Date().toISOString(),
+      updated_by: traceUserName(false) || t('notes_meta_unknown'),
+      state: state.state,
+      comments: state.comments,
+    };
+    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+    const putResp = await fetch(apiBase, {
+      method: 'PUT',
+      headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'Update schedule progress via dashboard', content: b64, sha, branch: 'main' }),
+    });
+    if (!putResp.ok) throw new Error('PUT ' + putResp.status + ': ' + (await putResp.text()).slice(0, 200));
+    SCHED_NOTES.state = payload.state;
+    SCHED_NOTES.comments = payload.comments;
+    SCHED_NOTES.updated_at = payload.updated_at;
+    SCHED_NOTES.updated_by = payload.updated_by;
+    return true;
+  } catch (err) {
+    if (statusEl) statusEl.textContent = '';
+    alert(t('trace_save_error', String((err && err.message) || err)));
+    return false;
+  }
+}
+
+function schLoadView() {
+  try { const v = localStorage.getItem(SCH_VIEW_KEY); if (['now', 'gantt', 'list'].includes(v)) return v; }
+  catch (e) { /* private mode */ }
+  return 'now';
+}
+
+function schCommentPanelHtml(id) {
+  const list = schComments(id);
+  const body = list.length
+    ? list.map(c => `<div class="cmt-item"><span class="body">${esc(c.text)}</span>` +
+        `<span class="who">— ${esc(c.by || '?')} · ${esc((c.at || '').slice(0, 10))}</span>` +
+        (c.id ? `<button type="button" class="del" data-sch-cmt-del="${esc(c.id)}" title="${esc(t('bug_comment_delete_title'))}">✕</button>` : '') +
+        `</div>`).join('')
+    : `<div class="cmt-item" style="color:var(--muted)">${esc(t('trace_comment_empty'))}</div>`;
+  return `<div class="cmt-box" data-sch-cmt-box="${esc(id)}">
+    <div class="cmt-list">${body}</div>
+    <div class="cmt-form">
+      <textarea data-sch-cmt-input="${esc(id)}" placeholder="${esc(t('trace_comment_placeholder'))}"></textarea>
+      <button type="button" class="btn small" data-sch-cmt-post="${esc(id)}">${esc(t('trace_comment_add'))}</button>
+      <span class="cmt-status" data-sch-cmt-status="${esc(id)}"></span>
+    </div>
+  </div>`;
+}
+
+function schRowHtml(task) {
+  const st = schStatus(task);
+  const state = schState(task);
+  const n = schComments(task.id).length;
+  const marks = task.marks.map(m => `<b>${esc(m.text)}</b> ${esc(schWeekLabel(m.i))}`).join(' · ');
+  return `<div class="sch-row is-${st.k}" data-sch-row="${esc(task.id)}">
+    <div class="sch-head">
+      <span class="sch-feat">${esc(task.feature === 'CarPlay' ? 'CP' : 'AA')}</span>
+      <span class="nm">${esc(task.name)}</span>
+      <span class="sch-phase">${esc(task.phase)}</span>
+    </div>
+    <div class="sch-meta">
+      <button type="button" class="sch-btn${state.done ? ' on' : ''}" data-sch-toggle="${esc(task.id)}">
+        ${state.done ? '✓ ' + esc(t('sch_mark_undone')) : esc(t('sch_mark_done'))}
+      </button>
+      <span class="sch-stat ${st.k}">${esc(schStatusText(st))}</span>
+      <span class="sch-when">${esc(t('sch_range', schWeekLabel(task.s), schWeekLabel(task.e)))}</span>
+      <button type="button" class="cmt-btn${n ? ' has' : ''}" data-sch-cmt="${esc(task.id)}" title="${esc(t('bug_comment_col'))}">💬${n || ''}</button>
+      ${state.done && state.at && !state.assumed
+        ? `<span class="sch-phase">${esc(t('sch_done_by', state.by || '?', String(state.at).slice(0, 10)))}</span>` : ''}
+      <span class="cmt-status" data-sch-cmt-status="${esc(task.id)}"></span>
+    </div>
+    ${marks ? `<div class="sch-meta"><span class="sch-marks">${marks}</span></div>` : ''}
+  </div>`;
+}
+
+function schSectionHtml(title, rows, emptyKey) {
+  return `<div class="sch-sec">
+    <h3>${esc(title)} <span class="n">${rows.length}</span></h3>
+    ${rows.length ? rows.map(schRowHtml).join('') : `<div class="sch-empty">${esc(t(emptyKey))}</div>`}
+  </div>`;
+}
+
+function schGanttHtml(tasks) {
+  const cur = schCurWeek();
+  const nW = SCHEDULE.weeks.length;
+  const trackW = nW * SCH_WEEK_PX;
+  const head = [];
+  for (let i = 0; i < nW; i += 4) {
+    head.push(`<span class="lbl" style="left:${i * SCH_WEEK_PX}px">${esc(SCHEDULE.weeks[i].label.replace('-W', '/'))}</span>`);
+  }
+  const grid = [];
+  for (let i = 0; i < nW; i += 4) grid.push(`<div class="gantt-grid" style="left:${i * SCH_WEEK_PX}px"></div>`);
+  const todayLine = (cur >= 0 && cur < nW)
+    ? `<div class="gantt-today" style="left:${cur * SCH_WEEK_PX + SCH_NAME_PX}px" title="${esc(t('sch_today'))}"></div>` : '';
+
+  // Several tasks appear once per certification round under the same name — CarPlay
+  // runs "Pre-Test" in both Certification(1st) and (2nd) — so the name column alone is
+  // ambiguous. Break the chart on each feature+phase the way the workbook does.
+  let lastGroup = null;
+  const rows = tasks.map(task => {
+    const group = `${task.feature} · ${task.phase}`;
+    const header = group === lastGroup ? '' :
+      `<div class="gantt-row gantt-group"><div class="gantt-name">${esc(group)}</div>` +
+      `<div class="gantt-track" style="width:${trackW}px">${grid.join('')}</div></div>`;
+    lastGroup = group;
+    const st = schStatus(task);
+    const bars = task.segs.map(sg =>
+      `<div class="gantt-bar ${sg.kind}" style="left:${sg.s * SCH_WEEK_PX}px; width:${(sg.e - sg.s + 1) * SCH_WEEK_PX}px"></div>`).join('');
+    // Overdue is drawn as a hatched extension from the planned end to today, so the
+    // slip is a length on the same axis rather than another colour to decode.
+    const over = st.k === 'late'
+      ? `<div class="gantt-over" style="left:${(task.e + 1) * SCH_WEEK_PX}px; width:${(cur - task.e) * SCH_WEEK_PX}px"></div>` : '';
+    const tick = st.k === 'done'
+      ? `<div class="gantt-tick" style="left:${(task.e + 1) * SCH_WEEK_PX + 2}px"></div>` : '';
+    const title = `${task.feature} · ${task.phase} · ${task.name}\n${t('sch_range', schWeekLabel(task.s), schWeekLabel(task.e))}\n${schStatusText(st)}`;
+    return `${header}<div class="gantt-row" title="${esc(title)}">
+      <div class="gantt-name${st.k === 'done' ? ' done' : ''}">${esc(task.name)}</div>
+      <div class="gantt-track" style="width:${trackW}px">${grid.join('')}${bars}${over}${tick}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="gantt-wrap">
+    ${todayLine}
+    <div class="gantt-row gantt-head">
+      <div class="gantt-name"></div>
+      <div class="gantt-track" style="width:${trackW}px">${head.join('')}</div>
+    </div>
+    ${rows}
+  </div>`;
+}
+
+function renderSchedulePanel() {
+  const panel = document.getElementById('panel-Schedule');
+  if (!panel) return;
+  if (!SCHEDULE || !SCHEDULE.tasks || !SCHEDULE.tasks.length) {
+    panel.innerHTML = `<section class="card"><h2>${esc(t('sch_heading'))}</h2>
+      <p class="caption">${esc(t('sch_empty'))}</p></section>`;
+    return;
+  }
+
+  const view = schLoadView();
+  const cur = schCurWeek();
+  const tasks = SCHEDULE.tasks;
+  const byK = k => tasks.filter(x => schStatus(x).k === k);
+  const late = byK('late'), active = byK('active'), done = byK('done');
+  const soon = tasks.filter(x => { const st = schStatus(x); return st.k === 'todo' && st.n <= SCH_SOON_WEEKS; });
+
+  const legend = `<div class="sch-legend"><span>${esc(t('sch_legend'))}:</span>
+    ${['ours', 'supplier', 'resubmit', 'final'].map(k =>
+      `<span><i style="background:var(--gantt-${k})"></i>${esc(t('sch_kind_' + k))}</span>`).join('')}
+    <span><i style="background:repeating-linear-gradient(45deg,var(--critical) 0 3px,transparent 3px 6px)"></i>${esc(t('sch_grp_late'))}</span>
+  </div>`;
+
+  let body;
+  if (view === 'gantt') {
+    body = `<section class="card">${legend}${schGanttHtml(tasks)}</section>`;
+  } else if (view === 'list') {
+    const order = { late: 0, active: 1, todo: 2, done: 3 };
+    const all = tasks.slice().sort((a, b) => {
+      const sa = schStatus(a), sb = schStatus(b);
+      return (order[sa.k] - order[sb.k]) || (a.s - b.s) || a.name.localeCompare(b.name);
+    });
+    body = `<section class="card"><div id="schList">${all.map(schRowHtml).join('')}</div></section>`;
+  } else {
+    body = `<section class="card"><div id="schList">
+      ${schSectionHtml(t('sch_grp_late'), late, 'sch_none_late')}
+      ${schSectionHtml(t('sch_grp_active'), active, 'sch_none_active')}
+      ${schSectionHtml(t('sch_grp_soon'), soon, 'sch_none_soon')}
+    </div></section>`;
+  }
+
+  panel.innerHTML = `
+    <div class="panel-lead">
+      <h2>${esc(t('sch_heading'))}</h2>
+      <p>${esc(t('sch_caption', SCHEDULE.source, tasks.length, SCHEDULE.weeks.length))}</p>
+      <p>${esc(t('sch_assumed_note', schWeekLabel(SCHEDULE.assume_done_before || 0)))}</p>
+    </div>
+    <div class="stat-row">
+      <div class="stat-tile"><div class="label">${esc(t('sch_now_week', schWeekLabel(cur), (SCHEDULE.weeks[cur] || {}).date || '—'))}</div>
+        <div class="value">${active.length}</div>
+        <div class="sub">${esc(t('sch_tile_active'))}</div></div>
+      <div class="stat-tile"><div class="label">${esc(t('sch_tile_late'))}</div>
+        <div class="value">${late.length}</div>
+        <div class="sub">${esc(t('sch_tile_soon'))}: ${soon.length}</div></div>
+      <div class="stat-tile"><div class="label">${esc(t('sch_tile_done'))}</div>
+        <div class="value">${done.length}</div>
+        <div class="sub">${esc(t('sch_tile_done_sub', done.length, tasks.length))}</div>
+        <div class="meter"><div style="width:${Math.round(done.length / tasks.length * 100)}%"></div></div></div>
+    </div>
+    <div class="sch-views">
+      ${[['now', 'sch_view_now'], ['gantt', 'sch_view_gantt'], ['list', 'sch_view_list']].map(([v, k]) =>
+        `<button type="button" class="chip${v === view ? ' active' : ''}" data-sch-view="${v}">${esc(t(k))}</button>`).join('')}
+    </div>
+    ${body}`;
+
+  panel.querySelectorAll('[data-sch-view]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      try { localStorage.setItem(SCH_VIEW_KEY, btn.dataset.schView); } catch (e) { /* private mode */ }
+      renderSchedulePanel();
+    });
+  });
+
+  const list = document.getElementById('schList');
+  if (!list) return;
+
+  function schCmtStatus(id, msg) {
+    const el = list.querySelector(`[data-sch-cmt-status="${CSS.escape(id)}"]`);
+    if (!el) return;
+    el.textContent = msg;
+    if (msg) setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 1800);
+  }
+  function refreshSchCommentUi(id) {
+    list.querySelectorAll(`[data-sch-cmt-box="${CSS.escape(id)}"]`).forEach(box => {
+      box.outerHTML = schCommentPanelHtml(id);
+    });
+    const n = schComments(id).length;
+    list.querySelectorAll(`[data-sch-cmt="${CSS.escape(id)}"]`).forEach(b => {
+      b.textContent = '💬' + (n || '');
+      b.classList.toggle('has', !!n);
+    });
+  }
+
+  list.addEventListener('click', async e => {
+    const toggle = e.target.closest('[data-sch-toggle]');
+    if (toggle) {
+      const id = toggle.dataset.schToggle;
+      const task = tasks.find(x => x.id === id);
+      const want = !schState(task).done;
+      toggle.disabled = true;
+      const ok = await commitSchedNotes(st => {
+        st.state[id] = { done: want, at: new Date().toISOString(),
+                         by: traceUserName(false) || t('notes_meta_unknown') };
+      }, list.querySelector(`[data-sch-cmt-status="${CSS.escape(id)}"]`));
+      toggle.disabled = false;
+      if (!ok) return;
+      // Every tile, every grouping and the sort order key off this, so redraw the panel.
+      renderSchedulePanel();
+      return;
+    }
+
+    const open = e.target.closest('[data-sch-cmt]');
+    if (open) {
+      const row = open.closest('.sch-row');
+      const existing = row.querySelector('.cmt-box');
+      if (existing) { existing.remove(); return; }
+      row.insertAdjacentHTML('beforeend', schCommentPanelHtml(row.dataset.schRow));
+      const ta = row.querySelector('textarea');
+      if (ta) ta.focus();
+      return;
+    }
+
+    const post = e.target.closest('[data-sch-cmt-post]');
+    if (post) {
+      const id = post.dataset.schCmtPost;
+      const box = post.closest('.cmt-box');
+      const input = box.querySelector('textarea');
+      const text = (input.value || '').trim();
+      if (!text) return;
+      const comment = { id: bugCommentId(), text, by: traceUserName(false) || t('notes_meta_unknown'),
+                        at: new Date().toISOString() };
+      post.disabled = true;
+      const ok = await commitSchedNotes(st => {
+        st.comments[id] = (st.comments[id] || []).concat([comment]);
+      }, box.querySelector('.cmt-status'));
+      post.disabled = false;
+      if (!ok) return;
+      input.value = '';
+      refreshSchCommentUi(id);
+      schCmtStatus(id, t('bug_comment_saved'));
+      return;
+    }
+
+    const del = e.target.closest('[data-sch-cmt-del]');
+    if (del) {
+      const box = del.closest('.cmt-box');
+      const id = box.dataset.schCmtBox;
+      const cid = del.dataset.schCmtDel;
+      if (!confirm(t('bug_comment_delete_confirm'))) return;
+      del.disabled = true;
+      const ok = await commitSchedNotes(st => {
+        const left = (st.comments[id] || []).filter(c => c.id !== cid);
+        if (left.length) st.comments[id] = left; else delete st.comments[id];
+      }, box.querySelector('.cmt-status'));
+      if (!ok) { del.disabled = false; return; }
+      refreshSchCommentUi(id);
+      schCmtStatus(id, t('bug_comment_saved'));
+    }
+  });
+}
+
 function showTab(tab) {
   const btn = document.querySelector(`nav.tabs button[data-tab="${CSS.escape(tab)}"]`);
   const panel = document.getElementById('panel-' + tab);
@@ -8211,6 +8777,7 @@ document.getElementById('langToggle').addEventListener('click', () => {
   renderAudioPanel();
   renderComparePanel();
   renderQnaPanel();
+  renderSchedulePanel();
   renderKnowledgePanel();
   renderPretestPanel();
   renderTraceabilityPanel();
@@ -8236,6 +8803,10 @@ renderBugPanel();
 renderAudioPanel();
 renderComparePanel();
 renderQnaPanel();
+renderSchedulePanel();
+
+// Someone else may have marked a schedule task done since this page was built.
+refreshSchedNotes().then(() => renderSchedulePanel());
 
 // Someone else may have answered a question or left a comment since this page was
 // built, so pull qna_notes.json straight from the repo and redraw if it moved.
