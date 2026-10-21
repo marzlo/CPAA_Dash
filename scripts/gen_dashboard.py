@@ -1479,8 +1479,11 @@ const STRINGS = {
   sch_hide_done_n: { zh: n => `隱藏已完成(${n})`, en: n => `Hide done (${n})` },
   sch_pick_hint: { zh: '點左邊的任務名稱,這裡會顯示那一項的細節 —— 可以直接標記完成或留言。',
                    en: 'Click a task name on the left and its details appear here, ready to mark done or comment on.' },
-  sch_pick_gone: { zh: '這項已經不在上面的圖裡了(被「隱藏已完成」濾掉)。',
-                   en: 'This one is no longer in the chart above — "hide done" is filtering it out.' },
+  sch_pick_gone: { zh: '這項已經不在上面的圖裡了,是被上面的篩選濾掉的。',
+                   en: 'This one is no longer in the chart above — a filter is hiding it.' },
+  sch_phase_all: { zh: n => `全部階段(${n})`, en: n => `All phases (${n})` },
+  sch_phase_n: { zh: (name, n) => `${name}(${n})`, en: (name, n) => `${name} (${n})` },
+  sch_filtered_note: { zh: (shown, total) => `顯示 ${shown} / ${total} 項`, en: (shown, total) => `showing ${shown} of ${total}` },
   sch_filter_feature: { zh: '全部產品', en: 'All features' },
   sch_filter_status: { zh: '全部狀態', en: 'All statuses' },
   sch_hide_done: { zh: '隱藏已完成', en: 'Hide done' },
@@ -8627,6 +8630,13 @@ let schGanttScroll = null;
 // that marking it done triggers.
 let schGanttSel = null;
 
+const SCH_PHASE_KEY = 'cpaaSchedulePhase';
+// '' means every phase. Stored by name, so the same round in CarPlay and Android Auto
+// is selected together — "show me round 1" is the question people actually ask.
+function schPhaseFilter() {
+  try { return localStorage.getItem(SCH_PHASE_KEY) || ''; } catch (e) { return ''; }
+}
+
 const SCH_HIDE_DONE_KEY = 'cpaaScheduleHideDone';
 function schHideDone() {
   try { return localStorage.getItem(SCH_HIDE_DONE_KEY) === '1'; } catch (e) { return false; }
@@ -8710,10 +8720,29 @@ function renderSchedulePanel() {
     <span style="color:var(--muted)">✋ ${esc(t('sch_drag_hint'))}</span>
   </div>`;
 
+  // Phases in the order the workbook lists them, not alphabetically — that order is
+  // the certification sequence and it is what people expect to read down.
+  const phases = [];
+  tasks.forEach(x => { if (!phases.includes(x.phase)) phases.push(x.phase); });
+  const phaseSel = phases.includes(schPhaseFilter()) ? schPhaseFilter() : '';
+  const inPhase = x => !phaseSel || x.phase === phaseSel;
+
+  function schFilterRowHtml(doneInScope, shown, total) {
+    return `<div class="sch-filters">
+      <button type="button" class="chip${phaseSel ? '' : ' active'}" data-sch-phase="">${esc(t('sch_phase_all', tasks.length))}</button>
+      ${phases.map(ph => `<button type="button" class="chip${ph === phaseSel ? ' active' : ''}" data-sch-phase="${esc(ph)}">` +
+        `${esc(t('sch_phase_n', ph, tasks.filter(x => x.phase === ph).length))}</button>`).join('')}
+      <span style="width:10px"></span>
+      <button type="button" class="chip${schHideDone() ? ' active' : ''}" id="schHideDone">${esc(t('sch_hide_done_n', doneInScope))}</button>
+      <span class="sch-pick-hint">${esc(t('sch_filtered_note', shown, total))}</span>
+    </div>`;
+  }
+
   let body;
   if (view === 'gantt') {
     const hide = schHideDone();
-    const shown = hide ? tasks.filter(x => schStatus(x).k !== 'done') : tasks;
+    const scoped = tasks.filter(inPhase);
+    const shown = hide ? scoped.filter(x => schStatus(x).k !== 'done') : scoped;
     const picked = schGanttSel ? tasks.find(x => x.id === schGanttSel) : null;
     // The detail card carries id="schList" so the mark-done and comment handlers
     // further down bind to it exactly as they do in the other two views.
@@ -8721,19 +8750,22 @@ function renderSchedulePanel() {
       ? (shown.includes(picked) ? '' : `<div class="sch-pick-hint">${esc(t('sch_pick_gone'))}</div>`) + schRowHtml(picked)
       : `<div class="sch-pick-hint">${esc(t('sch_pick_hint'))}</div>`;
     body = `<section class="card">
-        <div class="sch-filters">
-          <button type="button" class="chip${hide ? ' active' : ''}" id="schHideDone">${esc(t('sch_hide_done_n', done.length))}</button>
-        </div>
+        ${schFilterRowHtml(scoped.filter(x => schStatus(x).k === 'done').length, shown.length, tasks.length)}
         ${legend}${schGanttHtml(shown)}
       </section>
       <section class="card"><div id="schList">${detail}</div></section>`;
   } else if (view === 'list') {
     const order = { late: 0, active: 1, todo: 2, done: 3 };
-    const all = tasks.slice().sort((a, b) => {
-      const sa = schStatus(a), sb = schStatus(b);
-      return (order[sa.k] - order[sb.k]) || (a.s - b.s) || a.name.localeCompare(b.name);
-    });
-    body = `<section class="card"><div id="schList">${all.map(schRowHtml).join('')}</div></section>`;
+    const scoped = tasks.filter(inPhase);
+    const all = (schHideDone() ? scoped.filter(x => schStatus(x).k !== 'done') : scoped)
+      .slice().sort((a, b) => {
+        const sa = schStatus(a), sb = schStatus(b);
+        return (order[sa.k] - order[sb.k]) || (a.s - b.s) || a.name.localeCompare(b.name);
+      });
+    body = `<section class="card">
+      ${schFilterRowHtml(scoped.filter(x => schStatus(x).k === 'done').length, all.length, tasks.length)}
+      <div id="schList">${all.length ? all.map(schRowHtml).join('') : `<div class="sch-pick-hint">${esc(t('empty_state'))}</div>`}</div>
+    </section>`;
   } else {
     body = `<section class="card"><div id="schList">
       ${schSectionHtml(t('sch_grp_late'), late, 'sch_none_late')}
@@ -8786,6 +8818,13 @@ function renderSchedulePanel() {
       renderSchedulePanel();
     });
   }
+
+  panel.querySelectorAll('[data-sch-phase]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      try { localStorage.setItem(SCH_PHASE_KEY, btn.dataset.schPhase); } catch (e) { /* private mode */ }
+      renderSchedulePanel();
+    });
+  });
 
   const hideBtn = document.getElementById('schHideDone');
   if (hideBtn) hideBtn.addEventListener('click', () => {
