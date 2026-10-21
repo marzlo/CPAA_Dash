@@ -464,7 +464,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .sch-marks { font-size: 11px; color: var(--muted); }
   .sch-marks b { font-weight: 600; color: var(--text-secondary); }
 
-  .gantt-wrap { overflow-x: auto; overflow-y: visible; position: relative; padding-bottom: 6px; }
+  .gantt-wrap { overflow-x: auto; overflow-y: visible; position: relative; padding-bottom: 6px;
+                cursor: grab; }
+  .gantt-wrap.dragging { cursor: grabbing; user-select: none; }
   .gantt-row { display: flex; align-items: stretch; height: 24px; }
   .gantt-name {
     position: sticky; left: 0; z-index: 2; flex: 0 0 240px; width: 240px;
@@ -1463,6 +1465,7 @@ const STRINGS = {
   sch_kind_resubmit: { zh: '重送循環', en: 'Re-submission' },
   sch_kind_final: { zh: '最終審查', en: 'Final review' },
   sch_today: { zh: '本週', en: 'Today' },
+  sch_drag_hint: { zh: '可直接拖曳左右移動', en: 'drag to pan' },
   sch_filter_feature: { zh: '全部產品', en: 'All features' },
   sch_filter_status: { zh: '全部狀態', en: 'All statuses' },
   sch_hide_done: { zh: '隱藏已完成', en: 'Hide done' },
@@ -8599,6 +8602,55 @@ function schGanttHtml(tasks) {
   </div>`;
 }
 
+// Where the Gantt was last scrolled to. null means it has not been opened yet, which
+// is the only time the chart jumps to the current week — after that a redraw (someone
+// ticked a task off) leaves the view exactly where they had it.
+let schGanttScroll = null;
+
+// Drag anywhere on the chart to pan it. 89 weeks is a long way to travel on a
+// scrollbar, and nothing inside the track is clickable, so a plain grab is safe.
+// Touch and trackpads keep their native scrolling: this only takes over a mouse drag.
+function schAttachGanttDrag(wrap, cur) {
+  if (schGanttScroll === null) {
+    // Centre the current week in the part of the viewport the pinned name column
+    // does not cover, so the chart opens on what is happening now.
+    wrap.scrollLeft = Math.max(0, cur * SCH_WEEK_PX - (wrap.clientWidth - SCH_NAME_PX) / 2);
+  } else {
+    wrap.scrollLeft = schGanttScroll;
+  }
+  schGanttScroll = wrap.scrollLeft;
+  wrap.addEventListener('scroll', () => { schGanttScroll = wrap.scrollLeft; });
+
+  let down = false, startX = 0, startLeft = 0, moved = 0;
+  wrap.addEventListener('pointerdown', e => {
+    if (e.pointerType !== 'mouse' || e.button !== 0) return;
+    down = true; moved = 0;
+    startX = e.clientX; startLeft = wrap.scrollLeft;
+    wrap.classList.add('dragging');
+    try { wrap.setPointerCapture(e.pointerId); } catch (err) { /* older engines */ }
+  });
+  wrap.addEventListener('pointermove', e => {
+    if (!down) return;
+    const dx = e.clientX - startX;
+    moved = Math.max(moved, Math.abs(dx));
+    wrap.scrollLeft = startLeft - dx;
+    e.preventDefault();
+  });
+  const end = e => {
+    if (!down) return;
+    down = false;
+    wrap.classList.remove('dragging');
+    try { wrap.releasePointerCapture(e.pointerId); } catch (err) { /* already released */ }
+  };
+  wrap.addEventListener('pointerup', end);
+  wrap.addEventListener('pointercancel', end);
+  wrap.addEventListener('pointerleave', end);
+  // A drag that happens to finish on something clickable should pan, not activate it.
+  wrap.addEventListener('click', e => {
+    if (moved > 4) { e.preventDefault(); e.stopPropagation(); }
+  }, true);
+}
+
 function renderSchedulePanel() {
   const panel = document.getElementById('panel-Schedule');
   if (!panel) return;
@@ -8619,6 +8671,7 @@ function renderSchedulePanel() {
     ${['ours', 'supplier', 'resubmit', 'final'].map(k =>
       `<span><i style="background:var(--gantt-${k})"></i>${esc(t('sch_kind_' + k))}</span>`).join('')}
     <span><i style="background:repeating-linear-gradient(45deg,var(--critical) 0 3px,transparent 3px 6px)"></i>${esc(t('sch_grp_late'))}</span>
+    <span style="color:var(--muted)">✋ ${esc(t('sch_drag_hint'))}</span>
   </div>`;
 
   let body;
@@ -8662,6 +8715,9 @@ function renderSchedulePanel() {
         `<button type="button" class="chip${v === view ? ' active' : ''}" data-sch-view="${v}">${esc(t(k))}</button>`).join('')}
     </div>
     ${body}`;
+
+  const ganttWrap = panel.querySelector('.gantt-wrap');
+  if (ganttWrap) schAttachGanttDrag(ganttWrap, cur);
 
   panel.querySelectorAll('[data-sch-view]').forEach(btn => {
     btn.addEventListener('click', () => {
