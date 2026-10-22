@@ -1,6 +1,6 @@
 {
- "updated_at": "2026-10-22T10:07:41+00:00",
- "updated_by": null,
+ "updated_at": "2026-10-22T23:34:08.536Z",
+ "updated_by": "Leyo",
  "options": [
   "SCD",
   "AAudio",
@@ -38,7 +38,7 @@
   "NR1LT-6728": "Other, audio focus",
   "NR1LT-6821": "external amp",
   "NR1LT-6822": "external amp",
-  "NR1LT-6837": "cannot be determined(Bluetooth Audio)",
+  "NR1LT-6837": "Other,APQM",
   "NR1LT-6842": "Other,APQM",
   "NR1LT-6860": "Other, HeadUnit issues",
   "NR1LT-6863": "Other, Mute",
