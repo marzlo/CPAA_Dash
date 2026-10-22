@@ -19,6 +19,32 @@ else:
     header = rows[0]
     data = rows[1:]
 
+def read_jira_csv(path):
+    with open(path, encoding="utf-8-sig", newline="") as f:
+        rows = list(csv.reader(f))
+    if not rows:
+        return None, []
+    return rows[0], [tuple((cell if cell != "" else None) for cell in row) for row in rows[1:]]
+
+
+def align_to_main(hdr, rows_):
+    """Re-orders another export's rows onto the main header's columns.
+
+    Every IDX_* below is resolved against the main export's header, so a second CSV has
+    to be laid out the same way before those indices mean anything on it. Columns the
+    other export does not have come through as None rather than shifting everything
+    along. Repeated names (Jira writes Labels, Labels_1, ... and sometimes several bare
+    "Labels") are matched occurrence by occurrence, not collapsed to the last one.
+    """
+    seen, idx = {}, []
+    for h in header:
+        n = seen.get(h, 0)
+        seen[h] = n + 1
+        hits = [i for i, x in enumerate(hdr) if x == h]
+        idx.append(hits[n] if n < len(hits) else None)
+    return [tuple(r[i] if i is not None and i < len(r) else None for i in idx) for r in rows_]
+
+
 # Resolve column positions by header name (Jira's export column order/count shifts
 # between exports as fields get added, so never hardcode positional indices).
 IDX_TYPE = header.index("Issue Type")
@@ -426,13 +452,38 @@ AUDIO_ASSIGNEES = {"KVVD Subrahmanyam", "Subramanya N S"}
 # text doesn't contain "audio" and the assignee isn't an audio-only assignee.
 AUDIO_EXTRA_KEYS = {"NR1LT-3385"}
 
+# Audio bugs that live outside the dashboard's main Jira filter altogether — a different
+# project (NR1LB). fetch_jira.py writes them to their own CSV, and they join the Audio tab
+# WITHOUT joining bug_records: the Bug tab's counts, the trend and history.json are a
+# continuous series over filter 12399, and they must not step because two tickets were
+# adopted from another board.
+AUDIO_EXTRA_SRC = os.environ.get("AUDIO_EXTRA_CSV_PATH", "audio_extra_export.csv")
+# Their team cannot be read off the assignee map: these are Harman's as a party, whoever
+# the NR1LB board happens to have assigned. A key with no entry here falls back to the
+# assignee map and is reported below, so a silent "Unknown" is not how you find out.
+AUDIO_EXTRA_TEAM = {"NR1LB-139": "Harman", "NR1LB-195": "Harman"}
+
+try:
+    x_header, x_rows = read_jira_csv(AUDIO_EXTRA_SRC)
+    audio_extra_data = align_to_main(x_header, x_rows) if x_header else []
+except FileNotFoundError:
+    audio_extra_data = []
+    print(f"\nNo {AUDIO_EXTRA_SRC} — no adopted Audio tickets this run")
+if audio_extra_data:
+    print(f"\nAdopted Audio tickets from {AUDIO_EXTRA_SRC}: {len(audio_extra_data)}")
+    for r in audio_extra_data:
+        tm = AUDIO_EXTRA_TEAM.get(r[IDX_KEY])
+        print(f"   {r[IDX_KEY]}  {r[IDX_STATUS]}  team={tm or '(from assignee map)'}")
+        if not tm:
+            print(f"   WARNING: no team for {r[IDX_KEY]} in AUDIO_EXTRA_TEAM")
+
 audio_records = []
-for r in data:
+for r, adopted in [(x, False) for x in data] + [(x, True) for x in audio_extra_data]:
     summary = r[IDX_SUMMARY] or ""
     assignee_name = (r[IDX_ASSIGNEE] if IDX_ASSIGNEE is not None else None) or "Unassigned"
     is_audio_summary = bool(re.search(r'audio', summary, re.I))
     is_audio_assignee = assignee_name in AUDIO_ASSIGNEES
-    is_audio_extra = r[IDX_KEY] in AUDIO_EXTRA_KEYS
+    is_audio_extra = adopted or r[IDX_KEY] in AUDIO_EXTRA_KEYS
     if not is_audio_summary and not is_audio_assignee and not is_audio_extra:
         continue
     labels = labels_of(r)
@@ -453,7 +504,13 @@ for r in data:
         "statusCategory": cat,
         "labels": labels,
         "group": group,
-        "assignee": (r[IDX_ASSIGNEE] if IDX_ASSIGNEE is not None else None) or "Unassigned",
+        "assignee": assignee_name,
+        # Carried here rather than looked up in bug_records at render time: an adopted
+        # ticket is not in bug_records at all, and for everything else these are the same
+        # two values that loop computes, from the same assignee and the same column.
+        "team": AUDIO_EXTRA_TEAM.get(r[IDX_KEY]) or team_of(assignee_name),
+        "priority": (r[IDX_PRIORITY] if IDX_PRIORITY is not None else None) or "未標示",
+        "adopted": adopted,
         "done": cat == "done",
         "hasR2": "ASW-R2" in labels,
         "hasR3": "ASW-R3" in labels,
@@ -494,13 +551,6 @@ print("Pretest group counts:", pretest_group_counts)
 # The file is optional — without it the Compare tab simply says there is nothing to
 # compare, and every other tab is unaffected.
 WATCH_SRC = os.environ.get("WATCH_CSV_PATH", "watch_export.csv")
-
-def read_jira_csv(path):
-    with open(path, encoding="utf-8-sig", newline="") as f:
-        rows = list(csv.reader(f))
-    if not rows:
-        return None, []
-    return rows[0], [tuple((cell if cell != "" else None) for cell in row) for row in rows[1:]]
 
 watch_records = []
 try:

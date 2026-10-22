@@ -5185,14 +5185,17 @@ function renderAudioCatMatrix() {
   const cap = document.getElementById('acCaption');
   if (!host) return;
 
-  // The Audio tab's own not-done set, narrowed to Bugs actually in flight.
+  // The Audio tab's own not-done set, narrowed to Bugs actually in flight. Team and
+  // priority come off the Audio record itself; bug_records is only the fallback for a
+  // dashboard_data.json built before those fields were carried, and it has nothing at
+  // all for a ticket adopted from another board.
   const bugMap = {};
   BUGS.forEach(b => { bugMap[b.key] = b; });
   const openBugs = AUDIO.filter(r => !r.done && r.issueType === 'Bug');
   const all = openBugs.filter(acInFlight).map(r => ({
     key: r.key, summary: r.summary,
-    team: (bugMap[r.key] || {}).team || 'Unknown',
-    priority: (bugMap[r.key] || {}).priority || '',
+    team: r.team || (bugMap[r.key] || {}).team || 'Unknown',
+    priority: r.priority || (bugMap[r.key] || {}).priority || '',
     cat: acOf(r.key) || '',
   }));
 

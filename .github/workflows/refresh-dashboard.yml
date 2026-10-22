@@ -88,6 +88,18 @@ jobs:
           OUT_CSV: 'qna_export.csv'
         run: python scripts/fetch_jira.py
 
+      # Audio bugs that sit on another board (NR1LB) and so are outside filter 12399.
+      # They join the Audio tab only — see AUDIO_EXTRA_TEAM in build_data.py, which is
+      # also where each one's owning team is set. Add a key in BOTH places.
+      - name: Fetch the adopted Audio tickets from Jira
+        env:
+          JIRA_SITE: mobiledrivetech.atlassian.net
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_JQL: 'key in (NR1LB-139, NR1LB-195)'
+          OUT_CSV: 'audio_extra_export.csv'
+        run: python scripts/fetch_jira.py
+
       - name: Build dashboard_data.json
         run: python scripts/build_data.py
 
