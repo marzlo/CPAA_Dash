@@ -594,6 +594,12 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
                                vertical-align: middle; }
   .acm thead th { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: none;
                   letter-spacing: 0; vertical-align: bottom; min-width: 190px; white-space: normal; }
+  /* Column headers are the drag handles for reordering the 分類 columns. */
+  .acm th[data-ac-col] { cursor: grab; user-select: none; }
+  .acm th[data-ac-col]:focus-visible { outline: 2px solid var(--series-cp); outline-offset: -2px; }
+  .acm th.dragging { opacity: .45; }
+  .acm th.drag-over-before { box-shadow: inset 3px 0 0 0 var(--series-cp); }
+  .acm th.drag-over-after { box-shadow: inset -3px 0 0 0 var(--series-cp); }
   .acm td.cell { cursor: pointer; text-align: left; }
   .acm td.cell:hover { background: var(--page); }
   .acm td.zero { color: var(--muted); text-align: center; }
@@ -618,6 +624,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
                margin-bottom: 8px; align-items: center; }
   .ac-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px;
                  vertical-align: -1px; box-shadow: inset 0 0 0 1px var(--pri-ring); }
+  .ac-hint { color: var(--muted); }
   .panel-lead { margin: 0 0 16px; }
   .panel-lead h2 { margin: 0 0 4px; font-size: 16px; }
   .panel-lead p { margin: 0; color: var(--text-secondary); font-size: 12px; max-width: 76ch; }
@@ -1550,6 +1557,8 @@ const STRINGS = {
   ac_caption: { zh: (n, u) => `${n} 張未完成的 Audio Bug,其中 ${u} 張還沒分類。格子裡是張數,下面直接列出 Jira ID,依 Priority 由高到低分組;點 ID 開 Jira,點格子空白處會跳到下面的清單並套用篩選。`,
                 en: (n, u) => `${n} open Audio bugs, ${u} still unclassified. Each cell gives a count and then lists its Jira IDs, grouped by priority, highest first. Click an ID to open Jira; click elsewhere in the cell to jump to the list with that filter applied.` },
   ac_total: { zh: '總計', en: 'Total' },
+  ac_reorder_hint: { zh: '拖曳欄位標題可調整分類順序,或先點標題再用 ← → 移動(只影響你自己的瀏覽器,重新整理後仍會記得)', en: 'Drag a column header to reorder the categories, or focus one and move it with ← → (saved in your own browser only)' },
+  ac_reset_order: { zh: '重設欄位順序', en: 'Reset column order' },
   ac_empty: { zh: '沒有未完成的 Audio Bug。', en: 'No open Audio bugs.' },
   sch_heading: { zh: 'CPAA 認證時程', en: 'CPAA certification schedule' },
   sch_caption: { zh: (src, n, w) => `來源:${src},共 ${n} 項任務、${w} 週。完成與否是在這個頁面上按的,按鈕的紀錄跟 Excel 分開存,所以換新版 Excel 不會把你按過的清掉。`,
@@ -5099,6 +5108,31 @@ function attachStatsReorder() {
   });
 }
 
+// Which 分類 column sits where. Like the card order this is one viewer's own view
+// preference, so it lives in their browser rather than in the repo: no token needed,
+// and one person rearranging their columns doesn't move everyone else's. Categories
+// are keyed by name, so one added later still appears, at its default position.
+const AC_COL_ORDER_KEY = 'cpaaAudioCatColOrder';
+
+function loadAcColOrder() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(AC_COL_ORDER_KEY));
+    return Array.isArray(raw) ? raw.filter(c => typeof c === 'string') : [];
+  } catch (e) { return []; }
+}
+
+function saveAcColOrder(order) {
+  try {
+    if (order.length) localStorage.setItem(AC_COL_ORDER_KEY, JSON.stringify(order));
+    else localStorage.removeItem(AC_COL_ORDER_KEY);
+  } catch (e) { /* private mode */ }
+}
+
+function clearAcColMarkers(host) {
+  host.querySelectorAll('th[data-ac-col]').forEach(x =>
+    x.classList.remove('drag-over-before', 'drag-over-after'));
+}
+
 // Priority, highest first, as one stepped hue — an ordered scale, not categories.
 const AC_PRI = [
   { key: 'Highest', v: 'var(--pri-highest)' },
@@ -5130,8 +5164,18 @@ function renderAudioCatMatrix() {
   if (!rows.length) { host.innerHTML = `<p class="caption">${esc(t('ac_empty'))}</p>`; if (cap) cap.textContent = ''; return; }
   if (cap) cap.textContent = t('ac_caption', rows.length, rows.filter(r => !r.cat).length);
 
-  const cats = acOptions().filter(c => rows.some(r => r.cat === c));
-  if (rows.some(r => !r.cat)) cats.push('');          // the unclassified column, last
+  // Default: the busiest categories first, so the columns that actually hold tickets
+  // sit next to the Team names instead of off the right edge; unclassified stays last.
+  // A saved order — this viewer's own drag — overrides it, category by category.
+  const nOf = c => rows.filter(r => r.cat === c).length;
+  const byDefault = acOptions().filter(c => rows.some(r => r.cat === c))
+                               .sort((a, b) => nOf(b) - nOf(a) || a.localeCompare(b));
+  if (rows.some(r => !r.cat)) byDefault.push('');
+  const savedOrder = loadAcColOrder();
+  const colRank = c => { const i = savedOrder.indexOf(c); return i === -1 ? Infinity : i; };
+  const cats = byDefault.map((c, i) => ({ c, i }))
+                        .sort((a, b) => (colRank(a.c) - colRank(b.c)) || (a.i - b.i))
+                        .map(x => x.c);
   const teams = [...new Set(rows.map(r => r.team))].sort(
     (a, b) => rows.filter(r => r.team === b).length - rows.filter(r => r.team === a).length || a.localeCompare(b));
 
@@ -5153,11 +5197,15 @@ function renderAudioCatMatrix() {
 
   const legend = `<div class="ac-legend"><span>Priority:</span>` +
     AC_PRI.filter(p => rows.some(r => acPriOf(r) === p.key))
-          .map(p => `<span><i style="background:${p.v}"></i>${esc(p.key)}</span>`).join('') + `</div>`;
+          .map(p => `<span><i style="background:${p.v}"></i>${esc(p.key)}</span>`).join('') +
+    `<span class="ac-hint">${esc(t('ac_reorder_hint'))}</span>` +
+    (savedOrder.length ? `<button type="button" class="btn small" id="acOrderReset">${esc(t('ac_reset_order'))}</button>` : '') +
+    `</div>`;
 
   host.innerHTML = legend + `<div class="table-wrap"><table class="acm">
     <thead><tr><th class="rowh">Team \\ ${esc(t('ac_col'))}</th>
-      ${cats.map(c => `<th>${esc(c || t('ac_none'))}</th>`).join('')}
+      ${cats.map(c => `<th draggable="true" tabindex="0" data-ac-col="${esc(c)}"
+          title="${esc(t('ac_reorder_hint'))}">${esc(c || t('ac_none'))}</th>`).join('')}
       <th class="totc">${esc(t('ac_total'))}</th></tr></thead>
     <tbody>
       ${teams.map(tm => `<tr><td class="rowh">${esc(tm)}</td>
@@ -5167,6 +5215,60 @@ function renderAudioCatMatrix() {
         ${cats.map(c => `<td>${rows.filter(r => r.cat === c).length}</td>`).join('')}
         <td class="totc">${rows.length}</td></tr>
     </tbody></table></div>`;
+
+  // Reordering the 分類 columns: drag a header, or focus one and press the arrow keys
+  // so it is not mouse-only. The table is rebuilt from the new order rather than
+  // having cells shuffled in the DOM, which keeps every row in step by construction.
+  const setOrder = next => { saveAcColOrder(next); renderAudioCatMatrix(); };
+  const reset = document.getElementById('acOrderReset');
+  if (reset) reset.addEventListener('click', () => setOrder([]));
+
+  let dragCol = null;
+  host.querySelectorAll('th[data-ac-col]').forEach(th => {
+    const key = th.dataset.acCol;
+    th.addEventListener('dragstart', e => {
+      dragCol = key;
+      th.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', key); } catch (err) { /* Safari */ }
+    });
+    th.addEventListener('dragend', () => {
+      th.classList.remove('dragging');
+      clearAcColMarkers(host);
+      dragCol = null;
+    });
+    th.addEventListener('dragover', e => {
+      if (dragCol === null || dragCol === key) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const r = th.getBoundingClientRect();
+      clearAcColMarkers(host);
+      th.classList.add(e.clientX < r.left + r.width / 2 ? 'drag-over-before' : 'drag-over-after');
+    });
+    th.addEventListener('drop', e => {
+      if (dragCol === null || dragCol === key) return;
+      e.preventDefault();
+      const r = th.getBoundingClientRect();
+      const before = e.clientX < r.left + r.width / 2;
+      const next = cats.filter(c => c !== dragCol);
+      next.splice(next.indexOf(key) + (before ? 0 : 1), 0, dragCol);
+      setOrder(next);
+    });
+    th.addEventListener('keydown', e => {
+      const step = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
+      if (!step) return;
+      e.preventDefault();
+      const i = cats.indexOf(key), j = i + step;
+      if (i < 0 || j < 0 || j >= cats.length) return;
+      const next = [...cats];
+      next.splice(j, 0, next.splice(i, 1)[0]);
+      setOrder(next);
+      // The header was replaced by the redraw, so follow the column to its new one.
+      const moved = [...document.querySelectorAll('#acMatrix th[data-ac-col]')]
+        .find(x => x.dataset.acCol === key);
+      if (moved) moved.focus();
+    });
+  });
 
   host.querySelectorAll('[data-ac-team]').forEach(td => {
     td.addEventListener('click', e => {
