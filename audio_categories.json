@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-10-22T23:34:08.536Z",
+ "updated_at": "2026-10-22T23:34:32.062Z",
  "updated_by": "Leyo",
  "options": [
   "SCD",
@@ -47,7 +47,7 @@
   "NR1LT-6915": "SCD",
   "NR1LT-6920": "Other, audio focus",
   "NR1LT-6930": "Other, audio focus",
-  "NR1LT-6961": "Other,ITU",
+  "NR1LT-6961": "Other,APQM",
   "NR1LT-6984": "Other, audio focus",
   "NR1LT-7065": "Other,last user mode",
   "NR1LT-7087": "Other, audio focus",
