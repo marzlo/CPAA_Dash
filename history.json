@@ -3588,13 +3588,13 @@
  },
  "2026-10-22": {
   "bugs": {
-   "done": 282,
-   "total": 366
+   "done": 283,
+   "total": 367
   },
   "bugs_by_rca": {
    "empty": {
-    "done": 159,
-    "total": 236
+    "done": 160,
+    "total": 237
    },
    "filled": {
     "done": 123,
@@ -3627,8 +3627,8 @@
     "total": 2
    },
    "Non-issue": {
-    "done": 12,
-    "total": 12
+    "done": 13,
+    "total": 13
    },
    "Ready for integration": {
     "done": 11,
@@ -3666,10 +3666,10 @@
    },
    "MDT_System": {
     "done": 0,
-    "total": 3
+    "total": 4
    },
    "TS_CPAA": {
-    "done": 205,
+    "done": 206,
     "total": 228
    },
    "TS_FW": {
