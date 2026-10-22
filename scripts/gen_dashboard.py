@@ -557,25 +557,67 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .ac-sel { font: inherit; font-size: 12px; max-width: 150px; padding: 1px 4px; border-radius: 5px;
             border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); }
   .ac-cell { white-space: nowrap; }
-  /* Priority is an ordered scale, so the stack is one hue stepped light-to-dark
-     rather than four unrelated colours. */
+  /* Priority is an ordered scale, so these are one hue stepped by lightness rather
+     than four unrelated colours. Each step is picked for contrast against its own
+     mode's surface, so "Highest" is the heaviest mark in both themes. The priority
+     is always spelled out next to the swatch too — colour never carries it alone. */
+  :root {
+    --pri-highest: #0b2f66;
+    --pri-high:    #1f62bb;
+    --pri-medium:  #4a8ed6;
+    --pri-low:     #86b4e2;
+    --pri-lowest:  #b8d0e8;
+    --pri-ring:    rgba(0, 0, 0, .22);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      --pri-highest: #dceafc;
+      --pri-high:    #8dbaea;
+      --pri-medium:  #4f8dd0;
+      --pri-low:     #36689c;
+      --pri-lowest:  #2b4c76;
+      --pri-ring:    rgba(255, 255, 255, .26);
+    }
+  }
+  :root[data-theme="dark"] {
+    --pri-highest: #dceafc;
+    --pri-high:    #8dbaea;
+    --pri-medium:  #4f8dd0;
+    --pri-low:     #36689c;
+    --pri-lowest:  #2b4c76;
+    --pri-ring:    rgba(255, 255, 255, .26);
+  }
   .acm { border-collapse: separate; border-spacing: 0; font-size: 12px; }
-  .acm th, .acm td { border-bottom: 1px solid var(--grid); padding: 6px 8px; text-align: center; }
-  .acm th.rowh, .acm td.rowh { text-align: left; font-weight: 600; white-space: nowrap; }
+  .acm th, .acm td { border-bottom: 1px solid var(--grid); padding: 6px 8px; text-align: center;
+                     vertical-align: top; }
+  .acm th.rowh, .acm td.rowh { text-align: left; font-weight: 600; white-space: nowrap;
+                               vertical-align: middle; }
   .acm thead th { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: none;
-                  letter-spacing: 0; vertical-align: bottom; max-width: 110px; white-space: normal; }
-  .acm td.cell { cursor: pointer; }
+                  letter-spacing: 0; vertical-align: bottom; min-width: 190px; white-space: normal; }
+  .acm td.cell { cursor: pointer; text-align: left; }
   .acm td.cell:hover { background: var(--page); }
-  .acm td.zero { color: var(--muted); }
-  .acm .n { font-variant-numeric: tabular-nums; font-weight: 600; }
-  .acm .pbar { display: flex; height: 5px; border-radius: 3px; overflow: hidden; margin-top: 3px;
-               background: var(--grid); min-width: 34px; }
-  .acm .pbar i { display: block; height: 100%; }
-  .acm tr.tot td, .acm tr.tot th { border-top: 2px solid var(--border); font-weight: 700; }
-  .acm td.totc, .acm th.totc { background: var(--page); font-weight: 700; }
-  .ac-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--text-secondary);
+  .acm td.zero { color: var(--muted); text-align: center; }
+  .acm .n { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 13px; }
+  /* One line per priority present: swatch, name, then that priority's keys. */
+  .acm .pline { display: flex; align-items: baseline; gap: 5px; margin-top: 3px; line-height: 1.45; }
+  /* The ring keeps the pale low-priority steps visible against the surface, so the
+     bottom of the scale is still a mark and not a blank gap. */
+  .acm .pdot { flex: 0 0 auto; width: 9px; height: 9px; border-radius: 2px; margin-top: 2px;
+               box-shadow: inset 0 0 0 1px var(--pri-ring); }
+  .acm .pnm { flex: 0 0 auto; font-size: 10px; color: var(--muted); min-width: 44px; }
+  /* Keys wrap between tickets, never inside one — a key split across two lines is
+     not a key you can read or copy. */
+  .acm .pkeys { font-size: 11px; }
+  .acm .pkeys a { color: var(--series-cp); text-decoration: none; white-space: nowrap; }
+  .acm .pkeys a:hover { text-decoration: underline; }
+  .acm tr.tot td, .acm tr.tot th { border-top: 2px solid var(--border); font-weight: 700;
+                                   text-align: center; vertical-align: middle; }
+  .acm td.totc, .acm th.totc { background: var(--page); font-weight: 700; text-align: center;
+                               vertical-align: middle; }
+  .ac-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11px; color: var(--text-secondary);
                margin-bottom: 8px; align-items: center; }
-  .ac-legend i { display: inline-block; width: 12px; height: 6px; border-radius: 2px; margin-right: 4px; }
+  .ac-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px;
+                 vertical-align: -1px; box-shadow: inset 0 0 0 1px var(--pri-ring); }
   .panel-lead { margin: 0 0 16px; }
   .panel-lead h2 { margin: 0 0 4px; font-size: 16px; }
   .panel-lead p { margin: 0; color: var(--text-secondary); font-size: 12px; max-width: 76ch; }
@@ -1505,8 +1547,8 @@ const STRINGS = {
   ac_need_token: { zh: '要改音訊分類,需要先用右上角的 🔑 設定 GitHub token。',
                    en: 'Changing an audio category needs a GitHub token — use the 🔑 button at the top right.' },
   ac_heading: { zh: 'Audio 未完成 Bug:分類 × Team', en: 'Audio bugs open: category × team' },
-  ac_caption: { zh: (n, u) => `${n} 張未完成的 Audio Bug,其中 ${u} 張還沒分類。格子裡是張數,底下細條依 Priority 由高到低堆疊;點格子會跳到下面的清單並套用篩選。`,
-                en: (n, u) => `${n} open Audio bugs, ${u} still unclassified. Each cell is a count; the bar under it stacks by priority, highest first. Click a cell to jump to the list with that filter applied.` },
+  ac_caption: { zh: (n, u) => `${n} 張未完成的 Audio Bug,其中 ${u} 張還沒分類。格子裡是張數,下面直接列出 Jira ID,依 Priority 由高到低分組;點 ID 開 Jira,點格子空白處會跳到下面的清單並套用篩選。`,
+                en: (n, u) => `${n} open Audio bugs, ${u} still unclassified. Each cell gives a count and then lists its Jira IDs, grouped by priority, highest first. Click an ID to open Jira; click elsewhere in the cell to jump to the list with that filter applied.` },
   ac_total: { zh: '總計', en: 'Total' },
   ac_empty: { zh: '沒有未完成的 Audio Bug。', en: 'No open Audio bugs.' },
   sch_heading: { zh: 'CPAA 認證時程', en: 'CPAA certification schedule' },
@@ -5059,13 +5101,12 @@ function attachStatsReorder() {
 
 // Priority, highest first, as one stepped hue — an ordered scale, not categories.
 const AC_PRI = [
-  { key: 'Highest', mix: 100 },
-  { key: 'High',    mix: 72 },
-  { key: 'Medium',  mix: 48 },
-  { key: 'Low',     mix: 30 },
-  { key: 'Lowest',  mix: 18 },
+  { key: 'Highest', v: 'var(--pri-highest)' },
+  { key: 'High',    v: 'var(--pri-high)' },
+  { key: 'Medium',  v: 'var(--pri-medium)' },
+  { key: 'Low',     v: 'var(--pri-low)' },
+  { key: 'Lowest',  v: 'var(--pri-lowest)' },
 ];
-function acPriColor(mix) { return `color-mix(in srgb, var(--gantt-ours) ${mix}%, var(--surface-1))`; }
 function acPriOf(r) {
   const p = (r.priority || '').trim();
   return AC_PRI.some(x => x.key === p) ? p : 'Medium';
@@ -5097,18 +5138,22 @@ function renderAudioCatMatrix() {
   const at = (tm, c) => rows.filter(r => r.team === tm && r.cat === c);
   function cellHtml(items, tm, c) {
     if (!items.length) return `<td class="cell zero" data-ac-team="${esc(tm)}" data-ac-cat="${esc(c)}">·</td>`;
-    const byP = AC_PRI.map(p => ({ p, n: items.filter(r => acPriOf(r) === p.key).length })).filter(x => x.n);
-    const bar = byP.map(x => `<i style="flex:${x.n}; background:${acPriColor(x.p.mix)}"></i>`).join('');
-    const title = `${tm} · ${c || t('ac_none')}\n` +
-      byP.map(x => `${x.p.key}: ${x.n}`).join('\n') + '\n\n' +
-      items.map(r => r.key).join(', ');
-    return `<td class="cell" data-ac-team="${esc(tm)}" data-ac-cat="${esc(c)}" title="${esc(title)}">` +
-           `<span class="n">${items.length}</span><span class="pbar">${bar}</span></td>`;
+    // The keys are written out rather than hidden behind a tooltip, grouped by
+    // priority and named, so the colour is a cue and not the only way to read it.
+    const lines = AC_PRI.map(p => ({ p, ks: items.filter(r => acPriOf(r) === p.key).map(r => r.key).sort() }))
+                        .filter(x => x.ks.length)
+                        .map(x => `<div class="pline"><span class="pdot" style="background:${x.p.v}"></span>` +
+                                  `<span class="pnm">${esc(x.p.key)}</span>` +
+                                  `<span class="pkeys">${x.ks.map(k =>
+                                     `<a href="${ticketUrl(k)}" target="_blank" rel="noopener">${esc(k)}</a>`).join(', ')}</span></div>`)
+                        .join('');
+    return `<td class="cell" data-ac-team="${esc(tm)}" data-ac-cat="${esc(c)}">` +
+           `<span class="n">${items.length}</span>${lines}</td>`;
   }
 
   const legend = `<div class="ac-legend"><span>Priority:</span>` +
     AC_PRI.filter(p => rows.some(r => acPriOf(r) === p.key))
-          .map(p => `<span><i style="background:${acPriColor(p.mix)}"></i>${esc(p.key)}</span>`).join('') + `</div>`;
+          .map(p => `<span><i style="background:${p.v}"></i>${esc(p.key)}</span>`).join('') + `</div>`;
 
   host.innerHTML = legend + `<div class="table-wrap"><table class="acm">
     <thead><tr><th class="rowh">Team \\ ${esc(t('ac_col'))}</th>
@@ -5124,7 +5169,8 @@ function renderAudioCatMatrix() {
     </tbody></table></div>`;
 
   host.querySelectorAll('[data-ac-team]').forEach(td => {
-    td.addEventListener('click', () => {
+    td.addEventListener('click', e => {
+      if (e.target.closest('a')) return;   // a key link opens Jira, it does not filter
       const btn = document.querySelector('nav.tabs button[data-tab="Audio"]');
       if (btn) btn.click();
       const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
