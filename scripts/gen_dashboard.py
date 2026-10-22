@@ -594,12 +594,31 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
                                vertical-align: middle; }
   .acm thead th { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: none;
                   letter-spacing: 0; vertical-align: bottom; min-width: 190px; white-space: normal; }
-  /* Column headers are the drag handles for reordering the 分類 columns. */
-  .acm th[data-ac-col] { cursor: grab; user-select: none; }
-  .acm th[data-ac-col]:focus-visible { outline: 2px solid var(--series-cp); outline-offset: -2px; }
-  .acm th.dragging { opacity: .45; }
-  .acm th.drag-over-before { box-shadow: inset 3px 0 0 0 var(--series-cp); }
-  .acm th.drag-over-after { box-shadow: inset -3px 0 0 0 var(--series-cp); }
+  /* One block per 分類. They flow in newspaper columns rather than a grid, so a block
+     with one ticket takes one line instead of padding out to the tallest in its row —
+     which is what made the cross-tab mostly empty space. */
+  .ac-blocks { column-width: 290px; column-gap: 14px; }
+  .ac-block { break-inside: avoid; margin: 0 0 12px; padding: 8px 10px 10px; border: 1px solid var(--border);
+              border-radius: 10px; background: var(--surface-1); }
+  .ac-bh { display: flex; align-items: center; gap: 6px; cursor: grab; user-select: none; }
+  .ac-bh::before { content: '⠿'; color: var(--muted); font-size: 11px; line-height: 1; }
+  .ac-bh:focus-visible { outline: 2px solid var(--series-cp); outline-offset: 2px; border-radius: 6px; }
+  .ac-bn { flex: 1 1 auto; font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
+  .ac-bc { flex: 0 0 auto; font: inherit; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+           border: 1px solid var(--border); background: var(--page); color: var(--text-primary);
+           border-radius: 999px; padding: 1px 9px; cursor: pointer; }
+  .ac-bc:hover { border-color: var(--series-cp); color: var(--series-cp); }
+  .ac-block.dragging { opacity: .45; }
+  .ac-block.drag-over-before { box-shadow: 0 -3px 0 0 var(--series-cp); }
+  .ac-block.drag-over-after { box-shadow: 0 3px 0 0 var(--series-cp); }
+  .ac-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
+  .ac-chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px 2px 6px; font-size: 11px;
+             text-decoration: none; color: var(--series-cp); background: var(--page);
+             border: 1px solid var(--border); border-radius: 999px; white-space: nowrap; }
+  .ac-chip:hover { border-color: var(--series-cp); }
+  .ac-chip i { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 2px;
+               box-shadow: inset 0 0 0 1px var(--pri-ring); }
+  .ac-chip .ac-tm { color: var(--muted); font-size: 10px; }
   .acm td.cell { cursor: pointer; text-align: left; }
   .acm td.cell:hover { background: var(--page); }
   .acm td.zero { color: var(--muted); text-align: center; }
@@ -1553,14 +1572,16 @@ const STRINGS = {
   ac_add_prompt: { zh: '新分類名稱:', en: 'New category name:' },
   ac_need_token: { zh: '要改音訊分類,需要先用右上角的 🔑 設定 GitHub token。',
                    en: 'Changing an audio category needs a GitHub token — use the 🔑 button at the top right.' },
-  ac_heading: { zh: 'Audio 處理中 Bug:分類 × Team', en: 'Audio bugs in flight: category × team' },
+  ac_heading: { zh: 'Audio 處理中 Bug:依分類', en: 'Audio bugs in flight, by category' },
+  ac_team_all: { zh: n => `全部 Team (${n})`, en: n => `All teams (${n})` },
+  ac_jump_hint: { zh: '跳到下面的清單,只看這個分類', en: 'Jump to the list below, filtered to this category' },
   ac_status_active: { zh: '處理中 (Blocked / To Do / In Progress / Reopen)', en: 'In flight (Blocked / To Do / In Progress / Reopen)' },
   audio_status_all: { zh: '全部狀態', en: 'All statuses' },
-  ac_caption: { zh: (n, u, x) => `${n} 張處理中的 Audio Bug(只算 Blocked / To Do / In Progress / Reopen,另外 ${x} 張在 Eng build、Ready for test 等狀態不列入),其中 ${u} 張還沒分類。格子裡是張數,下面直接列出 Jira ID,依 Priority 由高到低分組;點 ID 開 Jira,點格子空白處會跳到下面的清單並套用篩選。`,
-                en: (n, u, x) => `${n} Audio bugs in flight (Blocked / To Do / In Progress / Reopen only; ${x} more sit in Eng build, Ready for test and the like and are left out), ${u} of them still unclassified. Each cell gives a count and then lists its Jira IDs, grouped by priority, highest first. Click an ID to open Jira; click elsewhere in the cell to jump to the list with that filter applied.` },
+  ac_caption: { zh: (n, u, x) => `${n} 張處理中的 Audio Bug(只算 Blocked / To Do / In Progress / Reopen,另外 ${x} 張在 Eng build、Ready for test 等狀態不列入),其中 ${u} 張還沒分類。每個分類一個區塊,票上的色塊是 Priority(深=高)、後面是負責的 Team;點票開 Jira,點分類右邊的數字會跳到下面的清單。`,
+                en: (n, u, x) => `${n} Audio bugs in flight (Blocked / To Do / In Progress / Reopen only; ${x} more sit in Eng build, Ready for test and the like and are left out), ${u} of them still unclassified. One block per category; each ticket carries a priority swatch (darker is higher) and the team that owns it. Click a ticket to open Jira, or the count beside a category to jump to the list below.` },
   ac_total: { zh: '總計', en: 'Total' },
-  ac_reorder_hint: { zh: '拖曳欄位標題可調整分類順序,或先點標題再用 ← → 移動(只影響你自己的瀏覽器,重新整理後仍會記得)', en: 'Drag a column header to reorder the categories, or focus one and move it with ← → (saved in your own browser only)' },
-  ac_reset_order: { zh: '重設欄位順序', en: 'Reset column order' },
+  ac_reorder_hint: { zh: '拖曳分類標題可調整順序,或先點標題再用 ← → 移動(只影響你自己的瀏覽器,重新整理後仍會記得)', en: 'Drag a category heading to reorder, or focus one and move it with ← → (saved in your own browser only)' },
+  ac_reset_order: { zh: '重設分類順序', en: 'Reset category order' },
   ac_empty: { zh: '沒有處理中的 Audio Bug。', en: 'No Audio bugs in flight.' },
   sch_heading: { zh: 'CPAA 認證時程', en: 'CPAA certification schedule' },
   sch_caption: { zh: (src, n, w) => `來源:${src},共 ${n} 項任務、${w} 週。完成與否是在這個頁面上按的,按鈕的紀錄跟 Excel 分開存,所以換新版 Excel 不會把你按過的清掉。`,
@@ -5131,9 +5152,12 @@ function saveAcColOrder(order) {
 }
 
 function clearAcColMarkers(host) {
-  host.querySelectorAll('th[data-ac-col]').forEach(x =>
+  host.querySelectorAll('.ac-block').forEach(x =>
     x.classList.remove('drag-over-before', 'drag-over-after'));
 }
+
+// Which team's tickets are showing, '' for all. A view filter, not a saved preference.
+let acTeam = '';
 
 // The cross-tab counts the work actually in flight. "Not done" on the Audio tab is a
 // wider net — it also holds Eng build and Ready for test, which are waiting on a build
@@ -5161,24 +5185,30 @@ function renderAudioCatMatrix() {
   const cap = document.getElementById('acCaption');
   if (!host) return;
 
-  // The Audio tab's own not-done set, narrowed to Bugs — the rows being classified.
+  // The Audio tab's own not-done set, narrowed to Bugs actually in flight.
   const bugMap = {};
   BUGS.forEach(b => { bugMap[b.key] = b; });
   const openBugs = AUDIO.filter(r => !r.done && r.issueType === 'Bug');
-  const rows = openBugs.filter(acInFlight).map(r => ({
+  const all = openBugs.filter(acInFlight).map(r => ({
     key: r.key, summary: r.summary,
     team: (bugMap[r.key] || {}).team || 'Unknown',
     priority: (bugMap[r.key] || {}).priority || '',
     cat: acOf(r.key) || '',
   }));
 
-  if (!rows.length) { host.innerHTML = `<p class="caption">${esc(t('ac_empty'))}</p>`; if (cap) cap.textContent = ''; return; }
-  if (cap) cap.textContent = t('ac_caption', rows.length, rows.filter(r => !r.cat).length,
-                               openBugs.length - rows.length);
+  if (!all.length) { host.innerHTML = `<p class="caption">${esc(t('ac_empty'))}</p>`; if (cap) cap.textContent = ''; return; }
+  if (cap) cap.textContent = t('ac_caption', all.length, all.filter(r => !r.cat).length,
+                               openBugs.length - all.length);
 
-  // Default: the busiest categories first, so the columns that actually hold tickets
-  // sit next to the Team names instead of off the right edge; unclassified stays last.
-  // A saved order — this viewer's own drag — overrides it, category by category.
+  // Team was a grid axis and is now a tag on each ticket plus this filter row: with 18 of
+  // the 26 on one team, a column per team spent the whole width to say almost nothing.
+  const nTeam = tm => all.filter(r => r.team === tm).length;
+  const teams = [...new Set(all.map(r => r.team))].sort((a, b) => nTeam(b) - nTeam(a) || a.localeCompare(b));
+  if (acTeam && !teams.includes(acTeam)) acTeam = '';
+  const rows = acTeam ? all.filter(r => r.team === acTeam) : all;
+
+  // Default: the busiest categories first, unclassified last. A saved order — this
+  // viewer's own drag — overrides it, category by category.
   const nOf = c => rows.filter(r => r.cat === c).length;
   const byDefault = acOptions().filter(c => rows.some(r => r.cat === c))
                                .sort((a, b) => nOf(b) - nOf(a) || a.localeCompare(b));
@@ -5188,24 +5218,29 @@ function renderAudioCatMatrix() {
   const cats = byDefault.map((c, i) => ({ c, i }))
                         .sort((a, b) => (colRank(a.c) - colRank(b.c)) || (a.i - b.i))
                         .map(x => x.c);
-  const teams = [...new Set(rows.map(r => r.team))].sort(
-    (a, b) => rows.filter(r => r.team === b).length - rows.filter(r => r.team === a).length || a.localeCompare(b));
 
-  const at = (tm, c) => rows.filter(r => r.team === tm && r.cat === c);
-  function cellHtml(items, tm, c) {
-    if (!items.length) return `<td class="cell zero" data-ac-team="${esc(tm)}" data-ac-cat="${esc(c)}">·</td>`;
-    // The keys are written out rather than hidden behind a tooltip, grouped by
-    // priority and named, so the colour is a cue and not the only way to read it.
-    const lines = AC_PRI.map(p => ({ p, ks: items.filter(r => acPriOf(r) === p.key).map(r => r.key).sort() }))
-                        .filter(x => x.ks.length)
-                        .map(x => `<div class="pline"><span class="pdot" style="background:${x.p.v}"></span>` +
-                                  `<span class="pnm">${esc(x.p.key)}</span>` +
-                                  `<span class="pkeys">${x.ks.map(k =>
-                                     `<a href="${ticketUrl(k)}" target="_blank" rel="noopener">${esc(k)}</a>`).join(', ')}</span></div>`)
-                        .join('');
-    return `<td class="cell" data-ac-team="${esc(tm)}" data-ac-cat="${esc(c)}">` +
-           `<span class="n">${items.length}</span>${lines}</td>`;
-  }
+  const priRank = r => Math.max(0, AC_PRI.findIndex(p => p.key === acPriOf(r)));
+  const chipHtml = r => `<a class="ac-chip" href="${ticketUrl(r.key)}" target="_blank" rel="noopener"` +
+    ` title="${esc(`${acPriOf(r)} · ${r.team} · ${r.summary}`)}">` +
+    `<i style="background:${AC_PRI[priRank(r)].v}"></i>` +
+    `<span class="ac-k">${esc(r.key)}</span><span class="ac-tm">${esc(r.team)}</span></a>`;
+
+  const blockHtml = c => {
+    const items = rows.filter(r => r.cat === c)
+                      .sort((a, b) => priRank(a) - priRank(b) || a.key.localeCompare(b.key));
+    return `<div class="ac-block" data-ac-block="${esc(c)}">
+      <div class="ac-bh" draggable="true" tabindex="0" data-ac-col="${esc(c)}" title="${esc(t('ac_reorder_hint'))}">
+        <span class="ac-bn">${esc(c || t('ac_none'))}</span>
+        <button type="button" class="ac-bc" data-ac-jump="${esc(c)}" title="${esc(t('ac_jump_hint'))}">${items.length}</button>
+      </div>
+      <div class="ac-chips">${items.map(chipHtml).join('')}</div>
+    </div>`;
+  };
+
+  const teamBar = `<div class="chip-row">` +
+    [{ k: '', label: t('ac_team_all', all.length) }, ...teams.map(tm => ({ k: tm, label: `${tm} (${nTeam(tm)})` }))]
+      .map(x => `<button type="button" class="chip${x.k === acTeam ? ' active' : ''}" data-ac-team="${esc(x.k)}">${esc(x.label)}</button>`)
+      .join('') + `</div>`;
 
   const legend = `<div class="ac-legend"><span>Priority:</span>` +
     AC_PRI.filter(p => rows.some(r => acPriOf(r) === p.key))
@@ -5214,59 +5249,53 @@ function renderAudioCatMatrix() {
     (savedOrder.length ? `<button type="button" class="btn small" id="acOrderReset">${esc(t('ac_reset_order'))}</button>` : '') +
     `</div>`;
 
-  host.innerHTML = legend + `<div class="table-wrap"><table class="acm">
-    <thead><tr><th class="rowh">Team \\ ${esc(t('ac_col'))}</th>
-      ${cats.map(c => `<th draggable="true" tabindex="0" data-ac-col="${esc(c)}"
-          title="${esc(t('ac_reorder_hint'))}">${esc(c || t('ac_none'))}</th>`).join('')}
-      <th class="totc">${esc(t('ac_total'))}</th></tr></thead>
-    <tbody>
-      ${teams.map(tm => `<tr><td class="rowh">${esc(tm)}</td>
-        ${cats.map(c => cellHtml(at(tm, c), tm, c)).join('')}
-        <td class="totc">${rows.filter(r => r.team === tm).length}</td></tr>`).join('')}
-      <tr class="tot"><td class="rowh">${esc(t('ac_total'))}</td>
-        ${cats.map(c => `<td>${rows.filter(r => r.cat === c).length}</td>`).join('')}
-        <td class="totc">${rows.length}</td></tr>
-    </tbody></table></div>`;
+  host.innerHTML = teamBar + legend +
+    `<div class="ac-blocks">${cats.map(blockHtml).join('')}</div>`;
 
-  // Reordering the 分類 columns: drag a header, or focus one and press the arrow keys
-  // so it is not mouse-only. The table is rebuilt from the new order rather than
-  // having cells shuffled in the DOM, which keeps every row in step by construction.
+  host.querySelectorAll('[data-ac-team]').forEach(btn => {
+    btn.addEventListener('click', () => { acTeam = btn.dataset.acTeam; renderAudioCatMatrix(); });
+  });
+
+  // Reordering the categories: drag a block heading, or focus one and press the arrow
+  // keys so it is not mouse-only. The list is rebuilt from the new order rather than
+  // having blocks shuffled in the DOM, which keeps every block's contents in step.
   const setOrder = next => { saveAcColOrder(next); renderAudioCatMatrix(); };
   const reset = document.getElementById('acOrderReset');
   if (reset) reset.addEventListener('click', () => setOrder([]));
 
-  let dragCol = null;
-  host.querySelectorAll('th[data-ac-col]').forEach(th => {
-    const key = th.dataset.acCol;
-    th.addEventListener('dragstart', e => {
-      dragCol = key;
-      th.classList.add('dragging');
+  let dragCat = null;
+  host.querySelectorAll('.ac-bh[data-ac-col]').forEach(bh => {
+    const key = bh.dataset.acCol;
+    const block = bh.closest('.ac-block');
+    bh.addEventListener('dragstart', e => {
+      dragCat = key;
+      block.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
       try { e.dataTransfer.setData('text/plain', key); } catch (err) { /* Safari */ }
     });
-    th.addEventListener('dragend', () => {
-      th.classList.remove('dragging');
+    bh.addEventListener('dragend', () => {
+      block.classList.remove('dragging');
       clearAcColMarkers(host);
-      dragCol = null;
+      dragCat = null;
     });
-    th.addEventListener('dragover', e => {
-      if (dragCol === null || dragCol === key) return;
+    block.addEventListener('dragover', e => {
+      if (dragCat === null || dragCat === key) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
-      const r = th.getBoundingClientRect();
+      const r = block.getBoundingClientRect();
       clearAcColMarkers(host);
-      th.classList.add(e.clientX < r.left + r.width / 2 ? 'drag-over-before' : 'drag-over-after');
+      block.classList.add(e.clientY < r.top + r.height / 2 ? 'drag-over-before' : 'drag-over-after');
     });
-    th.addEventListener('drop', e => {
-      if (dragCol === null || dragCol === key) return;
+    block.addEventListener('drop', e => {
+      if (dragCat === null || dragCat === key) return;
       e.preventDefault();
-      const r = th.getBoundingClientRect();
-      const before = e.clientX < r.left + r.width / 2;
-      const next = cats.filter(c => c !== dragCol);
-      next.splice(next.indexOf(key) + (before ? 0 : 1), 0, dragCol);
+      const r = block.getBoundingClientRect();
+      const before = e.clientY < r.top + r.height / 2;
+      const next = cats.filter(c => c !== dragCat);
+      next.splice(next.indexOf(key) + (before ? 0 : 1), 0, dragCat);
       setOrder(next);
     });
-    th.addEventListener('keydown', e => {
+    bh.addEventListener('keydown', e => {
       const step = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
       if (!step) return;
       e.preventDefault();
@@ -5275,29 +5304,31 @@ function renderAudioCatMatrix() {
       const next = [...cats];
       next.splice(j, 0, next.splice(i, 1)[0]);
       setOrder(next);
-      // The header was replaced by the redraw, so follow the column to its new one.
-      const moved = [...document.querySelectorAll('#acMatrix th[data-ac-col]')]
+      // The heading was replaced by the redraw, so follow the category to its new one.
+      const moved = [...document.querySelectorAll('#acMatrix .ac-bh[data-ac-col]')]
         .find(x => x.dataset.acCol === key);
       if (moved) moved.focus();
     });
   });
 
-  host.querySelectorAll('[data-ac-team]').forEach(td => {
-    td.addEventListener('click', e => {
-      if (e.target.closest('a')) return;   // a key link opens Jira, it does not filter
-      const btn = document.querySelector('nav.tabs button[data-tab="Audio"]');
-      if (btn) btn.click();
+  // The count is the way down to the full list — the heading itself stays a drag
+  // handle, so clicking it must not navigate away from a category being moved.
+  host.querySelectorAll('[data-ac-jump]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const tab = document.querySelector('nav.tabs button[data-tab="Audio"]');
+      if (tab) tab.click();
       const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
       set('audioGroupFilter', 'Bug');
-      set('audioCatFilter', td.dataset.acCat || '__none__');
-      set('audioStatusFilter', '__active__');   // or the list would show more than the cell counted
+      set('audioCatFilter', btn.dataset.acJump || '__none__');
+      set('audioStatusFilter', '__active__');   // or the list would show more than the block counted
       set('audioSearch', '');
       const ev = new Event('change');
       ['audioGroupFilter', 'audioCatFilter', 'audioStatusFilter'].forEach(id => {
         const el = document.getElementById(id); if (el) el.dispatchEvent(ev);
       });
-      const card = document.getElementById('audioTbody');
-      if (card) card.closest('section.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const list = document.getElementById('audioTbody');
+      if (list) list.closest('section.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   });
 }
