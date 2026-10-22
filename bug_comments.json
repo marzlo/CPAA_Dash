@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-20T02:56:28.864Z",
+  "updated_at": "2026-10-22T02:32:19.124Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -266,6 +266,12 @@
         "text": "User guide provided, TS implemented",
         "by": "Leyo",
         "at": "2026-10-19T02:33:47.619Z"
+      },
+      {
+        "id": "mvixe39m5lqr0",
+        "text": "可以連結斷開，預計明天可以完成",
+        "by": "Leyo",
+        "at": "2026-10-22T02:32:18.442Z"
       }
     ],
     "NR1LT-5650": [
