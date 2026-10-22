@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-22T02:48:27.489Z",
+  "updated_at": "2026-10-22T02:55:59.414Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -310,6 +310,14 @@
         "text": "要跟STLA RAR，這個跟Google 要求不一樣\n\n對於正在投影 Android Auto 的這台手機\n允許存取原生撥號介面：Google 規範（R07-462）明確要求，當 Android Auto 處於啟動狀態時，車機必須允許使用者存取車機原生的系統撥號介面（Native System Dialer）\n。\n通話狀態同步：當使用者在 AA 中進行通話時（R07-452），若切換至原生的電話通話畫面，車機原生介面必須正確顯示當前的通話狀態\n。\n車廠 HMI 設計差異：部分車廠（如 FCA/Stellantis 介面規範 PDA05/PDA08）在 HMI 設計上會將主選單的 Phone 圖示直接替換為 AA 圖示，並預設由投影介面接管通話\n；但依據 Google 認證標準，系統不可封鎖使用者使用原生撥號介面的功能\n\n\nPDA05) While projection device connection is active, that projection device handles all call and SMS behavior.\nPDA06) While projection device connection is fully active, no other BT phones can handle calls or texting.",
         "by": "Leyo",
         "at": "2026-10-22T02:48:26.823Z"
+      }
+    ],
+    "NR1LT-4182": [
+      {
+        "id": "mviy8j6w6gv9b",
+        "text": "刷最新版本再試一下",
+        "by": "Leyo",
+        "at": "2026-10-22T02:55:58.760Z"
       }
     ]
   }
