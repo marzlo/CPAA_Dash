@@ -1553,13 +1553,15 @@ const STRINGS = {
   ac_add_prompt: { zh: '新分類名稱:', en: 'New category name:' },
   ac_need_token: { zh: '要改音訊分類,需要先用右上角的 🔑 設定 GitHub token。',
                    en: 'Changing an audio category needs a GitHub token — use the 🔑 button at the top right.' },
-  ac_heading: { zh: 'Audio 未完成 Bug:分類 × Team', en: 'Audio bugs open: category × team' },
-  ac_caption: { zh: (n, u) => `${n} 張未完成的 Audio Bug,其中 ${u} 張還沒分類。格子裡是張數,下面直接列出 Jira ID,依 Priority 由高到低分組;點 ID 開 Jira,點格子空白處會跳到下面的清單並套用篩選。`,
-                en: (n, u) => `${n} open Audio bugs, ${u} still unclassified. Each cell gives a count and then lists its Jira IDs, grouped by priority, highest first. Click an ID to open Jira; click elsewhere in the cell to jump to the list with that filter applied.` },
+  ac_heading: { zh: 'Audio 處理中 Bug:分類 × Team', en: 'Audio bugs in flight: category × team' },
+  ac_status_active: { zh: '處理中 (Blocked / To Do / In Progress / Reopen)', en: 'In flight (Blocked / To Do / In Progress / Reopen)' },
+  audio_status_all: { zh: '全部狀態', en: 'All statuses' },
+  ac_caption: { zh: (n, u, x) => `${n} 張處理中的 Audio Bug(只算 Blocked / To Do / In Progress / Reopen,另外 ${x} 張在 Eng build、Ready for test 等狀態不列入),其中 ${u} 張還沒分類。格子裡是張數,下面直接列出 Jira ID,依 Priority 由高到低分組;點 ID 開 Jira,點格子空白處會跳到下面的清單並套用篩選。`,
+                en: (n, u, x) => `${n} Audio bugs in flight (Blocked / To Do / In Progress / Reopen only; ${x} more sit in Eng build, Ready for test and the like and are left out), ${u} of them still unclassified. Each cell gives a count and then lists its Jira IDs, grouped by priority, highest first. Click an ID to open Jira; click elsewhere in the cell to jump to the list with that filter applied.` },
   ac_total: { zh: '總計', en: 'Total' },
   ac_reorder_hint: { zh: '拖曳欄位標題可調整分類順序,或先點標題再用 ← → 移動(只影響你自己的瀏覽器,重新整理後仍會記得)', en: 'Drag a column header to reorder the categories, or focus one and move it with ← → (saved in your own browser only)' },
   ac_reset_order: { zh: '重設欄位順序', en: 'Reset column order' },
-  ac_empty: { zh: '沒有未完成的 Audio Bug。', en: 'No open Audio bugs.' },
+  ac_empty: { zh: '沒有處理中的 Audio Bug。', en: 'No Audio bugs in flight.' },
   sch_heading: { zh: 'CPAA 認證時程', en: 'CPAA certification schedule' },
   sch_caption: { zh: (src, n, w) => `來源:${src},共 ${n} 項任務、${w} 週。完成與否是在這個頁面上按的,按鈕的紀錄跟 Excel 分開存,所以換新版 Excel 不會把你按過的清掉。`,
                  en: (src, n, w) => `From ${src}: ${n} tasks over ${w} weeks. Completion is marked on this page and stored separately from the workbook, so a new workbook never erases what you have ticked.` },
@@ -5133,6 +5135,14 @@ function clearAcColMarkers(host) {
     x.classList.remove('drag-over-before', 'drag-over-after'));
 }
 
+// The cross-tab counts the work actually in flight. "Not done" on the Audio tab is a
+// wider net — it also holds Eng build and Ready for test, which are waiting on a build
+// or on verification rather than on someone picking them up — so those are left out
+// here. Matched case-insensitively, so a Jira rename to "In progress" still lands.
+const AC_STATUSES = ['Blocked', 'To Do', 'In Progress', 'Reopen'];
+const AC_STATUS_SET = new Set(AC_STATUSES.map(x => x.toLowerCase()));
+const acInFlight = r => AC_STATUS_SET.has(String(r.status || '').trim().toLowerCase());
+
 // Priority, highest first, as one stepped hue — an ordered scale, not categories.
 const AC_PRI = [
   { key: 'Highest', v: 'var(--pri-highest)' },
@@ -5154,7 +5164,8 @@ function renderAudioCatMatrix() {
   // The Audio tab's own not-done set, narrowed to Bugs — the rows being classified.
   const bugMap = {};
   BUGS.forEach(b => { bugMap[b.key] = b; });
-  const rows = AUDIO.filter(r => !r.done && r.issueType === 'Bug').map(r => ({
+  const openBugs = AUDIO.filter(r => !r.done && r.issueType === 'Bug');
+  const rows = openBugs.filter(acInFlight).map(r => ({
     key: r.key, summary: r.summary,
     team: (bugMap[r.key] || {}).team || 'Unknown',
     priority: (bugMap[r.key] || {}).priority || '',
@@ -5162,7 +5173,8 @@ function renderAudioCatMatrix() {
   }));
 
   if (!rows.length) { host.innerHTML = `<p class="caption">${esc(t('ac_empty'))}</p>`; if (cap) cap.textContent = ''; return; }
-  if (cap) cap.textContent = t('ac_caption', rows.length, rows.filter(r => !r.cat).length);
+  if (cap) cap.textContent = t('ac_caption', rows.length, rows.filter(r => !r.cat).length,
+                               openBugs.length - rows.length);
 
   // Default: the busiest categories first, so the columns that actually hold tickets
   // sit next to the Team names instead of off the right edge; unclassified stays last.
@@ -5278,9 +5290,10 @@ function renderAudioCatMatrix() {
       const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
       set('audioGroupFilter', 'Bug');
       set('audioCatFilter', td.dataset.acCat || '__none__');
+      set('audioStatusFilter', '__active__');   // or the list would show more than the cell counted
       set('audioSearch', '');
       const ev = new Event('change');
-      ['audioGroupFilter', 'audioCatFilter'].forEach(id => {
+      ['audioGroupFilter', 'audioCatFilter', 'audioStatusFilter'].forEach(id => {
         const el = document.getElementById(id); if (el) el.dispatchEvent(ev);
       });
       const card = document.getElementById('audioTbody');
@@ -7345,6 +7358,12 @@ function renderAudioPanel() {
           <option value="">${esc(t('all_group'))}</option>
           ${[...AUDIO_GROUPS, 'Other'].map(g => `<option value="${g}">${g}</option>`).join('')}
         </select>
+        <select id="audioStatusFilter">
+          <option value="">${esc(t('audio_status_all'))}</option>
+          <option value="__active__">${esc(t('ac_status_active'))}</option>
+          ${[...new Set(AUDIO.filter(r => !r.done).map(r => r.status))].sort()
+              .map(st => `<option value="${esc(st)}">${esc(st)}</option>`).join('')}
+        </select>
         <select id="audioCatFilter">
           <option value="">${esc(t('ac_all'))}</option>
           <option value="__none__">${esc(t('ac_none'))}</option>
@@ -7368,6 +7387,7 @@ function renderAudioPanel() {
 
   const groupSel = document.getElementById('audioGroupFilter');
   const catSel = document.getElementById('audioCatFilter');
+  const statusSel = document.getElementById('audioStatusFilter');
   const search = document.getElementById('audioSearch');
   const tbody = document.getElementById('audioTbody');
   const chipRow = document.getElementById('audioAssigneeChips');
@@ -7411,6 +7431,8 @@ function renderAudioPanel() {
     let rows = AUDIO_NOT_DONE;
     if (selectedAssignee) rows = rows.filter(r => r.assignee === selectedAssignee);
     if (groupSel.value) rows = rows.filter(r => r.group === groupSel.value);
+    if (statusSel.value === '__active__') rows = rows.filter(acInFlight);
+    else if (statusSel.value) rows = rows.filter(r => r.status === statusSel.value);
     if (catSel.value === '__none__') rows = rows.filter(r => !acOf(r.key));
     else if (catSel.value) rows = rows.filter(r => acOf(r.key) === catSel.value);
     const q = search.value.toLowerCase();
@@ -7445,7 +7467,7 @@ function renderAudioPanel() {
   }
 
   renderChips();
-  [groupSel, catSel].forEach(el => el.addEventListener('change', renderAudioTable));
+  [groupSel, catSel, statusSel].forEach(el => el.addEventListener('change', renderAudioTable));
 
   // The <select>s are rebuilt on every redraw, so this is delegated from the tbody,
   // which is not.
