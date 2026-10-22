@@ -3725,7 +3725,7 @@
    },
    "In Progress": {
     "done": 0,
-    "total": 36
+    "total": 37
    },
    "Monitoring": {
     "done": 2,
@@ -3753,7 +3753,7 @@
    },
    "To Do": {
     "done": 0,
-    "total": 17
+    "total": 16
    }
   },
   "bugs_by_team": {
