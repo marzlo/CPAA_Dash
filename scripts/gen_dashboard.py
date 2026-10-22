@@ -103,6 +103,17 @@ except FileNotFoundError:
 
 DATA["schedule_notes"] = SCHEDULE_NOTES
 
+# The audio-domain classification (SCD / AAudio / Premium Audio / Enhanced Siri / ...)
+# that the Audio tab shows and edits. Its own file, keyed by Jira key, so the nightly
+# rebuild never touches it and a ticket keeps its category across rebuilds.
+try:
+    with open("audio_categories.json", encoding="utf-8") as f:
+        AUDIO_CATEGORIES = json.load(f)
+except FileNotFoundError:
+    AUDIO_CATEGORIES = {"updated_at": None, "updated_by": None, "options": [], "cats": {}}
+
+DATA["audio_categories"] = AUDIO_CATEGORIES
+
 # Requirement -> SWE1/SWE2 -> SWE3 traceability, built from the STLA SWRA analysis
 # report plus a Jira link lookup. Optional: without the file the Traceability tab
 # simply says the data hasn't been generated yet.
@@ -543,6 +554,28 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
                 color: var(--text-secondary); margin-bottom: 10px; }
   .sch-legend i { display: inline-block; width: 14px; height: 8px; border-radius: 2px; margin-right: 5px;
                   vertical-align: middle; font-style: normal; }
+  .ac-sel { font: inherit; font-size: 12px; max-width: 150px; padding: 1px 4px; border-radius: 5px;
+            border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); }
+  .ac-cell { white-space: nowrap; }
+  /* Priority is an ordered scale, so the stack is one hue stepped light-to-dark
+     rather than four unrelated colours. */
+  .acm { border-collapse: separate; border-spacing: 0; font-size: 12px; }
+  .acm th, .acm td { border-bottom: 1px solid var(--grid); padding: 6px 8px; text-align: center; }
+  .acm th.rowh, .acm td.rowh { text-align: left; font-weight: 600; white-space: nowrap; }
+  .acm thead th { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: none;
+                  letter-spacing: 0; vertical-align: bottom; max-width: 110px; white-space: normal; }
+  .acm td.cell { cursor: pointer; }
+  .acm td.cell:hover { background: var(--page); }
+  .acm td.zero { color: var(--muted); }
+  .acm .n { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .acm .pbar { display: flex; height: 5px; border-radius: 3px; overflow: hidden; margin-top: 3px;
+               background: var(--grid); min-width: 34px; }
+  .acm .pbar i { display: block; height: 100%; }
+  .acm tr.tot td, .acm tr.tot th { border-top: 2px solid var(--border); font-weight: 700; }
+  .acm td.totc, .acm th.totc { background: var(--page); font-weight: 700; }
+  .ac-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--text-secondary);
+               margin-bottom: 8px; align-items: center; }
+  .ac-legend i { display: inline-block; width: 12px; height: 6px; border-radius: 2px; margin-right: 4px; }
   .panel-lead { margin: 0 0 16px; }
   .panel-lead h2 { margin: 0 0 4px; font-size: 16px; }
   .panel-lead p { margin: 0; color: var(--text-secondary); font-size: 12px; max-width: 76ch; }
@@ -1242,6 +1275,8 @@ const WATCH = RAW.watch || [];
 // Clarification questions ThunderSoft raised against our requirement documents.
 // Their Jira status barely moves, so the real state of each one lives in
 // qna_notes.json beside the comments — see QNA_NOTES below.
+const AUDIO_CATS = Object.assign({ updated_at: null, updated_by: null, options: [], cats: {} },
+                                 RAW.audio_categories || {});
 const SCHEDULE = RAW.schedule || null;
 const SCHED_NOTES = Object.assign({ updated_at: null, updated_by: null, state: {}, notes: {}, comments: {} },
                                   RAW.schedule_notes || {});
@@ -1462,6 +1497,18 @@ const STRINGS = {
   tab_compare: { zh: '對照', en: 'Compare' },
   tab_qna: { zh: 'Q&A 釐清', en: 'Q&A' },
   tab_schedule: { zh: '認證時程', en: 'Schedule' },
+  ac_col: { zh: '音訊分類', en: 'Audio category' },
+  ac_all: { zh: '全部音訊分類', en: 'All audio categories' },
+  ac_none: { zh: '(未分類)', en: '(unclassified)' },
+  ac_add: { zh: '— 新增分類 —', en: '— add a category —' },
+  ac_add_prompt: { zh: '新分類名稱:', en: 'New category name:' },
+  ac_need_token: { zh: '要改音訊分類,需要先用右上角的 🔑 設定 GitHub token。',
+                   en: 'Changing an audio category needs a GitHub token — use the 🔑 button at the top right.' },
+  ac_heading: { zh: 'Audio 未完成 Bug:分類 × Team', en: 'Audio bugs open: category × team' },
+  ac_caption: { zh: (n, u) => `${n} 張未完成的 Audio Bug,其中 ${u} 張還沒分類。格子裡是張數,底下細條依 Priority 由高到低堆疊;點格子會跳到下面的清單並套用篩選。`,
+                en: (n, u) => `${n} open Audio bugs, ${u} still unclassified. Each cell is a count; the bar under it stacks by priority, highest first. Click a cell to jump to the list with that filter applied.` },
+  ac_total: { zh: '總計', en: 'Total' },
+  ac_empty: { zh: '沒有未完成的 Audio Bug。', en: 'No open Audio bugs.' },
   sch_heading: { zh: 'CPAA 認證時程', en: 'CPAA certification schedule' },
   sch_caption: { zh: (src, n, w) => `來源:${src},共 ${n} 項任務、${w} 週。完成與否是在這個頁面上按的,按鈕的紀錄跟 Excel 分開存,所以換新版 Excel 不會把你按過的清掉。`,
                  en: (src, n, w) => `From ${src}: ${n} tasks over ${w} weeks. Completion is marked on this page and stored separately from the workbook, so a new workbook never erases what you have ticked.` },
@@ -5010,6 +5057,90 @@ function attachStatsReorder() {
   });
 }
 
+// Priority, highest first, as one stepped hue — an ordered scale, not categories.
+const AC_PRI = [
+  { key: 'Highest', mix: 100 },
+  { key: 'High',    mix: 72 },
+  { key: 'Medium',  mix: 48 },
+  { key: 'Low',     mix: 30 },
+  { key: 'Lowest',  mix: 18 },
+];
+function acPriColor(mix) { return `color-mix(in srgb, var(--gantt-ours) ${mix}%, var(--surface-1))`; }
+function acPriOf(r) {
+  const p = (r.priority || '').trim();
+  return AC_PRI.some(x => x.key === p) ? p : 'Medium';
+}
+
+function renderAudioCatMatrix() {
+  const host = document.getElementById('acMatrix');
+  const cap = document.getElementById('acCaption');
+  if (!host) return;
+
+  // The Audio tab's own not-done set, narrowed to Bugs — the rows being classified.
+  const bugMap = {};
+  BUGS.forEach(b => { bugMap[b.key] = b; });
+  const rows = AUDIO.filter(r => !r.done && r.issueType === 'Bug').map(r => ({
+    key: r.key, summary: r.summary,
+    team: (bugMap[r.key] || {}).team || 'Unknown',
+    priority: (bugMap[r.key] || {}).priority || '',
+    cat: acOf(r.key) || '',
+  }));
+
+  if (!rows.length) { host.innerHTML = `<p class="caption">${esc(t('ac_empty'))}</p>`; if (cap) cap.textContent = ''; return; }
+  if (cap) cap.textContent = t('ac_caption', rows.length, rows.filter(r => !r.cat).length);
+
+  const cats = acOptions().filter(c => rows.some(r => r.cat === c));
+  if (rows.some(r => !r.cat)) cats.push('');          // the unclassified column, last
+  const teams = [...new Set(rows.map(r => r.team))].sort(
+    (a, b) => rows.filter(r => r.team === b).length - rows.filter(r => r.team === a).length || a.localeCompare(b));
+
+  const at = (tm, c) => rows.filter(r => r.team === tm && r.cat === c);
+  function cellHtml(items, tm, c) {
+    if (!items.length) return `<td class="cell zero" data-ac-team="${esc(tm)}" data-ac-cat="${esc(c)}">·</td>`;
+    const byP = AC_PRI.map(p => ({ p, n: items.filter(r => acPriOf(r) === p.key).length })).filter(x => x.n);
+    const bar = byP.map(x => `<i style="flex:${x.n}; background:${acPriColor(x.p.mix)}"></i>`).join('');
+    const title = `${tm} · ${c || t('ac_none')}\n` +
+      byP.map(x => `${x.p.key}: ${x.n}`).join('\n') + '\n\n' +
+      items.map(r => r.key).join(', ');
+    return `<td class="cell" data-ac-team="${esc(tm)}" data-ac-cat="${esc(c)}" title="${esc(title)}">` +
+           `<span class="n">${items.length}</span><span class="pbar">${bar}</span></td>`;
+  }
+
+  const legend = `<div class="ac-legend"><span>Priority:</span>` +
+    AC_PRI.filter(p => rows.some(r => acPriOf(r) === p.key))
+          .map(p => `<span><i style="background:${acPriColor(p.mix)}"></i>${esc(p.key)}</span>`).join('') + `</div>`;
+
+  host.innerHTML = legend + `<div class="table-wrap"><table class="acm">
+    <thead><tr><th class="rowh">Team \\ ${esc(t('ac_col'))}</th>
+      ${cats.map(c => `<th>${esc(c || t('ac_none'))}</th>`).join('')}
+      <th class="totc">${esc(t('ac_total'))}</th></tr></thead>
+    <tbody>
+      ${teams.map(tm => `<tr><td class="rowh">${esc(tm)}</td>
+        ${cats.map(c => cellHtml(at(tm, c), tm, c)).join('')}
+        <td class="totc">${rows.filter(r => r.team === tm).length}</td></tr>`).join('')}
+      <tr class="tot"><td class="rowh">${esc(t('ac_total'))}</td>
+        ${cats.map(c => `<td>${rows.filter(r => r.cat === c).length}</td>`).join('')}
+        <td class="totc">${rows.length}</td></tr>
+    </tbody></table></div>`;
+
+  host.querySelectorAll('[data-ac-team]').forEach(td => {
+    td.addEventListener('click', () => {
+      const btn = document.querySelector('nav.tabs button[data-tab="Audio"]');
+      if (btn) btn.click();
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+      set('audioGroupFilter', 'Bug');
+      set('audioCatFilter', td.dataset.acCat || '__none__');
+      set('audioSearch', '');
+      const ev = new Event('change');
+      ['audioGroupFilter', 'audioCatFilter'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.dispatchEvent(ev);
+      });
+      const card = document.getElementById('audioTbody');
+      if (card) card.closest('section.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+}
+
 function renderStatsPanel() {
   const panel = document.getElementById('panel-Stats');
   panel.innerHTML = `
@@ -5050,6 +5181,11 @@ function renderStatsPanel() {
       <h2>${esc(t('fc_heading'))}<button type="button" class="fc-anchor-badge" id="fcAnchorBadge" hidden></button></h2>
       <p class="caption" id="fcCaption"></p>
       <div id="fcBody"></div>
+    </section>
+    <section class="card" data-card="audioCat">
+      <h2>${esc(t('ac_heading'))}</h2>
+      <p class="caption" id="acCaption"></p>
+      <div id="acMatrix"></div>
     </section>
     <section class="card" data-card="topAssignees">
       <h2>${esc(t('top_assignee_heading'))}</h2>
@@ -5252,6 +5388,7 @@ function renderStatsPanel() {
 
 
   renderForecastCard();
+  renderAudioCatMatrix();
   // A freeze made elsewhere should show up without waiting for the nightly rebuild.
   refreshForecastBaseline().then(changed => { if (changed) renderForecastCard(); });
 
@@ -6925,6 +7062,96 @@ const AUDIO_GROUP_COLORS = {
   Other: 'var(--muted)',
 };
 
+// ===== Audio category ==============================================================
+// The audio-domain classification, edited here and kept in audio_categories.json.
+// Separate from the ticket data so a rebuild cannot lose it, and keyed by Jira key so
+// a ticket keeps its category when the nightly fetch replaces everything else.
+const GITHUB_AUDIO_CATS_PATH = 'audio_categories.json';
+const GITHUB_AUDIO_CATS_RAW = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/${GITHUB_AUDIO_CATS_PATH}`;
+
+function acOf(key) { return (AUDIO_CATS.cats || {})[key] || ''; }
+function acOptions() {
+  // Whatever is on the stored option list, plus anything in use that is not on it —
+  // an imported category never disappears just because nobody listed it.
+  const used = new Set(Object.values(AUDIO_CATS.cats || {}).filter(Boolean));
+  const out = (AUDIO_CATS.options || []).slice();
+  [...used].sort().forEach(v => { if (!out.includes(v)) out.push(v); });
+  return out;
+}
+
+async function refreshAudioCats() {
+  try {
+    const resp = await fetch(GITHUB_AUDIO_CATS_RAW + '?t=' + Date.now(), { cache: 'no-store' });
+    if (!resp.ok) return false;
+    const fresh = await resp.json();
+    if (!fresh || typeof fresh !== 'object') return false;
+    if (AUDIO_CATS.updated_at &&
+        (!fresh.updated_at || new Date(fresh.updated_at) < new Date(AUDIO_CATS.updated_at))) return false;
+    const same = JSON.stringify([AUDIO_CATS.options, AUDIO_CATS.cats])
+              === JSON.stringify([fresh.options || [], fresh.cats || {}]);
+    AUDIO_CATS.options = fresh.options || [];
+    AUDIO_CATS.cats = fresh.cats || {};
+    AUDIO_CATS.updated_at = fresh.updated_at;
+    AUDIO_CATS.updated_by = fresh.updated_by;
+    return !same;
+  } catch (e) { /* offline, or the file does not exist yet */ }
+  return false;
+}
+
+async function commitAudioCats(apply, statusEl) {
+  const token = getGithubToken(false);
+  if (!token) { alert(t('ac_need_token')); return false; }
+  if (statusEl) statusEl.textContent = t('qna_status_saving');
+  try {
+    const apiBase = `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_AUDIO_CATS_PATH}`;
+    const getResp = await fetch(apiBase + '?ref=main&t=' + Date.now(),
+      { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+    let sha, remote = {};
+    if (getResp.ok) {
+      const meta = await getResp.json();
+      sha = meta.sha;
+      try { remote = JSON.parse(decodeURIComponent(escape(atob((meta.content || '').replace(/\n/g, ''))))); }
+      catch (e) { remote = {}; }
+    } else if (getResp.status !== 404) {
+      throw new Error('GET ' + getResp.status);
+    }
+    const base = (getResp.status === 404) ? AUDIO_CATS : remote;
+    const state = { options: (base.options || []).slice(), cats: Object.assign({}, base.cats || {}) };
+    apply(state);
+    const payload = {
+      updated_at: new Date().toISOString(),
+      updated_by: traceUserName(false) || t('notes_meta_unknown'),
+      options: state.options,
+      cats: state.cats,
+    };
+    const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 1))));
+    const putResp = await fetch(apiBase, {
+      method: 'PUT',
+      headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'Update audio categories via dashboard', content: b64, sha, branch: 'main' }),
+    });
+    if (!putResp.ok) throw new Error('PUT ' + putResp.status + ': ' + (await putResp.text()).slice(0, 200));
+    AUDIO_CATS.options = payload.options;
+    AUDIO_CATS.cats = payload.cats;
+    AUDIO_CATS.updated_at = payload.updated_at;
+    AUDIO_CATS.updated_by = payload.updated_by;
+    return true;
+  } catch (err) {
+    if (statusEl) statusEl.textContent = '';
+    alert(t('trace_save_error', String((err && err.message) || err)));
+    return false;
+  }
+}
+
+function acSelectHtml(key) {
+  const cur = acOf(key);
+  const opts = acOptions();
+  return `<select class="ac-sel" data-ac="${esc(key)}">` +
+    `<option value=""${cur ? '' : ' selected'}>${esc(t('ac_none'))}</option>` +
+    opts.map(o => `<option value="${esc(o)}"${o === cur ? ' selected' : ''}>${esc(o)}</option>`).join('') +
+    `<option value="__new__">${esc(t('ac_add'))}</option></select>`;
+}
+
 function renderAudioPanel() {
   const panel = document.getElementById('panel-Audio');
   const done = AUDIO.filter(r => r.done).length;
@@ -6970,12 +7197,17 @@ function renderAudioPanel() {
           <option value="">${esc(t('all_group'))}</option>
           ${[...AUDIO_GROUPS, 'Other'].map(g => `<option value="${g}">${g}</option>`).join('')}
         </select>
+        <select id="audioCatFilter">
+          <option value="">${esc(t('ac_all'))}</option>
+          <option value="__none__">${esc(t('ac_none'))}</option>
+          ${acOptions().map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('')}
+        </select>
         <input type="text" id="audioSearch" placeholder="${esc(t('search_placeholder'))}">
       </div>
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th data-sort="key">Key</th><th data-sort="group">${esc(t('th_group'))}</th><th data-sort="issueType">${esc(t('th_issue_type'))}</th>
+            <th data-sort="key">Key</th><th>${esc(t('ac_col'))}</th><th data-sort="group">${esc(t('th_group'))}</th><th data-sort="issueType">${esc(t('th_issue_type'))}</th>
             <th data-sort="status">${esc(t('th_status'))}</th><th data-sort="assignee">${esc(t('th_assignee'))}</th><th data-sort="summary">${esc(t('th_summary'))}</th>
           </tr></thead>
           <tbody id="audioTbody"></tbody>
@@ -6987,6 +7219,7 @@ function renderAudioPanel() {
   AUDIO_TAB_NOTES.mount();
 
   const groupSel = document.getElementById('audioGroupFilter');
+  const catSel = document.getElementById('audioCatFilter');
   const search = document.getElementById('audioSearch');
   const tbody = document.getElementById('audioTbody');
   const chipRow = document.getElementById('audioAssigneeChips');
@@ -7014,6 +7247,7 @@ function renderAudioPanel() {
     return `
       <tr>
         <td class="key"><a href="${ticketUrl(r.key)}" target="_blank">${r.key}</a></td>
+        <td class="ac-cell">${acSelectHtml(r.key)}<span class="cmt-status" data-ac-status="${esc(r.key)}"></span></td>
         <td>${esc(r.group)}</td>
         <td>${esc(r.issueType)}</td>
         <td>${statusBadge(r)}</td>
@@ -7029,12 +7263,14 @@ function renderAudioPanel() {
     let rows = AUDIO_NOT_DONE;
     if (selectedAssignee) rows = rows.filter(r => r.assignee === selectedAssignee);
     if (groupSel.value) rows = rows.filter(r => r.group === groupSel.value);
+    if (catSel.value === '__none__') rows = rows.filter(r => !acOf(r.key));
+    else if (catSel.value) rows = rows.filter(r => acOf(r.key) === catSel.value);
     const q = search.value.toLowerCase();
     if (q) rows = rows.filter(r => r.key.toLowerCase().includes(q) || r.summary.toLowerCase().includes(q));
     document.getElementById('audioCaption').textContent = t('audio_caption', rows.length, AUDIO_NOT_DONE.length);
 
     if (!rows.length) {
-      tbody.innerHTML = `<tr><td colspan="6" class="empty-state">${esc(t('empty_state'))}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="empty-state">${esc(t('empty_state'))}</td></tr>`;
       return;
     }
 
@@ -7056,12 +7292,37 @@ function renderAudioPanel() {
     const orderedAssignees = Object.keys(byAssignee).sort((a, b) => byAssignee[b].length - byAssignee[a].length);
     tbody.innerHTML = orderedAssignees.map(a => {
       const grp = byAssignee[a];
-      return `<tr><td colspan="6" class="group-header">${esc(t('audio_group_header_row', a, grp.length))}</td></tr>` + grp.map(rowHtml).join('');
+      return `<tr><td colspan="7" class="group-header">${esc(t('audio_group_header_row', a, grp.length))}</td></tr>` + grp.map(rowHtml).join('');
     }).join('');
   }
 
   renderChips();
-  [groupSel].forEach(el => el.addEventListener('change', renderAudioTable));
+  [groupSel, catSel].forEach(el => el.addEventListener('change', renderAudioTable));
+
+  // The <select>s are rebuilt on every redraw, so this is delegated from the tbody,
+  // which is not.
+  tbody.addEventListener('change', async e => {
+    const sel = e.target.closest('[data-ac]');
+    if (!sel) return;
+    const key = sel.dataset.ac;
+    const before = acOf(key);
+    let want = sel.value;
+    if (want === '__new__') {
+      const name = (prompt(t('ac_add_prompt'), '') || '').trim();
+      if (!name) { sel.value = before; return; }
+      want = name;
+    }
+    sel.disabled = true;
+    const ok = await commitAudioCats(st => {
+      if (want) { st.cats[key] = want; if (!st.options.includes(want)) st.options.push(want); }
+      else delete st.cats[key];
+    }, tbody.querySelector(`[data-ac-status="${CSS.escape(key)}"]`));
+    sel.disabled = false;
+    if (!ok) { sel.value = before; return; }
+    // The filter list, the table and the Stats cross-tab all key off this.
+    renderAudioPanel();
+    renderStatsPanel();
+  });
   search.addEventListener('input', renderAudioTable);
   attachSortHandlers(tbody.closest('table').querySelector('thead'), audioSortState, renderAudioTable);
   renderAudioTable();
@@ -8058,7 +8319,7 @@ function renderPretestPanel() {
         <td>${bugStatusBadge(r)}</td>
         <td>${esc(r.summary)}</td>
       </tr>
-    `).join('') : `<tr><td colspan="6" class="empty-state">${esc(t('empty_state'))}</td></tr>`;
+    `).join('') : `<tr><td colspan="7" class="empty-state">${esc(t('empty_state'))}</td></tr>`;
   }
   [groupSel, statusSel, severitySel].forEach(el => el.addEventListener('change', renderPretestTable));
   search.addEventListener('input', renderPretestTable);
@@ -9228,6 +9489,8 @@ renderSchedulePanel();
 
 // Someone else may have marked a schedule task done since this page was built.
 refreshSchedNotes().then(changed => { if (changed) renderSchedulePanel(); });
+
+refreshAudioCats().then(changed => { if (changed) { renderAudioPanel(); renderStatsPanel(); } });
 
 // Someone else may have answered a question or left a comment since this page was
 // built, so pull qna_notes.json straight from the repo and redraw if it moved.
