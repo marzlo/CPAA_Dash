@@ -3611,12 +3611,12 @@
     "total": 234
    },
    "Eng build": {
-    "done": 10,
-    "total": 10
+    "done": 11,
+    "total": 11
    },
    "In Progress": {
     "done": 0,
-    "total": 41
+    "total": 40
    },
    "Monitoring": {
     "done": 2,
@@ -3635,12 +3635,12 @@
     "total": 11
    },
    "Ready for test": {
-    "done": 13,
-    "total": 13
+    "done": 12,
+    "total": 12
    },
    "Reopen": {
     "done": 0,
-    "total": 3
+    "total": 4
    },
    "To Do": {
     "done": 0,
@@ -3654,7 +3654,7 @@
    },
    "MDT_App": {
     "done": 11,
-    "total": 27
+    "total": 26
    },
    "MDT_PM": {
     "done": 26,
@@ -3666,14 +3666,14 @@
    },
    "MDT_System": {
     "done": 0,
-    "total": 3
+    "total": 4
    },
    "TS_CPAA": {
-    "done": 206,
+    "done": 205,
     "total": 228
    },
    "TS_FW": {
-    "done": 27,
+    "done": 28,
     "total": 32
    },
    "Unknown": {
