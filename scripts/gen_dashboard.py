@@ -466,9 +466,12 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
      the running state of the task; the thread is a conversation about it. */
   .sch-note { margin-top: 8px; }
   .sch-note textarea {
-    width: 100%; min-height: 44px; resize: vertical; font: inherit; font-size: 12px;
+    width: 100%; min-height: 40px; resize: vertical; font: inherit; font-size: 12px;
     line-height: 1.5; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border);
     background: var(--page); color: var(--text-primary);
+    /* Height is set from the content by schFitNote(); hiding the scrollbar keeps a
+       fitted box from reserving space for one it will never use. */
+    overflow-y: hidden;
   }
   .sch-note textarea:focus { outline: none; border-color: var(--gantt-ours); background: var(--surface-1); }
   .sch-note.dirty textarea { border-color: var(--warning); }
@@ -8486,6 +8489,25 @@ function schStatusText(st) {
 
 function schComments(id) { return SCHED_NOTES.comments[id] || []; }
 
+// Grow a note box to its content so the whole note is readable without dragging the
+// resize handle. Past this height it stops growing and scrolls, so one long note
+// cannot push everything else off the screen.
+const SCH_NOTE_MAX_PX = 360;
+function schFitNote(ta) {
+  // offsetParent is null while the tab is hidden, and a hidden element measures as
+  // zero — fitting then would collapse every box. schFitNotes() is called again when
+  // the tab is shown.
+  if (!ta || ta.offsetParent === null) return;
+  ta.style.height = 'auto';
+  const want = ta.scrollHeight + 2;
+  ta.style.height = Math.min(want, SCH_NOTE_MAX_PX) + 'px';
+  ta.style.overflowY = want > SCH_NOTE_MAX_PX ? 'auto' : 'hidden';
+}
+function schFitNotes() {
+  const panel = document.getElementById('panel-Schedule');
+  if (panel) panel.querySelectorAll('[data-sch-note]').forEach(schFitNote);
+}
+
 // Text typed into a note box but not committed yet, kept outside the DOM so a redraw
 // (someone ticks another task off, a filter changes) cannot throw it away.
 const schDrafts = Object.create(null);
@@ -8892,6 +8914,8 @@ function renderSchedulePanel() {
     </div>
     ${body}`;
 
+  schFitNotes();
+
   const ganttWrap = panel.querySelector('.gantt-wrap');
   if (ganttWrap) schAttachGanttDrag(ganttWrap, cur);
 
@@ -8985,6 +9009,7 @@ function renderSchedulePanel() {
     if (!ta) return;
     schDrafts[ta.dataset.schNote] = ta.value;
     schPaintNote(ta.dataset.schNote);
+    schFitNote(ta);
   });
 
   async function schSaveNote(id) {
@@ -9094,6 +9119,9 @@ function showTab(tab) {
   btn.classList.add('active');
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   panel.classList.add('active');
+  // The note boxes could not be measured while this panel was display:none, so size
+  // them now that it has a layout.
+  if (tab === 'Schedule') schFitNotes();
   return true;
 }
 
