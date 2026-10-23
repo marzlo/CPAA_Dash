@@ -1243,16 +1243,24 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .notes-toolbar button:hover { border-color: var(--series-cp); }
   .notes-toolbar button.swatch { width: 26px; min-width: 26px; padding: 0; }
   .notes-toolbar .sep { width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
-  /* The Schedule list runs to 66 rows, so a toolbar parked above it is off-screen by
-     the time anyone is typing in a note. It follows the scroll instead; the surface
-     and the shadow stop the rows showing through it. */
-  #schNotesToolbar {
-    position: sticky; top: 0; z-index: 6; margin-bottom: 10px;
-    background: var(--surface-1); box-shadow: 0 2px 6px rgba(0, 0, 0, .08);
+  /* One toolbar per note, inside the box it edits. A single toolbar for the whole
+     panel was off-screen by the time anyone had scrolled to the note they wanted, and
+     a sticky one still left you hunting for it. It appears on focus, so 66 rows are
+     not 66 toolbars; mousedown is prevented on it, so the focus — and the selection —
+     stay in the editor while a button is pressed. */
+  .sch-note { position: relative; }
+  /* Floated above the box rather than placed in the flow: a toolbar that takes space
+     when it appears pushes the Save button out from under the pointer between mousedown
+     and mouseup, and the click never lands. Absolute positioning means showing and
+     hiding it changes no geometry at all. */
+  .sch-note > .notes-toolbar {
+    display: none; position: absolute; bottom: 100%; left: 0; margin-bottom: 4px; z-index: 5;
+    background: var(--surface-1); box-shadow: 0 2px 8px rgba(0, 0, 0, .14);
   }
-  :root[data-theme="dark"] #schNotesToolbar { box-shadow: 0 2px 8px rgba(0, 0, 0, .5); }
+  .sch-note:focus-within > .notes-toolbar { display: flex; }
+  :root[data-theme="dark"] .sch-note > .notes-toolbar { box-shadow: 0 2px 10px rgba(0, 0, 0, .6); }
   @media (prefers-color-scheme: dark) {
-    :root:where(:not([data-theme="light"])) #schNotesToolbar { box-shadow: 0 2px 8px rgba(0, 0, 0, .5); }
+    :root:where(:not([data-theme="light"])) .sch-note > .notes-toolbar { box-shadow: 0 2px 10px rgba(0, 0, 0, .6); }
   }
   .notes-col textarea {
     width: 100%; min-height: 140px; resize: vertical; background: var(--surface-1);
@@ -2815,7 +2823,7 @@ function notesToolbarHtml(id = 'notesToolbar') {
     `<button type="button" data-cmd="${cmd}" title="${esc(t(titleKey))}">${label}</button>`;
   const swatches = NOTES_COLORS.map(c =>
     `<button type="button" class="swatch" data-color="${c.value}" style="background:${c.value}" title="${esc(t(c.labelKey))}"></button>`).join('');
-  return `<div class="notes-toolbar" id="${id}">
+  return `<div class="notes-toolbar"${id ? ` id="${id}"` : ''}>
     ${b('bold', '<b>B</b>', 'notes_tb_bold')}
     ${b('italic', '<i>I</i>', 'notes_tb_italic')}
     ${b('underline', '<u>U</u>', 'notes_tb_underline')}
@@ -3035,26 +3043,45 @@ function attachNotesEditor(ed) {
   });
 }
 
+function runNotesToolbarButton(btn) {
+  if (btn.dataset.cmd) { withNotesEditor(() => document.execCommand(btn.dataset.cmd)); return; }
+  if (btn.dataset.color) {
+    withNotesEditor(ed => btn.dataset.color === 'none'
+      ? clearNotesColor(ed)
+      : document.execCommand('foreColor', false, btn.dataset.color));
+    return;
+  }
+  if (btn.dataset.action === 'link') {
+    const url = (prompt(t('notes_link_prompt'), 'https://') || '').trim();
+    if (/^https?:\/\//i.test(url)) withNotesEditor(() => document.execCommand('createLink', false, url));
+    return;
+  }
+  if (btn.dataset.action === 'unlink') withNotesEditor(() => document.execCommand('unlink'));
+}
+
 function wireNotesToolbar(id = 'notesToolbar') {
   const bar = document.getElementById(id);
   if (!bar) return;
   bar.addEventListener('mousedown', e => e.preventDefault()); // keep the caret in the editor
   bar.addEventListener('click', e => {
     const btn = e.target.closest('button');
-    if (!btn) return;
-    if (btn.dataset.cmd) { withNotesEditor(() => document.execCommand(btn.dataset.cmd)); return; }
-    if (btn.dataset.color) {
-      withNotesEditor(ed => btn.dataset.color === 'none'
-        ? clearNotesColor(ed)
-        : document.execCommand('foreColor', false, btn.dataset.color));
-      return;
-    }
-    if (btn.dataset.action === 'link') {
-      const url = (prompt(t('notes_link_prompt'), 'https://') || '').trim();
-      if (/^https?:\/\//i.test(url)) withNotesEditor(() => document.execCommand('createLink', false, url));
-      return;
-    }
-    if (btn.dataset.action === 'unlink') withNotesEditor(() => document.execCommand('unlink'));
+    if (btn) runNotesToolbarButton(btn);
+  });
+}
+
+// For a panel that holds one toolbar per note: wired once on a container that survives
+// redraws, so the toolbars themselves can be rebuilt freely.
+function wireNotesToolbarsIn(root) {
+  if (!root || root.dataset.notesTbWired) return;
+  root.dataset.notesTbWired = '1';
+  // Without this the click would move focus out of the editor first and execCommand
+  // would have nothing selected to act on.
+  root.addEventListener('mousedown', e => { if (e.target.closest('.notes-toolbar')) e.preventDefault(); });
+  root.addEventListener('click', e => {
+    const bar = e.target.closest('.notes-toolbar');
+    if (!bar) return;
+    const btn = e.target.closest('button');
+    if (btn) runNotesToolbarButton(btn);
   });
 }
 
@@ -9338,6 +9365,7 @@ function schNoteHtml(id) {
   const dirty = schNoteDirty(id);
   const html = schNoteText(id);
   return `<div class="sch-note${dirty ? ' dirty' : ''}" data-sch-note-box="${esc(id)}">
+    ${notesToolbarHtml('')}
     <div class="notes-editor sch-note-editor" contenteditable="true" data-sch-note="${esc(id)}"
          data-ph="${esc(t('sch_note_ph'))}"${schNoteIsEmpty(html) ? ' data-empty="1"' : ''}>${html}</div>
     <div class="sch-note-bar">
@@ -9610,13 +9638,12 @@ function renderSchedulePanel() {
       ${[['now', 'sch_view_now'], ['gantt', 'sch_view_gantt'], ['list', 'sch_view_list']].map(([v, k]) =>
         `<button type="button" class="chip${v === view ? ' active' : ''}" data-sch-view="${v}">${esc(t(k))}</button>`).join('')}
     </div>
-    ${view === 'gantt' ? '' : notesToolbarHtml('schNotesToolbar')}
     ${body}`;
 
   schFitNotes();
   // The toolbar is shared by every note on the panel and acts on whichever editor was
   // last focused, the same way the overview notes work.
-  wireNotesToolbar('schNotesToolbar');
+  wireNotesToolbarsIn(panel);
   panel.querySelectorAll('.sch-note-editor').forEach(attachNotesEditor);
   applyNotesTheme();
 
