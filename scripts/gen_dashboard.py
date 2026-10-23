@@ -1228,6 +1228,17 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .notes-toolbar button:hover { border-color: var(--series-cp); }
   .notes-toolbar button.swatch { width: 26px; min-width: 26px; padding: 0; }
   .notes-toolbar .sep { width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
+  /* The Schedule list runs to 66 rows, so a toolbar parked above it is off-screen by
+     the time anyone is typing in a note. It follows the scroll instead; the surface
+     and the shadow stop the rows showing through it. */
+  #schNotesToolbar {
+    position: sticky; top: 0; z-index: 6; margin-bottom: 10px;
+    background: var(--surface-1); box-shadow: 0 2px 6px rgba(0, 0, 0, .08);
+  }
+  :root[data-theme="dark"] #schNotesToolbar { box-shadow: 0 2px 8px rgba(0, 0, 0, .5); }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) #schNotesToolbar { box-shadow: 0 2px 8px rgba(0, 0, 0, .5); }
+  }
   .notes-col textarea {
     width: 100%; min-height: 140px; resize: vertical; background: var(--surface-1);
     border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-size: 13px;
