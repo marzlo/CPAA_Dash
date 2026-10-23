@@ -3697,7 +3697,7 @@
  },
  "2026-10-23": {
   "bugs": {
-   "done": 284,
+   "done": 283,
    "total": 370
   },
   "bugs_by_rca": {
@@ -3706,14 +3706,14 @@
     "total": 238
    },
    "filled": {
-    "done": 122,
+    "done": 121,
     "total": 132
    }
   },
   "bugs_by_status": {
    "Blocked": {
     "done": 0,
-    "total": 29
+    "total": 30
    },
    "Done": {
     "done": 241,
@@ -3744,8 +3744,8 @@
     "total": 12
    },
    "Ready for test": {
-    "done": 6,
-    "total": 6
+    "done": 5,
+    "total": 5
    },
    "Reopen": {
     "done": 0,
@@ -3778,7 +3778,7 @@
     "total": 6
    },
    "TS_CPAA": {
-    "done": 204,
+    "done": 203,
     "total": 222
    },
    "TS_FW": {
