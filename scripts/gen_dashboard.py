@@ -713,6 +713,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .qna-row select { font: inherit; font-size: 12px; padding: 2px 6px; border-radius: 6px;
                     border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); }
   .qna-blocked { font-size: 11px; color: var(--critical); white-space: nowrap; }
+  /* The dropdown beside it is our own handling state; this one is what Jira says. They
+     are different questions, so the Jira one is a read-only badge and never a control. */
+  .badge.qna-jira { white-space: nowrap; }
+  .badge.qna-jira.is-blocked { background: var(--critical); color: #fff; }
   @media (prefers-color-scheme: dark) {
     :root:where(:not([data-theme="light"])) .qna-wait.warn { color: #f2c75c; }
   }
@@ -770,6 +774,17 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   /* A ticket that is already linked is the settled case — it gets a quiet marker
      rather than the attention the unmatched ones need. */
   .cmp-card.is-linked { border-left: 3px solid var(--good); }
+  /* Five similar tickets per card over a long watchlist is a page nobody scrolls. The
+     count is already on the card head, so the table itself starts folded. */
+  .cmp-matches > summary {
+    cursor: pointer; font-size: 12px; font-weight: 600; color: var(--series-cp);
+    padding: 6px 2px; list-style: none; user-select: none;
+  }
+  .cmp-matches > summary::-webkit-details-marker { display: none; }
+  .cmp-matches > summary::before { content: '▸'; display: inline-block; width: 14px; }
+  .cmp-matches[open] > summary::before { content: '▾'; }
+  .cmp-matches > summary:hover { text-decoration: underline; }
+  .muted-cell { color: var(--muted); font-size: 11px; }
   .cmp-linked {
     font-size: 11px; line-height: 17px; padding: 0 8px; border-radius: 999px;
     background: var(--grid); color: var(--text-secondary);
@@ -1737,6 +1752,7 @@ const STRINGS = {
   qna_status_saving: { zh: '儲存中…', en: 'Saving…' },
   qna_asked_by: { zh: (who, when) => `${who} 於 ${when} 提出`, en: (who, when) => `raised by ${who} on ${when}` },
   qna_jira_blocked: { zh: 'Jira 狀態:Blocked', en: 'Jira status: Blocked' },
+  qna_jira_status: { zh: 'Jira 狀態', en: 'Jira status' },
   qna_empty: { zh: '目前沒有 Q&A 問題 — 可能是 filter 12699 空的,或這次建置沒有抓到 qna_export.csv。',
                en: 'No Q&A questions — either filter 12699 is empty, or this build had no qna_export.csv.' },
   qna_need_token: { zh: '要改處理狀態或留言,需要先用右上角的 🔑 設定 GitHub token。',
@@ -1769,6 +1785,8 @@ const STRINGS = {
   cmp_th_why: { zh: '共同關鍵詞', en: 'Shared terms' },
   cmp_no_match: { zh: '在目前門檻下找不到相似的 Bug 票', en: 'No Bug ticket above the current threshold' },
   cmp_match_count: { zh: n => `${n} 筆相似`, en: n => `${n} similar` },
+  cmp_show_matches: { zh: n => `可能關聯的 ticket (${n})`, en: n => `Possibly related tickets (${n})` },
+  cmp_assignee_unknown: { zh: '不在匯出範圍', en: 'not in the export' },
   cmp_same_feature: { zh: '同 Feature', en: 'same feature' },
   cmp_same_subfeature: { zh: '同 Sub-feature', en: 'same sub-feature' },
   cmp_export: { zh: '複製比對結果', en: 'Copy result' },
@@ -4941,6 +4959,15 @@ function renderComparePanel() {
     }));
   }
 
+  // Jira's issuelinks payload carries only key/status/summary for the other end, so the
+  // assignee comes from whichever export already holds that ticket. A key we do not
+  // export says so rather than showing a blank that reads as "nobody".
+  function cmpAssigneeOf(key) {
+    const hit = BUGS.find(x => x.key === key) || WATCH.find(x => x.key === key)
+             || (RAW.tickets || []).find(x => x.key === key);
+    return hit && hit.assignee ? hit.assignee : null;
+  }
+
   function linksTable(links) {
     // "is blocked by" first — it is the one that decides whether this ticket still
     // needs looking at, so it should not be buried under five "relates to" rows.
@@ -4952,7 +4979,8 @@ function renderComparePanel() {
         <table>
           <thead><tr>
             <th style="width:130px;">${esc(t('cmp_th_rel'))}</th>
-            <th>Key</th><th>${esc(t('th_status'))}</th><th>${esc(t('th_summary'))}</th>
+            <th>Key</th><th>${esc(t('th_status'))}</th><th>${esc(t('th_assignee'))}</th>
+            <th>${esc(t('th_summary'))}</th>
           </tr></thead>
           <tbody>
             ${ordered.map(l => `
@@ -4960,6 +4988,9 @@ function renderComparePanel() {
                 <td class="cmp-rel${/blocked by/i.test(l.rel || '') ? ' blocking' : ''}">${esc(l.rel)}</td>
                 <td class="key"><a href="${ticketUrl(l.key)}" target="_blank" rel="noopener noreferrer">${esc(l.key)}</a></td>
                 <td>${l.status ? `<span class="badge ${/done|non-issue|closed/i.test(l.status) ? 'done' : 'progress'}">${esc(l.status)}</span>` : '—'}</td>
+                <td>${cmpAssigneeOf(l.key)
+                      ? esc(cmpAssigneeOf(l.key))
+                      : `<span class="muted-cell">${esc(t('cmp_assignee_unknown'))}</span>`}</td>
                 <td>${esc(l.summary)}</td>
               </tr>`).join('')}
           </tbody>
@@ -4989,6 +5020,8 @@ function renderComparePanel() {
       // "relates to" is the context you need to judge whether a match is new.
       const linksHtml = r.links.length ? linksTable(r.links) : '';
       const matchesHtml = !r.showMatches ? '' : (r.matches.length ? `
+        <details class="cmp-matches">
+        <summary>${esc(t('cmp_show_matches', r.matches.length))}</summary>
         <div class="table-wrap">
           <table>
             <thead><tr>
@@ -5017,7 +5050,8 @@ function renderComparePanel() {
                 </tr>`).join('')}
             </tbody>
           </table>
-        </div>` : `<div class="empty-state">${esc(t('cmp_no_match'))}</div>`);
+        </div>
+        </details>` : `<div class="empty-state">${esc(t('cmp_no_match'))}</div>`);
       const count = r.linked
         ? t('cmp_linked_count', r.blockedBy.length)
         : t('cmp_match_count', r.matches.length);
@@ -8827,6 +8861,15 @@ function qnaCommentPanelHtml(key) {
   </div>`;
 }
 
+// The ticket's own status, straight from Jira — separate from the handling state in the
+// dropdown, which is ours. A question can read 待我回覆 while Jira still says Blocked.
+function qnaJiraBadge(r) {
+  if (!r.status) return '';
+  const cls = r.cat === 'done' ? 'done' : r.cat === 'indeterminate' ? 'progress' : 'todo';
+  const blocked = /^blocked$/i.test(String(r.status).trim()) ? ' is-blocked' : '';
+  return `<span class="badge ${cls} qna-jira${blocked}" title="${esc(t('qna_jira_status'))}">${esc(r.status)}</span>`;
+}
+
 function qnaRowHtml(r) {
   const st = qnaState(r);
   const d = qnaWaitDays(r);
@@ -8842,7 +8885,7 @@ function qnaRowHtml(r) {
         ${QNA_STATES.map(v => `<option value="${v}"${v === st ? ' selected' : ''}>${esc(t(QNA_STATE_LABEL[v]))}</option>`).join('')}
       </select>
       ${d === null ? '' : `<span class="qna-wait ${qnaWaitClass(d)}">${esc(t('qna_days_long', d))}</span>`}
-      ${r.status === 'Blocked' ? `<span class="qna-blocked">${esc(t('qna_jira_blocked'))}</span>` : ''}
+      ${qnaJiraBadge(r)}
       <button type="button" class="cmt-btn${n ? ' has' : ''}" data-qna-cmt="${esc(r.key)}" title="${esc(t('bug_comment_col'))}">💬${n || ''}</button>
       <span class="who">${esc(asked)}</span>
       <span class="cmt-status" data-qna-cmt-status="${esc(r.key)}"></span>
