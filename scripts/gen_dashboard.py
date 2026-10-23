@@ -465,6 +465,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .sch-stat.active { color: var(--gantt-ours); }
   .sch-stat.done { color: var(--good); }
   .sch-stat.todo { color: var(--muted); }
+  /* Blocked is drawn on top of whatever the schedule says, because it is a different
+     question: not "when is this due" but "can anyone move it at all". */
+  .sch-stat.is-blocked { color: var(--warning); }
+  .sch-btn.blocked { border-color: var(--warning); color: var(--warning); }
   .sch-btn {
     font: inherit; font-size: 12px; padding: 3px 10px; border-radius: 6px; cursor: pointer;
     border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); white-space: nowrap;
@@ -484,8 +488,20 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
        fitted box from reserving space for one it will never use. */
     overflow-y: hidden;
   }
-  .sch-note textarea:focus { outline: none; border-color: var(--gantt-ours); background: var(--surface-1); }
-  .sch-note.dirty textarea { border-color: var(--warning); }
+  .sch-note .sch-note-editor {
+    width: 100%; min-height: 38px; max-height: 360px; overflow-y: auto; box-sizing: border-box;
+    border: 1px solid var(--border); border-radius: 8px; background: var(--page);
+    padding: 7px 9px; font: inherit; font-size: 12px; line-height: 1.5; color: var(--text-primary);
+  }
+  .sch-note .sch-note-editor:focus { outline: none; border-color: var(--gantt-ours); background: var(--surface-1); }
+  /* contenteditable has no placeholder attribute, so the hint is drawn from a data
+     attribute and removed as soon as there is anything to read. */
+  .sch-note .sch-note-editor[data-empty]::before {
+    content: attr(data-ph); color: var(--muted); pointer-events: none;
+  }
+  .sch-note .sch-note-editor ul { margin: 2px 0; padding-left: 20px; }
+  .sch-note .sch-note-editor:focus { outline: none; border-color: var(--gantt-ours); background: var(--surface-1); }
+  .sch-note.dirty .sch-note-editor { border-color: var(--warning); }
   .sch-note-bar { display: flex; align-items: center; gap: 8px; margin-top: 4px; min-height: 20px; }
   .sch-note-meta { font-size: 11px; color: var(--muted); }
   .sch-note-flag { font-size: 11px; font-weight: 600; color: #7a5600; }
@@ -530,6 +546,12 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   }
   .gantt-tick { position: absolute; top: 9px; width: 7px; height: 7px; transform: rotate(45deg);
                 background: var(--good); border-radius: 1px; }
+  /* Hatched over the bar rather than recoloured: the bar's colour already means the
+     workbook's category, and overwriting it would lose that. The hatch runs the other
+     way from the overdue one so the two are told apart by direction, not only hue. */
+  .gantt-blocked { position: absolute; top: 5px; height: 14px; border-radius: 3px;
+                   background: repeating-linear-gradient(135deg, var(--warning) 0 2px, transparent 2px 5px);
+                   box-shadow: inset 0 0 0 1px var(--warning); pointer-events: none; }
   /* A week column is 13px, so a day is under 2px: the line being in the right place is
      not the same as the line looking like it is in the right place. The tinted column
      gives it something to be partway across, and the chip says the date outright. */
@@ -1617,6 +1639,10 @@ const STRINGS = {
   sch_view_list: { zh: '全部清單', en: 'All tasks' },
   sch_now_week: { zh: (w, d) => `本週 ${w}(${d} 起)`, en: (w, d) => `This week: ${w} (from ${d})` },
   sch_grp_late: { zh: '逾期', en: 'Overdue' },
+  sch_mark_blocked: { zh: '標記卡住', en: 'Mark blocked' },
+  sch_unmark_blocked: { zh: '解除卡住', en: 'Unblock' },
+  sch_blocked: { zh: '卡住', en: 'Blocked' },
+  sch_blocked_by: { zh: (who, when) => `卡住 · ${who} · ${when}`, en: (who, when) => `Blocked by ${who} on ${when}` },
   sch_grp_active: { zh: '進行中', en: 'In progress' },
   sch_grp_soon: { zh: '四週內開始', en: 'Starting within 4 weeks' },
   sch_grp_done: { zh: '已完成', en: 'Done' },
@@ -2752,12 +2778,12 @@ const NOTES_COLORS = [
   { key: 'orange', value: 'rgb(235, 104, 52)', labelKey: 'notes_tb_color_orange' },
 ];
 
-function notesToolbarHtml() {
+function notesToolbarHtml(id = 'notesToolbar') {
   const b = (cmd, label, titleKey) =>
     `<button type="button" data-cmd="${cmd}" title="${esc(t(titleKey))}">${label}</button>`;
   const swatches = NOTES_COLORS.map(c =>
     `<button type="button" class="swatch" data-color="${c.value}" style="background:${c.value}" title="${esc(t(c.labelKey))}"></button>`).join('');
-  return `<div class="notes-toolbar" id="notesToolbar">
+  return `<div class="notes-toolbar" id="${id}">
     ${b('bold', '<b>B</b>', 'notes_tb_bold')}
     ${b('italic', '<i>I</i>', 'notes_tb_italic')}
     ${b('underline', '<u>U</u>', 'notes_tb_underline')}
@@ -2977,8 +3003,8 @@ function attachNotesEditor(ed) {
   });
 }
 
-function wireNotesToolbar() {
-  const bar = document.getElementById('notesToolbar');
+function wireNotesToolbar(id = 'notesToolbar') {
+  const bar = document.getElementById(id);
   if (!bar) return;
   bar.addEventListener('mousedown', e => e.preventDefault()); // keep the caret in the editor
   bar.addEventListener('click', e => {
@@ -9036,6 +9062,13 @@ function schState(t) {
   return { done: false, assumed: false };
 }
 
+// Blocked is stored next to done rather than replacing it, so a task keeps its place
+// in 逾期 / 進行中 / 四週內 and gains a marker — it does not drop out of the list.
+function schBlocked(t) {
+  const n = SCHED_NOTES.state[t.id];
+  return !!(n && n.blocked) && !schState(t).done;
+}
+
 function schStatus(t) {
   const cur = schCurWeek();
   const st = schState(t);
@@ -9044,12 +9077,18 @@ function schStatus(t) {
     const w = st.at ? schWeekOfDate(st.at) : null;
     return { k: 'done', slip: (w === null) ? 0 : w - t.e };
   }
-  if (cur < t.s) return { k: 'todo', n: t.s - cur };
-  if (cur <= t.e) return { k: 'active', n: t.e - cur };
-  return { k: 'late', n: cur - t.e };
+  const blocked = schBlocked(t);
+  if (cur < t.s) return { k: 'todo', n: t.s - cur, blocked };
+  if (cur <= t.e) return { k: 'active', n: t.e - cur, blocked };
+  return { k: 'late', n: cur - t.e, blocked };
 }
 
 function schStatusText(st) {
+  if (st.blocked) return t('sch_blocked') + ' · ' + schStatusTextBase(st);
+  return schStatusTextBase(st);
+}
+
+function schStatusTextBase(st) {
   if (st.k === 'done') {
     if (st.assumed) return t('sch_st_done_assumed');
     if (st.slip > 0) return t('sch_st_done_late', st.slip);
@@ -9067,7 +9106,10 @@ function schComments(id) { return SCHED_NOTES.comments[id] || []; }
 // resize handle. Past this height it stops growing and scrolls, so one long note
 // cannot push everything else off the screen.
 const SCH_NOTE_MAX_PX = 360;
+// Only a textarea needs its height computed. The note box is a contenteditable div now
+// and grows on its own, so leave it alone rather than pinning a height on it.
 function schFitNote(ta) {
+  if (!ta || ta.tagName !== 'TEXTAREA') return;
   // offsetParent is null while the tab is hidden, and a hidden element measures as
   // zero — fitting then would collapse every box. schFitNotes() is called again when
   // the tab is shown.
@@ -9087,8 +9129,17 @@ function schFitNotes() {
 const schDrafts = Object.create(null);
 function schSavedNote(id) { return (SCHED_NOTES.notes || {})[id] || null; }
 function schSavedNoteText(id) { const nt = schSavedNote(id); return nt ? (nt.text || '') : ''; }
-function schNoteText(id) { return (id in schDrafts) ? schDrafts[id] : schSavedNoteText(id); }
-function schNoteDirty(id) { return (id in schDrafts) && schDrafts[id] !== schSavedNoteText(id); }
+// Notes written before the box became rich text are plain, tab-indented strings. They
+// are converted on the way in rather than asking anyone to retype them, and the
+// comparison below is done on the converted form so simply opening the tab does not
+// mark every old note dirty.
+function schSavedNoteHtml(id) { return notesValueToHtml(schSavedNoteText(id)); }
+function schNoteText(id) { return (id in schDrafts) ? schDrafts[id] : schSavedNoteHtml(id); }
+function schNoteDirty(id) { return (id in schDrafts) && schDrafts[id] !== schSavedNoteHtml(id); }
+// A note holding only tags and spaces is empty, whatever the markup says.
+function schNoteIsEmpty(html) {
+  return !String(html || '').replace(/<[^>]*>/g, '').replace(/&nbsp;|\u00a0/g, ' ').trim();
+}
 function schAnyNoteDirty() { return Object.keys(schDrafts).some(schNoteDirty); }
 
 // Typing into a note and closing the tab should not lose it silently.
@@ -9210,7 +9261,10 @@ function schRowHtml(task) {
       <button type="button" class="sch-btn${state.done ? ' on' : ''}" data-sch-toggle="${esc(task.id)}">
         ${state.done ? '✓ ' + esc(t('sch_mark_undone')) : esc(t('sch_mark_done'))}
       </button>
-      <span class="sch-stat ${st.k}">${esc(schStatusText(st))}</span>
+      ${state.done ? '' :
+        `<button type="button" class="sch-btn${st.blocked ? ' blocked' : ''}" data-sch-block="${esc(task.id)}">` +
+        `${st.blocked ? '⛔ ' + esc(t('sch_unmark_blocked')) : esc(t('sch_mark_blocked'))}</button>`}
+      <span class="sch-stat ${st.k}${st.blocked ? ' is-blocked' : ''}">${esc(schStatusText(st))}</span>
       <span class="sch-when">${esc(t('sch_range', schWeekLabel(task.s), schWeekLabel(task.e)))}</span>
       <button type="button" class="cmt-btn${n ? ' has' : ''}" data-sch-cmt="${esc(task.id)}" title="${esc(t('bug_comment_col'))}">💬${n || ''}</button>
       ${state.done && state.at && !state.assumed
@@ -9225,8 +9279,10 @@ function schRowHtml(task) {
 function schNoteHtml(id) {
   const saved = schSavedNote(id);
   const dirty = schNoteDirty(id);
+  const html = schNoteText(id);
   return `<div class="sch-note${dirty ? ' dirty' : ''}" data-sch-note-box="${esc(id)}">
-    <textarea data-sch-note="${esc(id)}" placeholder="${esc(t('sch_note_ph'))}">${esc(schNoteText(id))}</textarea>
+    <div class="notes-editor sch-note-editor" contenteditable="true" data-sch-note="${esc(id)}"
+         data-ph="${esc(t('sch_note_ph'))}"${schNoteIsEmpty(html) ? ' data-empty="1"' : ''}>${html}</div>
     <div class="sch-note-bar">
       <button type="button" class="btn small" data-sch-note-save="${esc(id)}"${dirty ? '' : ' hidden'}>${esc(t('sch_note_save'))}</button>
       <span class="sch-note-flag"${dirty ? '' : ' hidden'}>${esc(t('sch_note_dirty'))}</span>
@@ -9299,11 +9355,14 @@ function schGanttHtml(tasks) {
       ? `<div class="gantt-over" style="left:${(task.e + 1) * SCH_WEEK_PX}px; width:${(cur - task.e) * SCH_WEEK_PX}px"></div>` : '';
     const tick = st.k === 'done'
       ? `<div class="gantt-tick" style="left:${(task.e + 1) * SCH_WEEK_PX + 2}px"></div>` : '';
+    const blocked = st.blocked
+      ? `<div class="gantt-blocked" style="left:${task.s * SCH_WEEK_PX}px; ` +
+        `width:${(task.e - task.s + 1) * SCH_WEEK_PX}px"></div>` : '';
     const title = `${task.feature} · ${task.phase} · ${task.name}\n${t('sch_range', schWeekLabel(task.s), schWeekLabel(task.e))}\n${schStatusText(st)}`;
     return `${header}<div class="gantt-row${task.id === schGanttSel ? ' sel' : ''}" title="${esc(title)}">
       <div class="gantt-name${st.k === 'done' ? ' done' : ''}" data-sch-pick="${esc(task.id)}"
            role="button" tabindex="0">${esc(task.name)}</div>
-      <div class="gantt-track" style="width:${trackW}px">${grid.join('')}${bars}${over}${tick}</div>
+      <div class="gantt-track" style="width:${trackW}px">${grid.join('')}${bars}${blocked}${over}${tick}</div>
     </div>`;
   }).join('');
 
@@ -9413,6 +9472,7 @@ function renderSchedulePanel() {
     ${['ours', 'supplier', 'resubmit', 'final'].map(k =>
       `<span><i style="background:var(--gantt-${k})"></i>${esc(t('sch_kind_' + k))}</span>`).join('')}
     <span><i style="background:repeating-linear-gradient(45deg,var(--critical) 0 3px,transparent 3px 6px)"></i>${esc(t('sch_grp_late'))}</span>
+    <span><i style="background:repeating-linear-gradient(135deg,var(--warning) 0 2px,transparent 2px 5px); box-shadow:inset 0 0 0 1px var(--warning)"></i>${esc(t('sch_blocked'))}</span>
     <span style="color:var(--muted)">✋ ${esc(t('sch_drag_hint'))}</span>
   </div>`;
 
@@ -9492,9 +9552,15 @@ function renderSchedulePanel() {
       ${[['now', 'sch_view_now'], ['gantt', 'sch_view_gantt'], ['list', 'sch_view_list']].map(([v, k]) =>
         `<button type="button" class="chip${v === view ? ' active' : ''}" data-sch-view="${v}">${esc(t(k))}</button>`).join('')}
     </div>
+    ${view === 'gantt' ? '' : notesToolbarHtml('schNotesToolbar')}
     ${body}`;
 
   schFitNotes();
+  // The toolbar is shared by every note on the panel and acts on whichever editor was
+  // last focused, the same way the overview notes work.
+  wireNotesToolbar('schNotesToolbar');
+  panel.querySelectorAll('.sch-note-editor').forEach(attachNotesEditor);
+  applyNotesTheme();
 
   const ganttWrap = panel.querySelector('.gantt-wrap');
   if (ganttWrap) schAttachGanttDrag(ganttWrap, cur);
@@ -9585,15 +9651,17 @@ function renderSchedulePanel() {
   }
 
   list.addEventListener('input', e => {
-    const ta = e.target.closest('[data-sch-note]');
-    if (!ta) return;
-    schDrafts[ta.dataset.schNote] = ta.value;
-    schPaintNote(ta.dataset.schNote);
-    schFitNote(ta);
+    const ed = e.target.closest('[data-sch-note]');
+    if (!ed) return;
+    const html = notesEditorHtml(ed);
+    schDrafts[ed.dataset.schNote] = html;
+    if (schNoteIsEmpty(html)) ed.setAttribute('data-empty', '1'); else ed.removeAttribute('data-empty');
+    schPaintNote(ed.dataset.schNote);
   });
 
   async function schSaveNote(id) {
-    const text = (schNoteText(id) || '').trim();
+    const raw = (schNoteText(id) || '').trim();
+    const text = schNoteIsEmpty(raw) ? '' : raw;
     const box = list.querySelector(`[data-sch-note-box="${CSS.escape(id)}"]`);
     const btn = box && box.querySelector('[data-sch-note-save]');
     if (btn) btn.disabled = true;
@@ -9607,17 +9675,21 @@ function renderSchedulePanel() {
     if (!ok) return;
     delete schDrafts[id];
     // Put back what was actually committed — trimmed — so the box matches the file.
-    const ta = box && box.querySelector('[data-sch-note]');
-    if (ta && ta.value !== text) ta.value = text;
+    const ed = box && box.querySelector('[data-sch-note]');
+    if (ed && notesEditorHtml(ed) !== text) {
+      ed.innerHTML = text;
+      applyNotesTheme();
+    }
+    if (ed) { if (schNoteIsEmpty(text)) ed.setAttribute('data-empty', '1'); else ed.removeAttribute('data-empty'); }
     schPaintNote(id);
     const st = list.querySelector(`[data-sch-note-status="${CSS.escape(id)}"]`);
     if (st) { st.textContent = t('sch_note_saved'); setTimeout(() => { if (st.textContent === t('sch_note_saved')) st.textContent = ''; }, 1800); }
   }
 
   list.addEventListener('keydown', e => {
-    const ta = e.target.closest('[data-sch-note]');
-    if (!ta) return;
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); schSaveNote(ta.dataset.schNote); }
+    const ed = e.target.closest('[data-sch-note]');
+    if (!ed) return;
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); schSaveNote(ed.dataset.schNote); }
   });
 
   list.addEventListener('click', async e => {
@@ -9631,12 +9703,37 @@ function renderSchedulePanel() {
       const want = !schState(task).done;
       toggle.disabled = true;
       const ok = await commitSchedNotes(st => {
-        st.state[id] = { done: want, at: new Date().toISOString(),
+        // Merged, not replaced: the blocked flag lives in the same entry and marking a
+        // task done must not quietly drop it.
+        st.state[id] = { ...(st.state[id] || {}), done: want, at: new Date().toISOString(),
                          by: traceUserName(false) || t('notes_meta_unknown') };
       }, list.querySelector(`[data-sch-cmt-status="${CSS.escape(id)}"]`));
       toggle.disabled = false;
       if (!ok) return;
       // Every tile, every grouping and the sort order key off this, so redraw the panel.
+      renderSchedulePanel();
+      return;
+    }
+
+    const block = e.target.closest('[data-sch-block]');
+    if (block) {
+      const id = block.dataset.schBlock;
+      const want = !schBlocked(tasks.find(x => x.id === id));
+      block.disabled = true;
+      const ok = await commitSchedNotes(st => {
+        const prev = st.state[id] || {};
+        if (want) st.state[id] = { ...prev, blocked: true,
+                                   blockedAt: new Date().toISOString(),
+                                   blockedBy: traceUserName(false) || t('notes_meta_unknown') };
+        else {
+          const { blocked, blockedAt, blockedBy, ...rest } = prev;
+          // Nothing left to say about this task — drop the entry rather than leaving
+          // an empty object behind in the file.
+          if (Object.keys(rest).length) st.state[id] = rest; else delete st.state[id];
+        }
+      }, list.querySelector(`[data-sch-cmt-status="${CSS.escape(id)}"]`));
+      block.disabled = false;
+      if (!ok) return;
       renderSchedulePanel();
       return;
     }
