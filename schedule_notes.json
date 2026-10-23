@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-10-23T02:12:56.912Z",
-  "updated_by": "Leto",
+  "updated_at": "2026-10-23T07:49:46.438Z",
+  "updated_by": "Leyo",
   "state": {},
   "notes": {
     "carplay|certification-1st|vehicle-assessment": {
@@ -9,8 +9,8 @@
       "by": "Leyo"
     },
     "carplay|certification-1st|itut-siri-esiri": {
-      "text": "Prerequisite: Resolve critical Audio issues by the end of October.​​\n\nKey Blockers: APQM, Siri Distortion, Premium Audio, Enhanced Siri.​​\n\nRisk: Unresolved Audio issues may delay ITU-T testing. Vehicle availability is currently assumed only through mid-December.​​",
-      "at": "2026-10-21T10:35:02.329Z",
+      "text": "Status: Now is blocking by APQM\nPrerequisite: Resolve critical Audio issues by the end of October.​​\n\nKey Blockers: APQM, Siri Distortion, Premium Audio, Enhanced Siri.​​\n\nRisk: Unresolved Audio issues may delay ITU-T testing. Vehicle availability is currently assumed only through mid-December.​​",
+      "at": "2026-10-23T07:49:46.438Z",
       "by": "Leyo"
     },
     "carplay|certification-1st|location-test-wireless-performance": {
