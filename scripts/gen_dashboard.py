@@ -532,6 +532,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .gantt-name.done { color: var(--muted); text-decoration: line-through; }
+  /* The hatch is out on the chart and scrolls away with it; this keeps the task
+     readable as blocked from the name column, which never scrolls. */
+  .gantt-name .gn-block { margin-right: 3px; font-size: 10px; line-height: 1; }
   .gantt-track { position: relative; flex: 0 0 auto; height: 24px; }
   .gantt-bar { position: absolute; top: 7px; height: 10px; border-radius: 2px; }
   /* A 2px surface gap so touching segments of different kinds stay two bars. */
@@ -9361,7 +9364,8 @@ function schGanttHtml(tasks) {
     const title = `${task.feature} · ${task.phase} · ${task.name}\n${t('sch_range', schWeekLabel(task.s), schWeekLabel(task.e))}\n${schStatusText(st)}`;
     return `${header}<div class="gantt-row${task.id === schGanttSel ? ' sel' : ''}" title="${esc(title)}">
       <div class="gantt-name${st.k === 'done' ? ' done' : ''}" data-sch-pick="${esc(task.id)}"
-           role="button" tabindex="0">${esc(task.name)}</div>
+           role="button" tabindex="0">${st.blocked
+             ? `<span class="gn-block" title="${esc(t('sch_blocked'))}" aria-label="${esc(t('sch_blocked'))}">⛔</span>` : ''}${esc(task.name)}</div>
       <div class="gantt-track" style="width:${trackW}px">${grid.join('')}${bars}${blocked}${over}${tick}</div>
     </div>`;
   }).join('');
