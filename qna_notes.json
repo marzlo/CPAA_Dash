@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-15T07:50:22.909Z",
+  "updated_at": "2026-10-23T08:18:06.453Z",
   "updated_by": "Leyo",
   "status": {},
   "comments": {
@@ -17,6 +17,12 @@
         "text": "會去跟STLA Daniel confirm",
         "by": "Leyo",
         "at": "2026-10-15T07:17:13.937Z"
+      },
+      {
+        "id": "mvkp6ms6uvcjo",
+        "text": "要請QA針對右駕的test case開出bug ticket 好去追",
+        "by": "Leyo",
+        "at": "2026-10-23T08:18:05.910Z"
       }
     ],
     "NR1LT-6670": [
