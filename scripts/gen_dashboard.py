@@ -1577,8 +1577,8 @@ const STRINGS = {
   ac_jump_hint: { zh: '跳到下面的清單,只看這個分類', en: 'Jump to the list below, filtered to this category' },
   cb_copy: { zh: '複製(貼到 Cert Bench)', en: 'Copy for Cert Bench' },
   cb_csv: { zh: '下載 CSV', en: 'Download CSV' },
-  cb_hint: { zh: '把目前篩選出來的票複製成 Certification Bench Validation「APQM bug」頁籤的 A–E 欄(Title / Summary / Status / Open Date / Close Date)。只有這五欄,貼在 A 欄不會動到後面手填的 DT/HDCC、Supplier ID 等欄位。',
-             en: 'Copies the tickets now showing as columns A–E of the Certification Bench Validation "APQM bug" sheet (Title / Summary / Status / Open Date / Close Date). Those five only — pasting at column A cannot reach the hand-filled DT/HDCC, Supplier ID and the rest.' },
+  cb_hint: { zh: '把目前篩選出來的票複製成 Certification Bench Validation「APQM bug」頁籤的 A–F 欄(Title / Summary / Status / Open Date / Close Date / Team)。只有這六欄,貼在 A 欄不會動到後面手填的 DT/HDCC、Supplier ID 等欄位。',
+             en: 'Copies the tickets now showing as columns A–F of the Certification Bench Validation "APQM bug" sheet (Title / Summary / Status / Open Date / Close Date / Team). Those six only — pasting at column A cannot reach the hand-filled DT/HDCC, Supplier ID and the rest.' },
   cb_copied: { zh: n => `已複製 ${n} 列`, en: n => `Copied ${n} row${n === 1 ? '' : 's'}` },
   cb_copy_failed: { zh: '複製失敗,請用下載 CSV', en: 'Copy failed — use Download CSV' },
   cb_empty: { zh: '目前篩選沒有任何票', en: 'Nothing in the current filter' },
@@ -7514,10 +7514,11 @@ function renderAudioPanel() {
   }
 
   // --- Export in the Certification Bench Validation workbook's own column shape ---
-  // Columns A–E only, on purpose: F onwards in that sheet (DT/HDCC, VF/226/376,
+  // Columns A–F only, on purpose: G onwards in that sheet (DT/HDCC, VF/226/376,
   // Supplier ID, Supplier Root Cause Analysis, Fix Version) is maintained by hand, and a
-  // paste block that does not contain those columns cannot overwrite them.
-  const CB_HEAD = ['Title', 'Summary', 'Status', 'Open Date', 'Close Date'];
+  // paste block that does not contain those columns cannot overwrite them. Widen this
+  // ONLY alongside the sheet — a column added here reaches one column further right.
+  const CB_HEAD = ['Title', 'Summary', 'Status', 'Open Date', 'Close Date', 'Team'];
   const CB_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   function cbDate(iso) {
@@ -7528,7 +7529,8 @@ function renderAudioPanel() {
 
   // Close Date is left blank rather than guessed: the Audio record carries no resolution
   // date, and writing today's date into it would be a fact nobody established.
-  const cbRows = () => shownRows.map(r => [r.key, r.summary || '', r.status || '', cbDate(r.created), '']);
+  const cbRows = () => shownRows.map(r =>
+    [r.key, r.summary || '', r.status || '', cbDate(r.created), '', r.team || '']);
 
   const cbCell = c => String(c == null ? '' : c).replace(/[\t\r\n]+/g, ' ');
   // Tabs only, no header: this is pasted onto existing rows, where a header line would
