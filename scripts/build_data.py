@@ -452,6 +452,21 @@ AUDIO_ASSIGNEES = {"KVVD Subrahmanyam", "Subramanya N S"}
 # text doesn't contain "audio" and the assignee isn't an audio-only assignee.
 AUDIO_EXTRA_KEYS = {"NR1LT-3385"}
 
+# A ticket that has been given an audio category is one somebody has already called an
+# audio issue, so it stays in the Audio set whoever it is assigned to. Without this the
+# set is quietly defined by the assignee: NR1LT-6842 ("[CPAA][BT][APQM]Overall
+# Transmission Latency") has no "audio" in its summary and vanished from the tab — and
+# from its own category on the Stats card — the moment it moved off an audio-only
+# assignee, which looks like data loss rather than a rule doing its job.
+AUDIO_CATS_SRC = os.environ.get("AUDIO_CATS_PATH", "audio_categories.json")
+try:
+    with open(AUDIO_CATS_SRC, encoding="utf-8") as f:
+        _classified = {k for k, v in ((json.load(f) or {}).get("cats") or {}).items() if v}
+    AUDIO_EXTRA_KEYS |= _classified
+    print(f"\nAudio: {len(_classified)} classified ticket(s) pinned into the Audio set from {AUDIO_CATS_SRC}")
+except (OSError, ValueError) as exc:
+    print(f"\nAudio: could not read {AUDIO_CATS_SRC} ({exc}); classified tickets are NOT pinned this run")
+
 # Audio bugs that live outside the dashboard's main Jira filter altogether — a different
 # project (NR1LB). fetch_jira.py writes them to their own CSV, and they join the Audio tab
 # WITHOUT joining bug_records: the Bug tab's counts, the trend and history.json are a
