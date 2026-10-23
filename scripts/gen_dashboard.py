@@ -1630,7 +1630,7 @@ const STRINGS = {
   sch_kind_supplier: { zh: '硬體/供應商', en: 'Hardware / supplier' },
   sch_kind_resubmit: { zh: '重送循環', en: 'Re-submission' },
   sch_kind_final: { zh: '最終審查', en: 'Final review' },
-  sch_today: { zh: '本週', en: 'Today' },
+  sch_today: { zh: d => `今天 ${d}`, en: d => `Today — ${d}` },
   sch_drag_hint: { zh: '可直接拖曳左右移動', en: 'drag to pan' },
   sch_hide_done_n: { zh: n => `隱藏已完成(${n})`, en: n => `Hide done (${n})` },
   sch_pick_hint: { zh: '點左邊的任務名稱,這裡會顯示那一項的細節 —— 可以直接標記完成或留言。',
@@ -8984,6 +8984,16 @@ function schCurWeek() {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   return Math.floor((today - a) / 604800000);
 }
+// Where today sits INSIDE its week, as a fractional column offset. schCurWeek() answers
+// which column, which is what the highlight and the overdue test need; but a line drawn
+// at the column's edge is a line on Monday, and at 13px a week that is most of the column
+// away from Friday — it reads as stopped, because it only moves in once-a-week jumps.
+function schNowFrac() {
+  if (!SCHEDULE) return -1;
+  const a = new Date(SCHEDULE.anchor + 'T00:00:00');
+  return (Date.now() - a.getTime()) / 604800000;
+}
+
 function schWeekOfDate(iso) {
   const a = new Date(SCHEDULE.anchor + 'T00:00:00');
   const d = new Date(iso);
@@ -9243,8 +9253,10 @@ function schGanttHtml(tasks) {
   if (cur >= 0 && cur < nW && cur % LBL_EVERY !== 0) head.push(schHeadLabel(cur, true));
   const grid = [];
   for (let i = 0; i < nW; i += 4) grid.push(`<div class="gantt-grid" style="left:${i * SCH_WEEK_PX}px"></div>`);
-  const todayLine = (cur >= 0 && cur < nW)
-    ? `<div class="gantt-today" style="left:${cur * SCH_WEEK_PX + SCH_NAME_PX}px" title="${esc(t('sch_today'))}"></div>` : '';
+  const nowFrac = schNowFrac();
+  const todayLine = (nowFrac >= 0 && nowFrac < nW)
+    ? `<div class="gantt-today" style="left:${(nowFrac * SCH_WEEK_PX + SCH_NAME_PX).toFixed(1)}px"` +
+      ` title="${esc(t('sch_today', new Date().toISOString().slice(0, 10)))}"></div>` : '';
 
   // Several tasks appear once per certification round under the same name — CarPlay
   // runs "Pre-Test" in both Certification(1st) and (2nd) — so the name column alone is
