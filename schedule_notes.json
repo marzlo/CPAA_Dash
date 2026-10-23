@@ -1,7 +1,13 @@
 {
-  "updated_at": "2026-10-23T08:07:09.275Z",
+  "updated_at": "2026-10-23T08:07:11.654Z",
   "updated_by": "Leyo",
-  "state": {},
+  "state": {
+    "carplay|certification-1st|itut-siri-esiri": {
+      "blocked": true,
+      "blockedAt": "2026-10-23T08:07:11.654Z",
+      "blockedBy": "Leyo"
+    }
+  },
   "notes": {
     "carplay|certification-1st|vehicle-assessment": {
       "text": "Milestone: Full Function Ready by October 31.​\n\nRisk: If Full Function Ready is delayed beyond October 31, the Pretest completion schedule will slip day by day (Day-for-Day Slip).​\n\nKey Blockers: Audio, Premium Audio, Enhanced Siri, Cold Boot,knob and ecall etc.​\\",
