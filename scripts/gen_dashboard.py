@@ -530,7 +530,24 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   }
   .gantt-tick { position: absolute; top: 9px; width: 7px; height: 7px; transform: rotate(45deg);
                 background: var(--good); border-radius: 1px; }
-  .gantt-today { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--critical); opacity: .55; z-index: 1; }
+  /* A week column is 13px, so a day is under 2px: the line being in the right place is
+     not the same as the line looking like it is in the right place. The tinted column
+     gives it something to be partway across, and the chip says the date outright. */
+  .gantt-nowcol { position: absolute; top: 0; bottom: 0; background: var(--critical);
+                  opacity: .08; z-index: 0; pointer-events: none; }
+  /* The same wash disappears against a near-black surface, so dark mode gets its own. */
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .gantt-nowcol { opacity: .20; }
+  }
+  :root[data-theme="dark"] .gantt-nowcol { opacity: .20; }
+  .gantt-today { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--critical);
+                 opacity: .75; z-index: 4; pointer-events: none; }
+  .gantt-today .gt-chip {
+    position: absolute; top: 31px; left: -1px; transform: translateX(-50%);
+    font-size: 9px; line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums;
+    color: #fff; background: var(--critical); border-radius: 7px; padding: 2px 5px;
+    white-space: nowrap; pointer-events: auto;
+  }
   .gantt-row.gantt-group { height: 22px; }
   .gantt-row.gantt-group .gantt-name {
     font-weight: 600; color: var(--text-primary); line-height: 22px;
@@ -538,10 +555,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   }
   .gantt-name { padding-left: 10px; }
   .gantt-row:not(.gantt-group):not(.gantt-head) .gantt-name { padding-left: 20px; }
-  .gantt-row.gantt-head { height: 34px; }
+  .gantt-row.gantt-head { height: 48px; }
   .gantt-head { display: flex; position: sticky; top: 0; z-index: 3; background: var(--surface-1);
                 border-bottom: 1px solid var(--border); }
-  .gantt-head .gantt-name { line-height: 34px; }
+  .gantt-head .gantt-name { line-height: 48px; }
   .gantt-head .lbl { position: absolute; top: 2px; white-space: nowrap; line-height: 1.25;
                      font-variant-numeric: tabular-nums; padding-left: 2px;
                      border-left: 1px solid var(--grid); }
@@ -9254,9 +9271,13 @@ function schGanttHtml(tasks) {
   const grid = [];
   for (let i = 0; i < nW; i += 4) grid.push(`<div class="gantt-grid" style="left:${i * SCH_WEEK_PX}px"></div>`);
   const nowFrac = schNowFrac();
+  const now = new Date();
+  const nowChip = `${now.getMonth() + 1}/${now.getDate()}`;
+  const nowTitle = t('sch_today', now.toISOString().slice(0, 10));
   const todayLine = (nowFrac >= 0 && nowFrac < nW)
-    ? `<div class="gantt-today" style="left:${(nowFrac * SCH_WEEK_PX + SCH_NAME_PX).toFixed(1)}px"` +
-      ` title="${esc(t('sch_today', new Date().toISOString().slice(0, 10)))}"></div>` : '';
+    ? `<div class="gantt-nowcol" style="left:${cur * SCH_WEEK_PX + SCH_NAME_PX}px; width:${SCH_WEEK_PX}px"></div>` +
+      `<div class="gantt-today" style="left:${(nowFrac * SCH_WEEK_PX + SCH_NAME_PX).toFixed(1)}px"` +
+      ` title="${esc(nowTitle)}"><span class="gt-chip">${esc(nowChip)}</span></div>` : '';
 
   // Several tasks appear once per certification round under the same name — CarPlay
   // runs "Pre-Test" in both Certification(1st) and (2nd) — so the name column alone is
