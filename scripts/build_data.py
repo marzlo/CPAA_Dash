@@ -461,7 +461,7 @@ AUDIO_EXTRA_SRC = os.environ.get("AUDIO_EXTRA_CSV_PATH", "audio_extra_export.csv
 # Their team cannot be read off the assignee map: these are Harman's as a party, whoever
 # the NR1LB board happens to have assigned. A key with no entry here falls back to the
 # assignee map and is reported below, so a silent "Unknown" is not how you find out.
-AUDIO_EXTRA_TEAM = {"NR1LB-139": "Harman", "NR1LB-195": "Harman"}
+AUDIO_EXTRA_TEAM = {"NR1LB-139": "Harman", "NR1LB-195": "Harman", "NR1LB-215": "Harman"}
 
 try:
     x_header, x_rows = read_jira_csv(AUDIO_EXTRA_SRC)
@@ -510,6 +510,7 @@ for r, adopted in [(x, False) for x in data] + [(x, True) for x in audio_extra_d
         # two values that loop computes, from the same assignee and the same column.
         "team": AUDIO_EXTRA_TEAM.get(r[IDX_KEY]) or team_of(assignee_name),
         "priority": (r[IDX_PRIORITY] if IDX_PRIORITY is not None else None) or "未標示",
+        "created": created_iso(r[IDX_CREATED]) if IDX_CREATED is not None else None,
         "adopted": adopted,
         "done": cat == "done",
         "hasR2": "ASW-R2" in labels,

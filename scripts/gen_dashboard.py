@@ -1575,10 +1575,17 @@ const STRINGS = {
   ac_heading: { zh: 'Audio 處理中 Bug:依分類', en: 'Audio bugs in flight, by category' },
   ac_team_all: { zh: n => `全部 Team (${n})`, en: n => `All teams (${n})` },
   ac_jump_hint: { zh: '跳到下面的清單,只看這個分類', en: 'Jump to the list below, filtered to this category' },
-  ac_status_active: { zh: '處理中 (Blocked / To Do / In Progress / Reopen)', en: 'In flight (Blocked / To Do / In Progress / Reopen)' },
+  cb_copy: { zh: '複製(貼到 Cert Bench)', en: 'Copy for Cert Bench' },
+  cb_csv: { zh: '下載 CSV', en: 'Download CSV' },
+  cb_hint: { zh: '把目前篩選出來的票複製成 Certification Bench Validation「APQM bug」頁籤的 A–E 欄(Title / Summary / Status / Open Date / Close Date)。只有這五欄,貼在 A 欄不會動到後面手填的 DT/HDCC、Supplier ID 等欄位。',
+             en: 'Copies the tickets now showing as columns A–E of the Certification Bench Validation "APQM bug" sheet (Title / Summary / Status / Open Date / Close Date). Those five only — pasting at column A cannot reach the hand-filled DT/HDCC, Supplier ID and the rest.' },
+  cb_copied: { zh: n => `已複製 ${n} 列`, en: n => `Copied ${n} row${n === 1 ? '' : 's'}` },
+  cb_copy_failed: { zh: '複製失敗,請用下載 CSV', en: 'Copy failed — use Download CSV' },
+  cb_empty: { zh: '目前篩選沒有任何票', en: 'Nothing in the current filter' },
+  ac_status_active: { zh: '處理中 (Blocked / To Do / Opened / In Progress / Reopen)', en: 'In flight (Blocked / To Do / Opened / In Progress / Reopen)' },
   audio_status_all: { zh: '全部狀態', en: 'All statuses' },
-  ac_caption: { zh: (n, u, x) => `${n} 張處理中的 Audio Bug(只算 Blocked / To Do / In Progress / Reopen,另外 ${x} 張在 Eng build、Ready for test 等狀態不列入),其中 ${u} 張還沒分類。每個分類一個區塊,票上的色塊是 Priority(深=高)、後面是負責的 Team;點票開 Jira,點分類右邊的數字會跳到下面的清單。`,
-                en: (n, u, x) => `${n} Audio bugs in flight (Blocked / To Do / In Progress / Reopen only; ${x} more sit in Eng build, Ready for test and the like and are left out), ${u} of them still unclassified. One block per category; each ticket carries a priority swatch (darker is higher) and the team that owns it. Click a ticket to open Jira, or the count beside a category to jump to the list below.` },
+  ac_caption: { zh: (n, u, x) => `${n} 張處理中的 Audio Bug(只算 Blocked / To Do / Opened / In Progress / Reopen,另外 ${x} 張在 Eng build、Ready for test 等狀態不列入),其中 ${u} 張還沒分類。每個分類一個區塊,票上的色塊是 Priority(深=高)、後面是負責的 Team;點票開 Jira,點分類右邊的數字會跳到下面的清單。`,
+                en: (n, u, x) => `${n} Audio bugs in flight (Blocked / To Do / Opened / In Progress / Reopen only; ${x} more sit in Eng build, Ready for test and the like and are left out), ${u} of them still unclassified. One block per category; each ticket carries a priority swatch (darker is higher) and the team that owns it. Click a ticket to open Jira, or the count beside a category to jump to the list below.` },
   ac_total: { zh: '總計', en: 'Total' },
   ac_reorder_hint: { zh: '拖曳分類標題可調整順序,或先點標題再用 ← → 移動(只影響你自己的瀏覽器,重新整理後仍會記得)', en: 'Drag a category heading to reorder, or focus one and move it with ← → (saved in your own browser only)' },
   ac_reset_order: { zh: '重設分類順序', en: 'Reset category order' },
@@ -5163,7 +5170,9 @@ let acTeam = '';
 // wider net — it also holds Eng build and Ready for test, which are waiting on a build
 // or on verification rather than on someone picking them up — so those are left out
 // here. Matched case-insensitively, so a Jira rename to "In progress" still lands.
-const AC_STATUSES = ['Blocked', 'To Do', 'In Progress', 'Reopen'];
+// 'Opened' is the NR1LB board's name for To Do (Jira puts both in the To Do category),
+// so leaving it out would hide a ticket that is very much in flight.
+const AC_STATUSES = ['Blocked', 'To Do', 'Opened', 'In Progress', 'Reopen'];
 const AC_STATUS_SET = new Set(AC_STATUSES.map(x => x.toLowerCase()));
 const acInFlight = r => AC_STATUS_SET.has(String(r.status || '').trim().toLowerCase());
 
@@ -7404,6 +7413,8 @@ function renderAudioPanel() {
           ${acOptions().map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('')}
         </select>
         <input type="text" id="audioSearch" placeholder="${esc(t('search_placeholder'))}">
+        <button type="button" class="btn small" id="cbCopyBtn" title="${esc(t('cb_hint'))}">${esc(t('cb_copy'))}</button>
+        <button type="button" class="btn small" id="cbCsvBtn" title="${esc(t('cb_hint'))}">${esc(t('cb_csv'))}</button>
       </div>
       <div class="table-wrap">
         <table>
@@ -7426,6 +7437,7 @@ function renderAudioPanel() {
   const tbody = document.getElementById('audioTbody');
   const chipRow = document.getElementById('audioAssigneeChips');
   let selectedAssignee = '';
+  let shownRows = [];       // what the table is showing right now — what the export exports
 
   const AUDIO_NOT_DONE = AUDIO.filter(r => !r.done);
 
@@ -7471,6 +7483,7 @@ function renderAudioPanel() {
     else if (catSel.value) rows = rows.filter(r => acOf(r.key) === catSel.value);
     const q = search.value.toLowerCase();
     if (q) rows = rows.filter(r => r.key.toLowerCase().includes(q) || r.summary.toLowerCase().includes(q));
+    shownRows = rows;
     document.getElementById('audioCaption').textContent = t('audio_caption', rows.length, AUDIO_NOT_DONE.length);
 
     if (!rows.length) {
@@ -7499,6 +7512,73 @@ function renderAudioPanel() {
       return `<tr><td colspan="7" class="group-header">${esc(t('audio_group_header_row', a, grp.length))}</td></tr>` + grp.map(rowHtml).join('');
     }).join('');
   }
+
+  // --- Export in the Certification Bench Validation workbook's own column shape ---
+  // Columns A–E only, on purpose: F onwards in that sheet (DT/HDCC, VF/226/376,
+  // Supplier ID, Supplier Root Cause Analysis, Fix Version) is maintained by hand, and a
+  // paste block that does not contain those columns cannot overwrite them.
+  const CB_HEAD = ['Title', 'Summary', 'Status', 'Open Date', 'Close Date'];
+  const CB_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  function cbDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return isNaN(d) ? '' : `${d.getDate()}-${CB_MON[d.getMonth()]}`;   // the sheet's own 8-Oct
+  }
+
+  // Close Date is left blank rather than guessed: the Audio record carries no resolution
+  // date, and writing today's date into it would be a fact nobody established.
+  const cbRows = () => shownRows.map(r => [r.key, r.summary || '', r.status || '', cbDate(r.created), '']);
+
+  const cbCell = c => String(c == null ? '' : c).replace(/[\t\r\n]+/g, ' ');
+  // Tabs only, no header: this is pasted onto existing rows, where a header line would
+  // land in the data. Newlines inside a cell are flattened so one ticket is one row.
+  const cbTsv = () => cbRows().map(row => row.map(cbCell).join('\t')).join('\n');
+  const cbCsv = () => '\ufeff' + [CB_HEAD, ...cbRows()]
+    .map(row => row.map(c => `"${cbCell(c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+
+  function cbFlash(btn, msg) {
+    const was = btn.dataset.cbLabel || btn.textContent;
+    btn.dataset.cbLabel = was;
+    btn.textContent = msg;
+    clearTimeout(btn._cbT);
+    btn._cbT = setTimeout(() => { btn.textContent = btn.dataset.cbLabel; }, 2200);
+  }
+
+  document.getElementById('cbCopyBtn').addEventListener('click', async e => {
+    const btn = e.currentTarget;
+    if (!shownRows.length) { cbFlash(btn, t('cb_empty')); return; }
+    const text = cbTsv();
+    let ok = false;
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (err) { ok = false; }
+    if (!ok) {
+      // No clipboard API (an older browser, or the page served over http) — fall back.
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
+      ta.remove();
+    }
+    cbFlash(btn, ok ? t('cb_copied', shownRows.length) : t('cb_copy_failed'));
+  });
+
+  document.getElementById('cbCsvBtn').addEventListener('click', e => {
+    const btn = e.currentTarget;
+    if (!shownRows.length) { cbFlash(btn, t('cb_empty')); return; }
+    const tag = (catSel.value === '__none__' ? 'unclassified' : catSel.value) || 'all';
+    const name = `cert_bench_${tag.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'all'}` +
+                 `_${new Date().toISOString().slice(0, 10)}.csv`;
+    const url = URL.createObjectURL(new Blob([cbCsv()], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
 
   renderChips();
   [groupSel, catSel, statusSel].forEach(el => el.addEventListener('change', renderAudioTable));
