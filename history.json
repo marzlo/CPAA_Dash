@@ -3811,12 +3811,12 @@
  "2026-10-24": {
   "bugs": {
    "done": 286,
-   "total": 381
+   "total": 384
   },
   "bugs_by_rca": {
    "empty": {
     "done": 163,
-    "total": 245
+    "total": 248
    },
    "filled": {
     "done": 123,
@@ -3866,7 +3866,7 @@
    },
    "To Do": {
     "done": 0,
-    "total": 16
+    "total": 19
    }
   },
   "bugs_by_team": {
@@ -3892,15 +3892,11 @@
    },
    "TS_CPAA": {
     "done": 205,
-    "total": 230
+    "total": 234
    },
    "TS_FW": {
     "done": 28,
     "total": 32
-   },
-   "Unassigned": {
-    "done": 0,
-    "total": 1
    },
    "Unknown": {
     "done": 3,
