@@ -4199,7 +4199,7 @@
   "bugs_by_team": {
    "MDI_System": {
     "done": 3,
-    "total": 27
+    "total": 28
    },
    "MDT_App": {
     "done": 11,
@@ -4215,7 +4215,7 @@
    },
    "MDT_System": {
     "done": 0,
-    "total": 7
+    "total": 6
    },
    "TS_CPAA": {
     "done": 210,
