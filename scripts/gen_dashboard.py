@@ -790,6 +790,16 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     background: var(--grid); color: var(--text-secondary);
   }
   .cmp-sub { font-size: 12px; font-weight: 600; color: var(--muted); margin: 10px 0 6px; }
+  .cmp-group {
+    display: flex; align-items: center; gap: 8px; margin: 18px 0 8px; font-size: 13px;
+    font-weight: 700; color: var(--text-primary);
+  }
+  .cmp-group:first-child { margin-top: 2px; }
+  .cmp-group .n {
+    font-size: 11px; font-weight: 600; color: var(--muted); background: var(--page);
+    border: 1px solid var(--border); border-radius: 999px; padding: 1px 8px;
+    font-variant-numeric: tabular-nums;
+  }
   .cmp-rel { font-size: 12px; color: var(--muted); white-space: nowrap; }
   .cmp-rel.blocking { color: var(--good); font-weight: 600; }
   /* The ✎ that re-files an assignee into another team. Quiet until the row is hovered,
@@ -5041,7 +5051,7 @@ function renderComparePanel() {
                (x.sub ? `<div class="sub">${esc(x.sub)}</div>` : '') + `</div>`).join('');
 
     const shown = unmatchedOnly.checked ? rows.filter(r => !r.linked && !r.matches.length) : rows;
-    listEl.innerHTML = shown.map(r => {
+    const cardHtml = r => {
       const w = r.watch;
       // Links are worth seeing even when they don't suppress the comparison — a
       // "relates to" is the context you need to judge whether a match is new.
@@ -5095,7 +5105,23 @@ function renderComparePanel() {
           ${linksHtml}
           ${matchesHtml}
         </section>`;
-    }).join('');
+    };
+
+    // The watchlist spans two Jira projects and they are read differently — NR1L is the
+    // customer-facing board, NR1LT the integration one — so they are kept apart rather
+    // than interleaved by whatever order the export happened to come in. Grouping is on
+    // the key's own project prefix, so a third project would appear on its own without
+    // anyone touching this.
+    const groups = [];
+    shown.forEach(r => {
+      const proj = String(r.watch.key).split('-')[0] || '—';
+      const g = groups.find(x => x.proj === proj) || (groups.push({ proj, rows: [] }), groups[groups.length - 1]);
+      g.rows.push(r);
+    });
+    groups.sort((a, b) => a.proj.localeCompare(b.proj));
+    listEl.innerHTML = groups.map(g =>
+      `<h3 class="cmp-group">${esc(g.proj)}<span class="n">${g.rows.length}</span></h3>` +
+      g.rows.map(cardHtml).join('')).join('');
   }
 
   [thrSel, topSel, unmatchedOnly, linkedMatches].forEach(el => el.addEventListener('change', draw));
