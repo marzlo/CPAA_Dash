@@ -568,7 +568,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .gantt-today { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--critical);
                  opacity: .75; z-index: 4; pointer-events: none; }
   .gantt-today .gt-chip {
-    position: absolute; top: 31px; left: -1px; transform: translateX(-50%);
+    /* The line is 2px wide, so its middle is at +1px; translateX(-50%) from there
+       centres the chip on the line rather than on its left edge. */
+    position: absolute; top: 31px; left: 1px; transform: translateX(-50%);
     font-size: 9px; line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums;
     color: #fff; background: var(--critical); border-radius: 7px; padding: 2px 5px;
     white-space: nowrap; pointer-events: auto;
@@ -1668,10 +1670,10 @@ const STRINGS = {
   cb_copied: { zh: n => `已複製 ${n} 列`, en: n => `Copied ${n} row${n === 1 ? '' : 's'}` },
   cb_copy_failed: { zh: '複製失敗,請用下載 CSV', en: 'Copy failed — use Download CSV' },
   cb_empty: { zh: '目前篩選沒有任何票', en: 'Nothing in the current filter' },
-  ac_status_active: { zh: '處理中 (Blocked / To Do / Opened / In Progress / Reopen)', en: 'In flight (Blocked / To Do / Opened / In Progress / Reopen)' },
+  ac_status_active: { zh: '處理中 (不含 Eng build / Ready for test / Ready for integration / Monitoring)', en: 'In flight (excludes Eng build / Ready for test / Ready for integration / Monitoring)' },
   audio_status_all: { zh: '全部狀態', en: 'All statuses' },
-  ac_caption: { zh: (n, u, x) => `${n} 張處理中的 Audio Bug(只算 Blocked / To Do / Opened / In Progress / Reopen,另外 ${x} 張在 Eng build、Ready for test 等狀態不列入),其中 ${u} 張還沒分類。每個分類一個區塊,票上的色塊是 Priority(深=高)、後面是負責的 Team;點票開 Jira,點分類右邊的數字會跳到下面的清單。`,
-                en: (n, u, x) => `${n} Audio bugs in flight (Blocked / To Do / Opened / In Progress / Reopen only; ${x} more sit in Eng build, Ready for test and the like and are left out), ${u} of them still unclassified. One block per category; each ticket carries a priority swatch (darker is higher) and the team that owns it. Click a ticket to open Jira, or the count beside a category to jump to the list below.` },
+  ac_caption: { zh: (n, u, x) => `${n} 張處理中的 Audio Bug(另外 ${x} 張在 Eng build / Ready for test / Ready for integration / Monitoring,等建置或驗證,不列入),其中 ${u} 張還沒分類。每個分類一個區塊,票上的色塊是 Priority(深=高)、後面是負責的 Team;點票開 Jira,點分類右邊的數字會跳到下面的清單。`,
+                en: (n, u, x) => `${n} Audio bugs in flight (${x} more are parked in Eng build, Ready for test, Ready for integration or Monitoring, waiting on a build or on verification, and are left out), ${u} of them still unclassified. One block per category; each ticket carries a priority swatch (darker is higher) and the team that owns it. Click a ticket to open Jira, or the count beside a category to jump to the list below.` },
   ac_total: { zh: '總計', en: 'Total' },
   ac_reorder_hint: { zh: '拖曳分類標題可調整順序,或先點標題再用 ← → 移動(只影響你自己的瀏覽器,重新整理後仍會記得)', en: 'Drag a category heading to reorder, or focus one and move it with ← → (saved in your own browser only)' },
   ac_reset_order: { zh: '重設分類順序', en: 'Reset category order' },
@@ -5311,14 +5313,18 @@ function clearAcColMarkers(host) {
 let acTeam = '';
 
 // The cross-tab counts the work actually in flight. "Not done" on the Audio tab is a
-// wider net — it also holds Eng build and Ready for test, which are waiting on a build
-// or on verification rather than on someone picking them up — so those are left out
-// here. Matched case-insensitively, so a Jira rename to "In progress" still lands.
-// 'Opened' is the NR1LB board's name for To Do (Jira puts both in the To Do category),
-// so leaving it out would hide a ticket that is very much in flight.
-const AC_STATUSES = ['Blocked', 'To Do', 'Opened', 'In Progress', 'Reopen'];
-const AC_STATUS_SET = new Set(AC_STATUSES.map(x => x.toLowerCase()));
-const acInFlight = r => AC_STATUS_SET.has(String(r.status || '').trim().toLowerCase());
+// wider net — it also holds the statuses below, which are waiting on a build or on
+// verification rather than on a person — so those are named and left out.
+//
+// This is a deny-list on purpose. It used to be an allow-list of the five statuses
+// people actually used, and every status outside it silently removed tickets from the
+// card: 'Opened' on the NR1LB board, then 'Need info' when NR1LT-6837 moved to it. A
+// ticket vanishing from a tracking board is a much worse failure than one extra ticket
+// appearing, so an unrecognised status now counts as in flight and is visible.
+const AC_PARKED = ['Eng build', 'Ready for test', 'Ready for integration', 'Monitoring'];
+const AC_PARKED_SET = new Set(AC_PARKED.map(x => x.toLowerCase()));
+// Matched case-insensitively, so a Jira rename to "Eng Build" still parks it.
+const acInFlight = r => !AC_PARKED_SET.has(String(r.status || '').trim().toLowerCase());
 
 // Priority, highest first, as one stepped hue — an ordered scale, not categories.
 const AC_PRI = [
