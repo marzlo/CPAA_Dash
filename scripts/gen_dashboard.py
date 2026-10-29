@@ -1979,6 +1979,7 @@ const STRINGS = {
   label_bucket_none: { zh: '三者皆無', en: 'None of the above' },
   all_subfeature: { zh: '全部 Sub-feature', en: 'All Sub-features' },
   all_assignee: { zh: '全部 Assignee', en: 'All Assignees' },
+  all_team: { zh: '全部 Team', en: 'All teams' },
   all_severity: { zh: '全部 Severity', en: 'All Severities' },
   all_priority: { zh: '全部 Priority', en: 'All Priorities' },
   all_group: { zh: '全部分類', en: 'All Categories' },
@@ -2382,6 +2383,7 @@ function jumpToBugFromStats(ageBucketKey, priority) {
   const set = (id, value) => { const el = document.getElementById(id); if (el) el.value = value; };
   set('bugFeatureFilter', '');
   set('bugSubFeatureFilter', '');
+  set('bugTeamFilter', '');
   set('bugAssigneeFilter', '');
   set('bugSeverityFilter', '');
   set('bugSearch', '');
@@ -2401,6 +2403,9 @@ function jumpToBugAssigneeFromStats(assignee) {
   if (bugTabBtn) bugTabBtn.click();
   const assigneeSel = document.getElementById('bugAssigneeFilter');
   const statusSel = document.getElementById('bugStatusFilter');
+  const teamSel = document.getElementById('bugTeamFilter');
+  // A leftover team filter would silently hide part of the assignee we just jumped to.
+  if (teamSel) teamSel.value = '';
   if (assigneeSel) { assigneeSel.value = assignee || ''; assigneeSel.dispatchEvent(new Event('change')); }
   if (statusSel) { statusSel.value = 'not-done'; statusSel.dispatchEvent(new Event('change')); }
   document.getElementById('bugTbody').closest('section.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -7088,6 +7093,9 @@ function renderBugPanel() {
         <select id="bugSubFeatureFilter">
           <option value="">${esc(t('all_subfeature'))}</option>
         </select>
+        <select id="bugTeamFilter">
+          <option value="">${esc(t('all_team'))}</option>
+        </select>
         <select id="bugAssigneeFilter">
           <option value="">${esc(t('all_assignee'))}</option>
         </select>
@@ -7126,6 +7134,7 @@ function renderBugPanel() {
   const featureSel = document.getElementById('bugFeatureFilter');
   const statusSel = document.getElementById('bugStatusFilter');
   const subFeatureSel = document.getElementById('bugSubFeatureFilter');
+  const teamSel = document.getElementById('bugTeamFilter');
   const assigneeSel = document.getElementById('bugAssigneeFilter');
   const severitySel = document.getElementById('bugSeverityFilter');
   const prioritySel = document.getElementById('bugPriorityFilter');
@@ -7140,6 +7149,19 @@ function renderBugPanel() {
     opt.textContent = name;
     assigneeSel.appendChild(opt);
   });
+
+  // Busiest team first, with its count: scanning this list is usually a search for
+  // where the open bugs are sitting, not for a particular name.
+  (function populateBugTeamFilter() {
+    const n = {};
+    BUGS.forEach(r => { n[r.team] = (n[r.team] || 0) + 1; });
+    Object.keys(n).sort((a, b) => n[b] - n[a] || a.localeCompare(b)).forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = `${name} (${n[name]})`;
+      teamSel.appendChild(opt);
+    });
+  })();
 
   SEVERITY_ORDER.filter(s => BUGS.some(r => r.severity === s)).forEach(name => {
     const opt = document.createElement('option');
@@ -7188,6 +7210,7 @@ function renderBugPanel() {
     if (statusSel.value === 'done') rows = rows.filter(r => r.done);
     if (statusSel.value === 'not-done') rows = rows.filter(r => !r.done);
     if (subFeatureSel.value) rows = rows.filter(r => r.subFeature === subFeatureSel.value);
+    if (teamSel.value) rows = rows.filter(r => r.team === teamSel.value);
     if (assigneeSel.value) rows = rows.filter(r => r.assignee === assigneeSel.value);
     if (severitySel.value) rows = rows.filter(r => r.severity === severitySel.value);
     if (prioritySel.value) rows = rows.filter(r => r.priority === prioritySel.value);
@@ -7285,7 +7308,7 @@ function renderBugPanel() {
       bugCmtStatus(key, t('bug_comment_saved'));
     }
   });
-  [featureSel, statusSel, subFeatureSel, assigneeSel, severitySel, prioritySel, ageSel, commentedOnly]
+  [featureSel, statusSel, subFeatureSel, teamSel, assigneeSel, severitySel, prioritySel, ageSel, commentedOnly]
     .forEach(el => el.addEventListener('change', renderBugTable));
   search.addEventListener('input', renderBugTable);
   attachSortHandlers(tbody.closest('table').querySelector('thead'), bugSortState, renderBugTable);
