@@ -141,6 +141,9 @@ TEAM_MAP = {
     # after an export turned up without the Chinese name and dropped them into Unknown.
     'AndreaHuang(黃麗蓉)': 'MDT_System',
     'AndreaHuang': 'MDT_System',
+
+    # Added per user confirmation (2026-10-29).
+    'Srikant Lal Khatri': 'MDI_System',
 }
 
 # Per-assignee team corrections made from the dashboard itself and committed back to
