@@ -4371,7 +4371,7 @@
   "bugs_by_status": {
    "Blocked": {
     "done": 0,
-    "total": 39
+    "total": 38
    },
    "Done": {
     "done": 264,
@@ -4383,7 +4383,7 @@
    },
    "In Progress": {
     "done": 0,
-    "total": 41
+    "total": 42
    },
    "Monitoring": {
     "done": 3,
@@ -4417,7 +4417,7 @@
   "bugs_by_team": {
    "MDI_System": {
     "done": 1,
-    "total": 28
+    "total": 27
    },
    "MDT_App": {
     "done": 15,
@@ -4437,7 +4437,7 @@
    },
    "TS_CPAA": {
     "done": 226,
-    "total": 258
+    "total": 259
    },
    "TS_FW": {
     "done": 29,
