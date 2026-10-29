@@ -4374,8 +4374,8 @@
     "total": 38
    },
    "Done": {
-    "done": 266,
-    "total": 266
+    "done": 267,
+    "total": 267
    },
    "Eng build": {
     "done": 6,
@@ -4402,8 +4402,8 @@
     "total": 20
    },
    "Ready for test": {
-    "done": 5,
-    "total": 5
+    "done": 4,
+    "total": 4
    },
    "Reopen": {
     "done": 0,
@@ -4417,7 +4417,7 @@
   "bugs_by_team": {
    "MDI_System": {
     "done": 1,
-    "total": 26
+    "total": 25
    },
    "MDT_App": {
     "done": 12,
@@ -4433,7 +4433,7 @@
    },
    "MDT_System": {
     "done": 1,
-    "total": 13
+    "total": 14
    },
    "TS_CPAA": {
     "done": 228,
