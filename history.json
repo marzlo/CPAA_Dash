@@ -4371,7 +4371,7 @@
   "bugs_by_status": {
    "Blocked": {
     "done": 0,
-    "total": 38
+    "total": 39
    },
    "Done": {
     "done": 264,
@@ -4411,7 +4411,7 @@
    },
    "To Do": {
     "done": 0,
-    "total": 20
+    "total": 19
    }
   },
   "bugs_by_team": {
