@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-02T02:32:19.910Z",
+  "updated_at": "2026-11-02T02:34:57.148Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -348,6 +348,14 @@
         "text": "SCD",
         "by": "Leyo",
         "at": "2026-11-02T02:32:19.443Z"
+      }
+    ],
+    "NR1LT-6892": [
+      {
+        "id": "mvynbufuxrd5p",
+        "text": "Device正在運往台北",
+        "by": "Leyo",
+        "at": "2026-11-02T02:34:56.346Z"
       }
     ]
   }
