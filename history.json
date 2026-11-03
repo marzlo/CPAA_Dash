@@ -4900,7 +4900,7 @@
  },
  "2026-11-03": {
   "bugs": {
-   "done": 334,
+   "done": 333,
    "total": 430
   },
   "bugs_by_rca": {
@@ -4909,7 +4909,7 @@
     "total": 254
    },
    "filled": {
-    "done": 164,
+    "done": 163,
     "total": 176
    }
   },
@@ -4934,6 +4934,10 @@
     "done": 6,
     "total": 6
    },
+   "Need info": {
+    "done": 0,
+    "total": 1
+   },
    "Non-issue": {
     "done": 13,
     "total": 13
@@ -4943,16 +4947,16 @@
     "total": 14
    },
    "Ready for test": {
-    "done": 21,
-    "total": 21
+    "done": 20,
+    "total": 20
    },
    "Reopen": {
     "done": 0,
-    "total": 3
+    "total": 4
    },
    "To Do": {
     "done": 0,
-    "total": 12
+    "total": 11
    }
   },
   "bugs_by_team": {
@@ -4974,11 +4978,11 @@
    },
    "MDT_System": {
     "done": 1,
-    "total": 15
+    "total": 16
    },
    "TS_CPAA": {
-    "done": 248,
-    "total": 274
+    "done": 247,
+    "total": 272
    },
    "TS_FW": {
     "done": 28,
@@ -4986,16 +4990,16 @@
    },
    "Unknown": {
     "done": 6,
-    "total": 8
+    "total": 9
    }
   },
   "date": "2026-11-03",
   "swe2": {
-   "done": 321,
+   "done": 322,
    "total": 1145
   },
   "swe3": {
-   "done": 262,
+   "done": 263,
    "total": 301
   },
   "swe5": {
