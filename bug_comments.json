@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-02T02:34:57.148Z",
+  "updated_at": "2026-11-03T03:22:49.600Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -316,6 +316,12 @@
         "text": "Vincent也同時評估修正的時間",
         "by": "Leyo",
         "at": "2026-10-22T02:56:17.943Z"
+      },
+      {
+        "id": "mw04h9mmstmo8",
+        "text": "RAR ticket raised\nhttps://mobiledrivetech.atlassian.net/browse/NR1L-17012",
+        "by": "Leyo",
+        "at": "2026-11-03T03:22:48.958Z"
       }
     ],
     "NR1LT-4182": [
