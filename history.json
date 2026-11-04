@@ -5006,5 +5006,114 @@
    "done": 94,
    "total": 117
   }
+ },
+ "2026-11-04": {
+  "bugs": {
+   "done": 335,
+   "total": 431
+  },
+  "bugs_by_rca": {
+   "empty": {
+    "done": 170,
+    "total": 249
+   },
+   "filled": {
+    "done": 165,
+    "total": 182
+   }
+  },
+  "bugs_by_status": {
+   "Blocked": {
+    "done": 0,
+    "total": 45
+   },
+   "Done": {
+    "done": 286,
+    "total": 286
+   },
+   "Eng build": {
+    "done": 6,
+    "total": 6
+   },
+   "In Progress": {
+    "done": 0,
+    "total": 32
+   },
+   "Monitoring": {
+    "done": 8,
+    "total": 8
+   },
+   "Need info": {
+    "done": 0,
+    "total": 2
+   },
+   "Non-issue": {
+    "done": 13,
+    "total": 13
+   },
+   "Ready for integration": {
+    "done": 14,
+    "total": 14
+   },
+   "Ready for test": {
+    "done": 8,
+    "total": 8
+   },
+   "Reopen": {
+    "done": 0,
+    "total": 7
+   },
+   "To Do": {
+    "done": 0,
+    "total": 10
+   }
+  },
+  "bugs_by_team": {
+   "MDI_System": {
+    "done": 3,
+    "total": 24
+   },
+   "MDT_App": {
+    "done": 15,
+    "total": 30
+   },
+   "MDT_PM": {
+    "done": 33,
+    "total": 48
+   },
+   "MDT_Sys_QA": {
+    "done": 2,
+    "total": 2
+   },
+   "MDT_System": {
+    "done": 1,
+    "total": 13
+   },
+   "TS_CPAA": {
+    "done": 246,
+    "total": 274
+   },
+   "TS_FW": {
+    "done": 28,
+    "total": 30
+   },
+   "Unknown": {
+    "done": 7,
+    "total": 10
+   }
+  },
+  "date": "2026-11-04",
+  "swe2": {
+   "done": 336,
+   "total": 1145
+  },
+  "swe3": {
+   "done": 263,
+   "total": 301
+  },
+  "swe5": {
+   "done": 94,
+   "total": 117
+  }
  }
 }
