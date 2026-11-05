@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-05T02:43:15.013Z",
+  "updated_at": "2026-11-05T02:45:00.322Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -376,6 +376,14 @@
         "text": "可能要找BCM的owner問",
         "by": "Leyo",
         "at": "2026-11-05T02:43:14.436Z"
+      }
+    ],
+    "NR1LT-6821": [
+      {
+        "id": "mw2y0c0xsydl6",
+        "text": "調整Flextech建議的配置字",
+        "by": "Leyo",
+        "at": "2026-11-05T02:44:59.745Z"
       }
     ]
   }
