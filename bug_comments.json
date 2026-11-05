@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-05T02:40:55.322Z",
+  "updated_at": "2026-11-05T02:43:15.013Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -370,6 +370,12 @@
         "text": "再去問Flex tech為什麼其他的bench不會有這個狀況",
         "by": "Leyo",
         "at": "2026-11-05T02:40:54.605Z"
+      },
+      {
+        "id": "mw2xy2roxcgf3",
+        "text": "可能要找BCM的owner問",
+        "by": "Leyo",
+        "at": "2026-11-05T02:43:14.436Z"
       }
     ]
   }
