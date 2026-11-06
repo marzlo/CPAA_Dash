@@ -5251,7 +5251,7 @@
    },
    "In Progress": {
     "done": 0,
-    "total": 32
+    "total": 33
    },
    "Monitoring": {
     "done": 2,
@@ -5271,7 +5271,7 @@
    },
    "Reopen": {
     "done": 0,
-    "total": 8
+    "total": 7
    },
    "To Do": {
     "done": 0,
@@ -5293,7 +5293,7 @@
    },
    "MDT_Sys_QA": {
     "done": 1,
-    "total": 1
+    "total": 2
    },
    "MDT_System": {
     "done": 1,
@@ -5301,7 +5301,7 @@
    },
    "TS_CPAA": {
     "done": 252,
-    "total": 277
+    "total": 276
    },
    "TS_FW": {
     "done": 28,
