@@ -117,7 +117,6 @@ TEAM_MAP = {
     # spelling of this same person that no ticket uses any more; it was corrected to
     # MDT_App too, so whichever spelling an export carries lands in the same team.
     'VincentCHWang(王志玄)': 'MDT_App',
-    'K M MOHAMMED HUSSAIN': 'MDT_App',
     'WennyWYLi': 'MDT_App',
 
     # Same people as two entries above, under the spelling Jira exports (the existing
@@ -144,6 +143,11 @@ TEAM_MAP = {
 
     # Added per user confirmation (2026-10-29).
     'Srikant Lal Khatri': 'MDI_System',
+
+    # Corrected per user confirmation (2026-11-09): filed as MDT_App since 2026-10-01,
+    # actually MDI_System. Listed here rather than up in the 10-01 block so the change
+    # of team is visible as a change.
+    'K M MOHAMMED HUSSAIN': 'MDI_System',
 }
 
 # Per-assignee team corrections made from the dashboard itself and committed back to
