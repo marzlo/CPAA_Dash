@@ -9191,6 +9191,22 @@ function schWeekLabel(i) {
   return `${d.getFullYear()}-W??`;
 }
 
+// A week number alone does not answer "by when" — 2026-W50 is a seven-day window. The
+// day is taken from the week's own Monday in SCHEDULE.weeks, not recomputed, so it
+// carries the anchor's correction of the workbook's year typos.
+function schWeekDate(i, end) {
+  const w = SCHEDULE.weeks[i];
+  const base = w ? new Date(w.date + 'T00:00:00')
+                 : new Date(new Date(SCHEDULE.anchor + 'T00:00:00').getTime() + i * 604800000);
+  const d = new Date(base.getTime() + (end ? 6 : 0) * 86400000);
+  return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// A span's start takes the Monday it starts on and its end the Sunday it runs to, so
+// the pair reads as the real dates. Putting the week's LAST day on the start would say
+// the task begins six days after its bar does.
+function schWeekLabelDated(i, end) { return `${schWeekLabel(i)} (${schWeekDate(i, end)})`; }
+
 // Absent from the notes means "nobody has said", which is where assume_done_before
 // applies; once the button is pressed either way the answer is explicit and the
 // assumption no longer has a vote.
@@ -9389,7 +9405,8 @@ function schRowHtml(task) {
   const st = schStatus(task);
   const state = schState(task);
   const n = schComments(task.id).length;
-  const marks = task.marks.map(m => `<b>${esc(m.text)}</b> ${esc(schWeekLabel(m.i))}`).join(' · ');
+  const marks = task.marks.map(m =>
+    `<b>${esc(m.text)}</b> ${esc(schWeekLabelDated(m.i, true))}`).join(' · ');
   return `<div class="sch-row is-${st.k}" data-sch-row="${esc(task.id)}">
     <div class="sch-head">
       <span class="sch-feat${task.feature === 'CarPlay' ? '' : ' aa'}">${esc(task.feature === 'CarPlay' ? 'CP' : 'AA')}</span>
@@ -9404,7 +9421,7 @@ function schRowHtml(task) {
         `<button type="button" class="sch-btn${st.blocked ? ' blocked' : ''}" data-sch-block="${esc(task.id)}">` +
         `${st.blocked ? '⛔ ' + esc(t('sch_unmark_blocked')) : esc(t('sch_mark_blocked'))}</button>`}
       <span class="sch-stat ${st.k}${st.blocked ? ' is-blocked' : ''}">${esc(schStatusText(st))}</span>
-      <span class="sch-when">${esc(t('sch_range', schWeekLabel(task.s), schWeekLabel(task.e)))}</span>
+      <span class="sch-when">${esc(t('sch_range', schWeekLabelDated(task.s, false), schWeekLabelDated(task.e, true)))}</span>
       <button type="button" class="cmt-btn${n ? ' has' : ''}" data-sch-cmt="${esc(task.id)}" title="${esc(t('bug_comment_col'))}">💬${n || ''}</button>
       ${state.done && state.at && !state.assumed
         ? `<span class="sch-phase">${esc(t('sch_done_by', state.by || '?', String(state.at).slice(0, 10)))}</span>` : ''}
@@ -9498,7 +9515,8 @@ function schGanttHtml(tasks) {
     const blocked = st.blocked
       ? `<div class="gantt-blocked" style="left:${task.s * SCH_WEEK_PX}px; ` +
         `width:${(task.e - task.s + 1) * SCH_WEEK_PX}px"></div>` : '';
-    const title = `${task.feature} · ${task.phase} · ${task.name}\n${t('sch_range', schWeekLabel(task.s), schWeekLabel(task.e))}\n${schStatusText(st)}`;
+    const title = `${task.feature} · ${task.phase} · ${task.name}\n` +
+      `${t('sch_range', schWeekLabelDated(task.s, false), schWeekLabelDated(task.e, true))}\n${schStatusText(st)}`;
     return `${header}<div class="gantt-row${task.id === schGanttSel ? ' sel' : ''}" title="${esc(title)}">
       <div class="gantt-name${st.k === 'done' ? ' done' : ''}" data-sch-pick="${esc(task.id)}"
            role="button" tabindex="0">${st.blocked
