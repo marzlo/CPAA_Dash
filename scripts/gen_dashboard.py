@@ -9560,18 +9560,36 @@ function schHideDone() {
 // scrollbar, and nothing inside the track is clickable, so a plain grab is safe.
 // Touch and trackpads keep their native scrolling: this only takes over a mouse drag.
 function schAttachGanttDrag(wrap, cur) {
-  if (schGanttScroll === null) {
-    // Centre the current week on the middle of the chart as it is seen, not on the
-    // middle of the track: the name column is pinned over the track's left 240px, so
-    // centring within the track left the line about 120px right of where it looks
-    // like the middle. Nudged right if the window is so narrow that the middle would
-    // put the line underneath the pinned names.
+  // Centre the current week on the middle of the chart as it is seen, not on the
+  // middle of the track: the name column is pinned over the track's left 240px, so
+  // centring within the track left the line about 120px right of where it looks
+  // like the middle. Nudged right if the window is so narrow that the middle would
+  // put the line underneath the pinned names.
+  //
+  // Returns false while the chart has no width yet. Anyone whose last view was the
+  // Gantt gets it built during startup, while #panel-Schedule is still display:none:
+  // there clientWidth is 0 and assigning scrollLeft is a silent no-op, so centring
+  // then both aimed at the wrong place AND stuck at 0 — which is what shipped.
+  const centre = () => {
+    if (!wrap.clientWidth) return false;
     const target = Math.max(SCH_NAME_PX + 40, wrap.clientWidth / 2);
     wrap.scrollLeft = Math.max(0, cur * SCH_WEEK_PX + SCH_NAME_PX - target);
+    schGanttScroll = wrap.scrollLeft;
+    return true;
+  };
+  if (schGanttScroll === null) {
+    // Still null on failure, so a later redraw centres too if the panel is shown
+    // before the observer fires.
+    if (!centre() && typeof ResizeObserver === 'function') {
+      const ro = new ResizeObserver(() => {
+        if (!wrap.isConnected || centre()) ro.disconnect();
+      });
+      ro.observe(wrap);
+    }
   } else {
     wrap.scrollLeft = schGanttScroll;
+    schGanttScroll = wrap.scrollLeft;
   }
-  schGanttScroll = wrap.scrollLeft;
   wrap.addEventListener('scroll', () => { schGanttScroll = wrap.scrollLeft; });
 
   // Capturing the pointer on pointerdown would retarget the click to the wrapper, and
