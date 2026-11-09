@@ -5620,7 +5620,7 @@
    },
    "MDT_System": {
     "done": 1,
-    "total": 8
+    "total": 9
    },
    "TS_CPAA": {
     "done": 261,
@@ -5628,7 +5628,7 @@
    },
    "TS_FW": {
     "done": 28,
-    "total": 33
+    "total": 32
    },
    "Unassigned": {
     "done": 0,
@@ -5641,7 +5641,7 @@
   },
   "date": "2026-11-09",
   "swe2": {
-   "done": 455,
+   "done": 458,
    "total": 1145
   },
   "swe3": {
