@@ -4166,6 +4166,106 @@ const AUDIO_GUIDE_HTML = `
 // collapsed by default — this card is reference material, not a daily number.
 const ISSUE_NOTES = [
   {
+    id: 'cerence-cr1-scope-gap',
+    date: '2026-11-09',
+    title: 'Cerence 合約漏算 Enhanced Siri 與第二次認證的 ITU-T,補一張 CR1 要 $75,100',
+    html: `
+      <p class="issue-lead">MDT(Mobile Drive Netherlands B.V.)與 Cerence 談 Stellantis R1 Low – Refresh
+      的 ECNR/SSE 合約時,SOW#1 漏掉兩塊:<b>Enhanced Siri(via Push-to-Talk)的調校與認證</b>,
+      以及<b>第二次認證(Launch 2)同樣需要完整 SSE 調校 + ITU-T 量測</b>,不是只把第一次的結果再送一次。
+      補回來就是 <code>CR1 to SOW#1</code>,追加 <b>$75,100 USD</b>(2026-07-16 起草,2026-10-07 定稿)。</p>
+
+      <h4>追加的錢花在哪</h4>
+      <div class="issue-table-wrap">
+        <table class="issue-table">
+          <thead><tr><th>Work Package</th><th>內容</th><th>費用</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>WP3</td>
+              <td><b>Launch 2 完整 SSE 調校 + CarPlay 認證</b>:BT-HF ITU-T P.1100/P.1110 量測與調校、
+              CarPlay USB+WiFi Tel P.1100 / P.1110 / SWB P.1120、FaceTime 主觀測試、
+              報告與參數交付、barge-in 錄音與訊號分析<span class="issue-chip stop">這一項就佔 86%</span></td>
+              <td>$64,300</td>
+            </tr>
+            <tr><td>WP1</td><td>Enhanced Siri(PTT)— Launch 1,內建擴大機</td><td>$3,600</td></tr>
+            <tr><td>WP2</td><td>Enhanced Siri(PTT)— Launch 1,外接擴大機</td><td>$3,600</td></tr>
+            <tr><td>WP4</td><td>Enhanced Siri(PTT)— Launch 2,內建擴大機</td><td>$3,600</td></tr>
+            <tr><td>合計</td><td>Enhanced Siri 三次共 $10,800;第二次認證 $64,300</td><td><b>$75,100</b></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p><b>比例本身就是教訓:</b>大家討論時盯著「Enhanced Siri 有沒有包含」,
+      但真正貴的是「第二次認證要重做一次完整調校與 ITU-T」—— 一條沒人提的假設,
+      價格是 Enhanced Siri 三次加起來的六倍。</p>
+
+      <h4>下次跟音訊供應商簽約,這幾條要逐條問到白紙黑字</h4>
+      <div class="issue-table-wrap">
+        <table class="issue-table">
+          <thead><tr><th>要問的</th><th>為什麼</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>認證幾次</td>
+              <td>launch 數 × 車型 × 擴大機配置,每一種組合都是<b>獨立一次調校</b>。
+              CR 2.6 明寫:additional vehicles 與 external amplifier variants 要分開調校(分開收費)</td>
+            </tr>
+            <tr>
+              <td>每次都含 ITU-T 嗎</td>
+              <td>第二次認證不是「重送報告」。P.1100 / P.1110 / P.1120 的量測與調校會整套再做一次</td>
+            </tr>
+            <tr>
+              <td>use case 逐條列</td>
+              <td>Enhanced Siri(PTT)、CarPlay Siri、Siri Eyes Free、Android Auto VR、FaceTime、
+              3rd Party VR、ECALL…<b>沒列進表格的就不在範圍</b>。Enhanced Siri 正是這樣掉出去的</td>
+            </tr>
+            <tr>
+              <td>語言數</td>
+              <td>Enhanced Siri 認證要做 VAD <b>9 種語言</b>、KWD <b>2 種</b>(en-US、es-ES)。
+              加拿大法語/墨西哥西語/英式英語/葡語雖然 R1 Low Refresh 有支援,但不在 Apple KWD 要求內 —— 語言數直接是成本</td>
+            </tr>
+            <tr>
+              <td>誰出車、誰付運費</td>
+              <td>調校地點是 Cerence 位於 Farmington Hills, Michigan 的 Car Lab,
+              <b>車輛運送與差旅由 MDT 負擔</b>;改到我方場地則場地與設備要符合其 checklist</td>
+            </tr>
+            <tr>
+              <td>前置通知要多久</td>
+              <td>同一份文件有兩種說法:2.4 與 6.3 TBC 寫<b>至少 3 個月</b>,M8 卻寫<b>至少 8 週</b>。
+              排 Launch 2 之前要先問哪一個算數<span class="issue-chip start">待確認</span></td>
+            </tr>
+            <tr>
+              <td>自己調可不可以</td>
+              <td>不行。2.4 最後一句:<b>車輛若非由 Cerence 調校與驗證,Cerence 不保證能通過 ITU-T</b>。
+              沒有「我們自己調完、請你出報告」這條便宜路</td>
+            </tr>
+            <tr>
+              <td>哪些明確不含</td>
+              <td>本 CR <b>不含 APQM 測試</b>(2.5);support <b>不含 update/upgrade</b>,
+              額外支援要<b>另開 SOW</b>(6.5);任何加項都要書面變更單(第 8 章)</td>
+            </tr>
+            <tr>
+              <td>測不過誰付錢</td>
+              <td>驗收期 3 週、最多 3 次修正循環;歸責於 Cerence 時重測免費,
+              且 7(h) 明文把 tuning / ITU-T / CarPlay 認證工作留在 7(g) 之下 —— 這條有爭取到,要留著當下次的範本</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>留這則的用意</h4>
+      <p>這跟下面那則「Enhanced Siri 當初在 SYS2 沒寫清楚」是<b>同一個源頭</b>:
+      Enhanced Siri 在需求階段沒被當成一個獨立項目,於是下游每一層都各付一次代價 ——
+      SYS2 要重拆三條需求、Harman 要開 CR、Cerence 這邊是 $75,100。
+      <b>需求階段少寫一行,合約階段是用錢補的。</b>
+      所以談約時的動作很單純:把 use case 清單、認證次數、每次的測試項目,
+      逼成一張表附在 SOW 裡,而不是寫在往來信件中。</p>
+
+      <p class="issue-lead">來源:<i>CR1 to SOW#1 Between Mobile Drive Netherlands B.V. and Cerence for
+      ECNR Software for Stellantis R1 Low - Refresh</i>(v0.5,2026-10-07,Cerence ID19917),
+      母約 MPSA 2026-05-06。</p>
+    `,
+  },
+  {
     id: 'esiri-sys2-underspecified',
     date: '2026-10-19',
     title: 'Enhanced Siri 當初在 SYS2 沒寫清楚,現在拆成三條新需求重談',
