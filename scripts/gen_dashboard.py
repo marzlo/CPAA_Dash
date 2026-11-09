@@ -9561,9 +9561,13 @@ function schHideDone() {
 // Touch and trackpads keep their native scrolling: this only takes over a mouse drag.
 function schAttachGanttDrag(wrap, cur) {
   if (schGanttScroll === null) {
-    // Centre the current week in the part of the viewport the pinned name column
-    // does not cover, so the chart opens on what is happening now.
-    wrap.scrollLeft = Math.max(0, cur * SCH_WEEK_PX - (wrap.clientWidth - SCH_NAME_PX) / 2);
+    // Centre the current week on the middle of the chart as it is seen, not on the
+    // middle of the track: the name column is pinned over the track's left 240px, so
+    // centring within the track left the line about 120px right of where it looks
+    // like the middle. Nudged right if the window is so narrow that the middle would
+    // put the line underneath the pinned names.
+    const target = Math.max(SCH_NAME_PX + 40, wrap.clientWidth / 2);
+    wrap.scrollLeft = Math.max(0, cur * SCH_WEEK_PX + SCH_NAME_PX - target);
   } else {
     wrap.scrollLeft = schGanttScroll;
   }
