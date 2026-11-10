@@ -329,6 +329,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .pt-remark { color: var(--text-secondary); font-size: 12px; }
   .pt-tile .sub { font-size: 11.5px; color: var(--muted); margin-top: 5px; }
   .pt-tile:focus-visible { outline: 2px solid var(--series-cp); outline-offset: 2px; }
+  .pt-lastcmt { margin-top: 5px; font-size: 12px; color: var(--text-secondary);
+                padding-left: 8px; border-left: 2px solid var(--series-cp); }
+  .pt-lastcmt .txt { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .pt-lastcmt .who, .pt-lastcmt-more { color: var(--muted); margin-left: 6px; font-size: 11.5px; white-space: nowrap; }
   .pt-trend details { margin-top: 12px; font-size: 12.5px; }
   .pt-trend summary { cursor: pointer; color: var(--text-secondary); }
   .pt-trend summary:hover { color: var(--text-primary); }
@@ -2338,6 +2342,7 @@ const STRINGS = {
   pt_th_jira: { zh: 'Jira 狀態', en: 'Jira status' },
   pt_th_executed: { zh: '已執行', en: 'Executed' },
   pt_open_bugs: { zh: '未解決 Bug', en: 'Open bugs' },
+  pt_cmt_more: { zh: n => `(還有 ${n} 則)`, en: n => `(+${n} more)` },
   pt_trend_heading: { zh: '未解決 Bug 每週趨勢', en: 'Open bugs, week by week' },
   pt_trend_caption: {
     zh: 'CP + AA 合計,兩邊都算的票只算一次;「未解決」的定義跟上面的 Open Bugs 卡片一樣。新開看 Jira 建立日期;淨關閉 = 週初未解決 + 新開 − 週末未解決,所以重開會抵掉關閉,重開比關的多的那週會畫在 0 以下。',
@@ -9081,6 +9086,20 @@ function ptPlatformBugs(id) {
   return ptAllBugs().filter(b => b.src.includes(id));
 }
 
+// The Pretest Bug list's column count — the comment thread row spans all of them.
+const PT_BUG_COLS = 7;
+
+// The newest comment on a ticket, one line under its summary, so a meeting can read the
+// latest word on every bug without opening each thread. The full thread is behind 💬.
+function ptLatestComment(key) {
+  const list = bugComments(key);
+  if (!list.length) return '';
+  const c = list[list.length - 1];
+  const more = list.length > 1 ? ` <span class="pt-lastcmt-more">${esc(t('pt_cmt_more', list.length - 1))}</span>` : '';
+  return `<div class="pt-lastcmt"><span class="txt">${esc(c.text)}</span>` +
+         `<span class="who">— ${esc(c.by || '?')} · ${esc((c.at || '').slice(0, 10))}</span>${more}</div>`;
+}
+
 // --- Pretest open bugs, week by week -------------------------------------------------
 // One row per ISO week (Monday start, Taipei dates). Three numbers per week:
 //   opened — tickets in today's Pretest list whose Jira created date falls in the week;
@@ -9435,7 +9454,7 @@ function renderPretestPanel() {
   const head = document.getElementById('ptListHead');
   const body = document.getElementById('ptListBody');
   const caption = document.getElementById('ptListCaption');
-  const state = { res: '', sec: '', conn: '', src: '', bug: '', cbug: '', q: '' };
+  const state = { res: '', sec: '', conn: '', src: '', bug: '', cbug: '', q: '', cmt: false };
 
   const sel = (id, label, values, cur) => `
     <select id="${id}"><option value="">${esc(label)}</option>
@@ -9451,7 +9470,8 @@ function renderPretestPanel() {
              <option value="done"${state.bug === 'done' ? ' selected' : ''}>${esc(t('pt_bug_done'))}</option>
              <option value="unknown"${state.bug === 'unknown' ? ' selected' : ''}>${esc(t('pt_bug_unknown'))}</option>
            </select>`
-        + `<input type="text" id="ptSearch" placeholder="${esc(t('search_placeholder'))}" value="${esc(state.q)}">`;
+        + `<input type="text" id="ptSearch" placeholder="${esc(t('search_placeholder'))}" value="${esc(state.q)}">`
+        + `<label class="chk"><input type="checkbox" id="ptCommented"${state.cmt ? ' checked' : ''}>${esc(t('bug_comment_only'))}</label>`;
     } else {
       const p = plats[listKey];
       const res = PT_RES_ORDER.filter(r => p.cases.some(c => c.res === r));
@@ -9486,6 +9506,8 @@ function renderPretestPanel() {
     }));
     const box = document.getElementById('ptSearch');
     box.addEventListener('input', () => { state.q = box.value; drawList(); });
+    const cmtOnly = document.getElementById('ptCommented');
+    if (cmtOnly) cmtOnly.addEventListener('change', () => { state.cmt = cmtOnly.checked; drawList(); });
   }
 
   // The other direction: from a bug to the cases it is holding up. Lands on the list
@@ -9538,21 +9560,25 @@ function renderPretestPanel() {
       if (state.bug === 'open') rows = rows.filter(b => b.known && !b.done);
       else if (state.bug === 'done') rows = rows.filter(b => b.known && b.done);
       else if (state.bug === 'unknown') rows = rows.filter(b => !b.known);
+      if (state.cmt) rows = rows.filter(b => bugComments(b.key).length);
       if (q) rows = rows.filter(b => b.key.toLowerCase().includes(q) ||
-                                     (b.summary || '').toLowerCase().includes(q));
+                                     (b.summary || '').toLowerCase().includes(q) ||
+                                     bugComments(b.key).some(c => (c.text || '').toLowerCase().includes(q)));
       head.innerHTML = `<tr>
+        <th class="cmt-col" title="${esc(t('bug_comment_col'))}">💬</th>
         <th>Key</th><th>${esc(t('pt_th_src'))}</th><th class="num">${esc(t('pt_th_cases'))}</th>
         <th>${esc(t('pt_th_jira'))}</th><th>${esc(t('th_assignee'))}</th><th>${esc(t('th_summary'))}</th>
       </tr>`;
-      body.innerHTML = rows.length ? rows.map(b => `<tr>
+      body.innerHTML = rows.length ? rows.map(b => `<tr data-bug-row="${esc(b.key)}">
+        <td class="cmt-col">${bugCommentBtn(b.key)}</td>
         <td class="key"><a href="${ticketUrl(b.key)}" target="_blank">${esc(b.key)}</a></td>
         <td title="${esc(t('pt_src_from', (b.from || []).join(', ') || '—'))}">${
           b.src.map(s => `<span class="pt-src">${esc(s)}</span>`).join('')}</td>
         <td class="num">${b.cases ? ptCaseJumpCell(b, plats) : ''}</td>
         <td>${b.known ? bugStatusBadge(b) : `<span class="muted-cell">${esc(t('pt_bug_unknown'))}</span>`}</td>
         <td>${esc(b.assignee || '')}</td>
-        <td>${esc(b.summary)}</td>
-      </tr>`).join('') : `<tr><td colspan="6" class="empty-state">${esc(t('empty_state'))}</td></tr>`;
+        <td>${esc(b.summary)}${ptLatestComment(b.key)}</td>
+      </tr>`).join('') : `<tr><td colspan="${PT_BUG_COLS}" class="empty-state">${esc(t('empty_state'))}</td></tr>`;
       caption.textContent = t('pt_bug_caption', rows.length);
       labelChips(rows.length);
       return;
@@ -9622,6 +9648,85 @@ function renderPretestPanel() {
     ptShow(a.dataset.ptTo, { cbug: a.dataset.ptBug });
   });
 
+  // Comments on a bug live in bug_comments.json, keyed by the ticket — the same thread
+  // the Bug tab shows. A pretest bug is a Jira bug like any other; two threads for one
+  // ticket would only mean half the conversation is always on the other tab.
+  function ptCmtStatus(key, msg) {
+    const el = body.querySelector(`[data-bug-cmt-status="${CSS.escape(key)}"]`);
+    if (!el) return;
+    el.textContent = msg;
+    if (msg) setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 1800);
+  }
+  // Redraws one ticket's open thread, its 💬 count and its latest-comment line, and
+  // leaves every other row — and anything half-typed in another thread — alone.
+  function ptRefreshCommentUi(key) {
+    body.querySelectorAll(`[data-bug-cmt-box="${CSS.escape(key)}"]`).forEach(box => {
+      box.outerHTML = bugCommentPanelHtml(key);
+    });
+    const n = bugComments(key).length;
+    body.querySelectorAll(`[data-bug-cmt="${CSS.escape(key)}"]`).forEach(b => {
+      b.textContent = '💬' + (n || '');
+      b.classList.toggle('has', !!n);
+    });
+    body.querySelectorAll(`tr[data-bug-row="${CSS.escape(key)}"]`).forEach(tr => {
+      const cell = tr.lastElementChild;
+      const old = cell.querySelector('.pt-lastcmt');
+      if (old) old.remove();
+      cell.insertAdjacentHTML('beforeend', ptLatestComment(key));
+    });
+  }
+  body.addEventListener('click', async e => {
+    if (listKey !== 'BUG') return;
+    const toggle = e.target.closest('[data-bug-cmt]');
+    if (toggle) {
+      const tr = toggle.closest('tr');
+      const next = tr.nextElementSibling;
+      if (next && next.classList.contains('bug-cmt-row')) { next.remove(); return; }
+      const row = document.createElement('tr');
+      row.className = 'bug-cmt-row';
+      row.innerHTML = `<td class="cmt-cell" colspan="${PT_BUG_COLS}">${bugCommentPanelHtml(tr.dataset.bugRow)}</td>`;
+      tr.after(row);
+      const ta = row.querySelector('textarea');
+      if (ta) ta.focus();
+      return;
+    }
+    const post = e.target.closest('[data-bug-cmt-post]');
+    if (post) {
+      const key = post.dataset.bugCmtPost;
+      const box = post.closest('.cmt-box');
+      const input = box.querySelector('textarea');
+      const text = (input.value || '').trim();
+      if (!text) return;
+      const who = traceUserName(false) || t('notes_meta_unknown');
+      const comment = { id: bugCommentId(), text, by: who, at: new Date().toISOString() };
+      post.disabled = true;
+      const ok = await commitBugComments(map => {
+        map[key] = (map[key] || []).concat([comment]);
+      }, box.querySelector('.cmt-status'));
+      post.disabled = false;
+      if (!ok) return;
+      input.value = '';
+      ptRefreshCommentUi(key);
+      ptCmtStatus(key, t('bug_comment_saved'));
+      return;
+    }
+    const del = e.target.closest('[data-bug-cmt-del]');
+    if (del) {
+      const box = del.closest('.cmt-box');
+      const key = box.dataset.bugCmtBox;
+      const id = del.dataset.bugCmtDel;
+      if (!confirm(t('bug_comment_delete_confirm'))) return;
+      del.disabled = true;
+      const ok = await commitBugComments(map => {
+        const left = (map[key] || []).filter(c => c.id !== id);
+        if (left.length) map[key] = left; else delete map[key];
+      }, box.querySelector('.cmt-status'));
+      if (!ok) { del.disabled = false; return; }
+      ptRefreshCommentUi(key);
+      ptCmtStatus(key, t('bug_comment_saved'));
+    }
+  });
+
   // The rate tiles, and the bug tile beside them.
   const tileJump = el => {
     const to = el.dataset.ptJump;
@@ -9637,6 +9742,14 @@ function renderPretestPanel() {
 
   drawFilters();
   drawList();
+
+  // The baked-in comments are as old as the last Pages build. Fetch the current file,
+  // and redraw only if the Bug list is still the one showing and nobody has a thread
+  // open (a redraw would throw away what they are typing).
+  refreshBugComments().then(() => {
+    if (document.getElementById('ptListBody') === body && listKey === 'BUG' &&
+        !body.querySelector('.bug-cmt-row')) drawList();
+  });
 
   // The Stats tab jumps here with a platform in mind; land on that list rather than
   // on whichever one happens to be first.
