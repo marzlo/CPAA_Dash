@@ -2295,6 +2295,11 @@ const STRINGS = {
   pt_sections_caption: { zh: '依通過率由低到高排,最需要看的排在最上面。整段沒有執行的排在最後。',
                          en: 'Worst first — the sections worth looking at are at the top. Sections with nothing executed sort to the end.' },
   pt_lists_heading: { zh: '清單', en: 'Lists' },
+  pt_list_cp_name: { zh: 'CP test case', en: 'CP test cases' },
+  pt_list_aa_name: { zh: 'AA test case', en: 'AA test cases' },
+  pt_list_bug_name: { zh: 'Bug list', en: 'Bug list' },
+  pt_list_plain: { zh: (name, n) => `${name}(${n})`, en: (name, n) => `${name} (${n})` },
+  pt_list_filtered: { zh: (name, n, tot) => `${name}(${n} / ${tot})`, en: (name, n, tot) => `${name} (${n} of ${tot})` },
   pt_list_cp: { zh: n => `CP test case(${n})`, en: n => `CP test cases (${n})` },
   pt_list_aa: { zh: n => `AA test case(${n})`, en: n => `AA test cases (${n})` },
   pt_list_bug: { zh: n => `Bug list(${n})`, en: n => `Bug list (${n})` },
@@ -2316,6 +2321,7 @@ const STRINGS = {
   pt_th_jira: { zh: 'Jira 狀態', en: 'Jira status' },
   pt_th_executed: { zh: '已執行', en: 'Executed' },
   pt_open_bugs: { zh: '未解決 Bug', en: 'Open bugs' },
+  pt_outof: { zh: n => `/ ${n} 張`, en: n => `of ${n}` },
   pt_all_bugs: { zh: '全部 Bug', en: 'Any bug, or none' },
   pt_show_cases: { zh: k => `看 ${k} 卡住的題目`, en: k => `Show the cases ${k} is holding up` },
   pt_stated: { zh: n => `(表列 ${n})`, en: n => `(sheet says ${n})` },
@@ -9042,7 +9048,7 @@ function renderPretestPanel() {
       <div class="stat-tile pt-tile stat-tile-clickable" data-pt-jump="BUG" data-pt-src="${p.id}"
            tabindex="0" role="button">
         <div class="label">${esc(t('pt_open_bugs'))}</div>
-        <div class="value">${open}<i>${esc(t('pt_of', open, bugs.length))}</i></div>
+        <div class="value">${open}<i>${esc(t('pt_outof', bugs.length))}</i></div>
         ${unknown ? `<div class="sub">${esc(t('pt_bug_unknown_n', unknown))}</div>` : ''}
       </div>`;
     return `
@@ -9092,9 +9098,9 @@ function renderPretestPanel() {
       <h2>${esc(t('pt_lists_heading'))}</h2>
       <p class="caption" id="ptListCaption"></p>
       <div class="chips" id="ptListChips">
-        ${plats.CP ? `<button class="chip active" data-pt-list="CP">${esc(t('pt_list_cp', plats.CP.total))}</button>` : ''}
-        ${plats.AA ? `<button class="chip${plats.CP ? '' : ' active'}" data-pt-list="AA">${esc(t('pt_list_aa', plats.AA.total))}</button>` : ''}
-        <button class="chip${order.length ? '' : ' active'}" data-pt-list="BUG">${esc(t('pt_list_bug', bugs.length))}</button>
+        ${plats.CP ? `<button class="chip active" data-pt-list="CP" data-pt-total="${plats.CP.total}" data-pt-label="${esc(t('pt_list_cp_name'))}">${esc(t('pt_list_cp', plats.CP.total))}</button>` : ''}
+        ${plats.AA ? `<button class="chip${plats.CP ? '' : ' active'}" data-pt-list="AA" data-pt-total="${plats.AA.total}" data-pt-label="${esc(t('pt_list_aa_name'))}">${esc(t('pt_list_aa', plats.AA.total))}</button>` : ''}
+        <button class="chip${order.length ? '' : ' active'}" data-pt-list="BUG" data-pt-total="${bugs.length}" data-pt-label="${esc(t('pt_list_bug_name'))}">${esc(t('pt_list_bug', bugs.length))}</button>
       </div>
       <div class="filters" id="ptFilters"></div>
       <div class="table-wrap"><table>
@@ -9216,6 +9222,18 @@ function renderPretestPanel() {
       : shown;
   };
 
+  // A chip that always says 133 while the table under it shows 18 reads like the page
+  // disagrees with itself. The active chip says what is on screen; the others keep
+  // their totals, because that is what clicking them would give you.
+  function labelChips(shown) {
+    document.querySelectorAll('#ptListChips .chip').forEach(c => {
+      const total = +c.dataset.ptTotal;
+      c.textContent = (c.classList.contains('active') && shown !== total)
+        ? t('pt_list_filtered', c.dataset.ptLabel, shown, total)
+        : t('pt_list_plain', c.dataset.ptLabel, total);
+    });
+  }
+
   const resPill = r => {
     const cls = { Pass: 'pass', Fail: 'fail', Block: 'block' }[r] || '';
     return `<span class="pt-pill ${cls}">${esc(r)}</span>`;
@@ -9246,6 +9264,7 @@ function renderPretestPanel() {
         <td>${esc(b.summary)}</td>
       </tr>`).join('') : `<tr><td colspan="6" class="empty-state">${esc(t('empty_state'))}</td></tr>`;
       caption.textContent = t('pt_bug_caption', rows.length);
+      labelChips(rows.length);
       return;
     }
     const p = plats[listKey];
@@ -9281,6 +9300,7 @@ function renderPretestPanel() {
       <td class="pt-remark">${esc(c.remark || '')}</td>
     </tr>`).join('') : `<tr><td colspan="${cols}" class="empty-state">${esc(t('empty_state'))}</td></tr>`;
     caption.textContent = t('pt_cases_caption', rows.length, p.total);
+    labelChips(rows.length);
   }
 
   // Switch to one of the lists with a filter already applied, and scroll it into view.
