@@ -252,11 +252,31 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     position: absolute; top: 20px; right: 28px;
     display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;
   }
-  .theme-toggle, .lang-toggle, .refresh-toggle {
+  .theme-toggle, .lang-toggle, .refresh-toggle, .share-toggle {
     background: var(--surface-1); border: 1px solid var(--border);
     border-radius: 8px; padding: 6px 12px; cursor: pointer; color: var(--text-primary);
     font-size: 13px;
   }
+  /* Share popover. Anchored to the toggle row rather than to the button, so it cannot
+     be pushed off the right edge on a narrow window. */
+  .share-wrap { position: relative; }
+  .share-pop {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 40; width: 340px;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.16); text-align: left;
+  }
+  .share-pop[hidden] { display: none; }
+  .share-pop h4 { margin: 0 0 8px; font-size: 13px; }
+  .share-pop input[type="text"] {
+    width: 100%; box-sizing: border-box; font-size: 12px; padding: 6px 8px;
+    border: 1px solid var(--border); border-radius: 6px;
+    background: var(--page); color: var(--text-primary);
+  }
+  .share-row { display: flex; align-items: center; gap: 6px; margin: 9px 0 0; font-size: 12.5px; }
+  .share-row label { cursor: pointer; }
+  .share-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
+  .share-note { margin: 9px 0 0; font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+  nav.tabs button[hidden] { display: none; }
   nav.tabs {
     display: flex; gap: 8px; padding: 4px 28px 16px; flex-wrap: wrap;
     border-bottom: 1px solid var(--grid);
@@ -1292,6 +1312,21 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <body>
 <div class="toggle-row">
   <button class="refresh-toggle" id="refreshDataBtn" data-i18n="refresh_data_button"></button>
+  <span class="share-wrap">
+    <button class="share-toggle" id="shareTabBtn" data-i18n="share_button"></button>
+    <div class="share-pop" id="sharePop" hidden>
+      <h4 id="shareHeading"></h4>
+      <input type="text" id="shareUrl" readonly>
+      <div class="share-row">
+        <input type="checkbox" id="shareAll">
+        <label for="shareAll" data-i18n="share_all_tabs"></label>
+      </div>
+      <p class="share-note" data-i18n="share_note"></p>
+      <div class="share-actions">
+        <button type="button" class="btn small" id="shareCopyBtn" data-i18n="share_copy"></button>
+      </div>
+    </div>
+  </span>
   <button class="lang-toggle" id="langToggle">中文 / EN</button>
   <button class="theme-toggle" id="themeToggle">🌓 Theme</button>
 </div>
@@ -2080,6 +2115,15 @@ const STRINGS = {
   refresh_reload_button: { zh: '重新整理頁面', en: 'Reload page' },
   cards_reorder_hint: { zh: '拖曳卡片標題可調整這一頁的排列順序(只影響你自己的瀏覽器,重新整理後仍會記得)', en: 'Drag a card title to reorder this page (saved in your own browser only)' },
   cards_reset_order: { zh: '恢復預設順序', en: 'Reset order' },
+  share_button: { zh: '🔗 分享', en: '🔗 Share' },
+  share_heading: { zh: tab => `分享連結(目前在「${tab}」)`, en: tab => `Share a link (currently on “${tab}”)` },
+  share_all_tabs: { zh: '讓對方看到全部頁籤', en: 'Let them see every tab' },
+  share_copy: { zh: '複製連結', en: 'Copy link' },
+  share_copied: { zh: '已複製', en: 'Copied' },
+  share_note: {
+    zh: '這個網址是公開的,整份儀表板的資料都在同一個檔案裡。不勾的連結只是讓對方一打開停在這一頁、其他頁籤不顯示 —— 它不是權限控制,對方把網址參數刪掉就看得到全部。真的不能給的東西,不要放進這個儀表板。',
+    en: 'This URL is public and the whole dashboard lives in one file. Leaving the box unticked only opens the link on this tab and hides the others — it is not access control, and anyone can see everything by deleting the parameter. Anything that truly cannot be shared does not belong on this dashboard.',
+  },
   issue_notes_heading: { zh: '問題處理經驗', en: 'Issue post-mortems' },
   issue_notes_caption: { zh: '已經釐清根因的問題紀錄,點標題展開。留這些是為了下次遇到類似症狀時,不用再從 log 重新推一次', en: 'Write-ups of issues whose root cause is settled — click a title to expand. Kept so the next similar symptom does not have to be re-derived from logs' },
   audio_guide_heading: { zh: 'Audio 系統學習手冊', en: 'Audio system handbook' },
@@ -8909,6 +8953,60 @@ function tabFromHash() {
   return tabNames().includes(raw) ? raw : null;
 }
 
+// --- Sharing one tab --------------------------------------------------------------
+// ?only=Bug opens on that tab and hides the rest of the nav. Worth being exact about
+// what this is: the whole dashboard is one public file, so a reader who deletes the
+// parameter sees everything. It saves the other person hunting for the right tab; it
+// is not a permission. Anything that genuinely cannot be shared must not be published
+// here in the first place.
+function tabFromOnlyParam() {
+  let raw;
+  try { raw = new URLSearchParams(location.search).get('only'); } catch (e) { return null; }
+  return raw && tabNames().includes(raw) ? raw : null;
+}
+
+function shareLinkFor(tab, everyTab) {
+  const base = location.origin === 'null'
+    ? location.href.split('#')[0].split('?')[0]          // file://, where origin is "null"
+    : location.origin + location.pathname;
+  return base + (everyTab ? '' : '?only=' + encodeURIComponent(tab)) + '#' + tab;
+}
+
+function initShareBox(lockedTab) {
+  const btn = document.getElementById('shareTabBtn');
+  const pop = document.getElementById('sharePop');
+  const box = document.getElementById('shareUrl');
+  const all = document.getElementById('shareAll');
+  const copy = document.getElementById('shareCopyBtn');
+  if (!btn || !pop) return;
+  // Someone who arrived through a one-tab link is a reader, not the author: offering
+  // them a "see every tab" switch would just be a signpost to the hidden tabs.
+  if (lockedTab) { btn.hidden = true; return; }
+
+  const draw = () => {
+    const cur = document.querySelector('nav.tabs button.active');
+    const tab = cur ? cur.dataset.tab : 'Stats';
+    document.getElementById('shareHeading').textContent =
+      t('share_heading', cur ? cur.textContent.trim() : tab);
+    box.value = shareLinkFor(tab, all.checked);
+  };
+  btn.addEventListener('click', () => {
+    pop.hidden = !pop.hidden;
+    if (!pop.hidden) { draw(); box.focus(); box.select(); }
+  });
+  all.addEventListener('change', () => { draw(); box.focus(); box.select(); });
+  copy.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(box.value); } catch (e) { box.select(); }
+    copy.textContent = t('share_copied');
+    setTimeout(() => { copy.textContent = t('share_copy'); }, 1500);
+  });
+  // Click-away and Esc, so it never sits open over the page.
+  document.addEventListener('click', e => {
+    if (!pop.hidden && !pop.contains(e.target) && e.target !== btn) pop.hidden = true;
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') pop.hidden = true; });
+}
+
 // ===== Q&A tab =====================================================================
 // ThunderSoft raises a ticket whenever one of our requirement documents is ambiguous.
 // They are questions waiting on an answer, so the tab is organised around two things
@@ -10068,7 +10166,14 @@ function renderSchedulePanel() {
   });
 }
 
+// Computed once, because the in-page jumps below (a Stats bar that opens the Bug list,
+// the Audio card that opens its tab) call showTab directly — under a one-tab link they
+// must not walk out of it.
+let SHARE_LOCKED_TAB;
+
 function showTab(tab) {
+  if (SHARE_LOCKED_TAB === undefined) SHARE_LOCKED_TAB = tabFromOnlyParam();
+  if (SHARE_LOCKED_TAB && tab !== SHARE_LOCKED_TAB) return false;
   const btn = document.querySelector(`nav.tabs button[data-tab="${CSS.escape(tab)}"]`);
   const panel = document.getElementById('panel-' + tab);
   if (!btn || !panel) return false;
@@ -10093,6 +10198,16 @@ function writeTabToUrl(tab, replace) {
 }
 
 function initTabs() {
+  // A ?only= link hides the other tabs and pins the view to that one, so a stray hash
+  // (a stale bookmark, a pasted #Bug) cannot walk out of it.
+  const locked = tabFromOnlyParam();
+  if (locked) {
+    document.querySelectorAll('nav.tabs button').forEach(b => {
+      if (b.dataset.tab !== locked) b.hidden = true;
+    });
+  }
+  initShareBox(locked);
+
   document.querySelectorAll('nav.tabs button').forEach(btn => {
     btn.addEventListener('click', () => {
       const tab = btn.dataset.tab;
@@ -10101,7 +10216,11 @@ function initTabs() {
     });
   });
 
-  const follow = () => { const tab = tabFromHash(); if (tab) showTab(tab); };
+  const follow = () => {
+    if (locked) { showTab(locked); return; }
+    const tab = tabFromHash();
+    if (tab) showTab(tab);
+  };
   window.addEventListener('popstate', follow);   // Back / Forward
   window.addEventListener('hashchange', follow); // someone edited or pasted the URL
 
@@ -10116,9 +10235,10 @@ function initTabs() {
     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
-  const initial = tabFromHash();
+  const initial = locked || tabFromHash();
   if (initial) showTab(initial);
   // Always leave the current tab in the URL, so it can just be copied out of the bar.
+  // '#tab' is fragment-only, so ?only= survives.
   writeTabToUrl(initial || document.querySelector('nav.tabs button.active').dataset.tab, true);
 }
 
