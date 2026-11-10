@@ -2306,7 +2306,7 @@ const STRINGS = {
   pt_all_results: { zh: '全部結果', en: 'All results' },
   pt_all_sections: { zh: '全部段落', en: 'All sections' },
   pt_all_conn: { zh: '全部連線方式', en: 'Wired and wireless' },
-  pt_all_src: { zh: '全部來源', en: 'All sources' },
+  pt_all_src: { zh: '全部平台', en: 'Both platforms' },
   pt_search_case: { zh: '搜尋 case ID / 標題 / bug 單號', en: 'Search case ID, title or bug key' },
   pt_th_section: { zh: '段落', en: 'Section' },
   pt_th_case: { zh: 'Case ID', en: 'Case ID' },
@@ -2316,7 +2316,8 @@ const STRINGS = {
   pt_th_bug: { zh: 'Bug', en: 'Bug' },
   pt_th_tester: { zh: '測試者', en: 'Tester' },
   pt_th_remark: { zh: '備註', en: 'Remarks' },
-  pt_th_src: { zh: '來源', en: 'From' },
+  pt_th_src: { zh: '平台', en: 'Platform' },
+  pt_src_from: { zh: w => `標題分類而來;這張票被記錄在:${w}`, en: w => `Classified from the title. Recorded in: ${w}` },
   pt_th_cases: { zh: '影響題數', en: 'Cases hit' },
   pt_th_jira: { zh: 'Jira 狀態', en: 'Jira status' },
   pt_th_executed: { zh: '已執行', en: 'Executed' },
@@ -2339,8 +2340,8 @@ const STRINGS = {
   pt_th_split: { zh: '分布', en: 'Split' },
   pt_th_pass: { zh: 'Pass', en: 'Pass' },
   pt_bug_caption: {
-    zh: n => `${n} 張票:兩份 Excel 的 BugList 合併去重,加上 Jira 上標了 pretest 但兩份 Excel 都沒列到的票。Jira 狀態是從匯出資料查的 —— Excel 只記得當時打了這張票,不會告訴你現在修好了沒。`,
-    en: n => `${n} tickets: both workbooks' bug lists merged, plus pretest-labelled Jira tickets neither workbook lists. The Jira status is looked up in the export — a workbook only records that a ticket was raised, never whether it is fixed.`,
+    zh: n => `${n} 張票:兩份 Excel 的 BugList 合併去重,加上 Jira 上標了 pretest 但兩份 Excel 都沒列到的票。平台是看標題分的(PCTS→AA,Facets→CP,兩者都沒寫的算兩邊都算),滑過去可以看到它實際被記錄在哪。Jira 狀態是從匯出資料查的 —— Excel 只記得當時打了這張票,不會告訴你現在修好了沒。`,
+    en: n => `${n} tickets: both workbooks' bug lists merged, plus pretest-labelled Jira tickets neither workbook lists. The platform comes from the title (PCTS → AA, Facets → CP, neither → counted against both); hover a row to see where it was actually recorded. The Jira status is looked up in the export — a workbook only records that a ticket was raised, never whether it is fixed.`,
   },
   pt_bug_unknown: { zh: '不在匯出範圍', en: 'outside the export' },
   pt_cases_caption: { zh: (n, tot) => `顯示 ${n} / ${tot} 題`, en: (n, tot) => `${n} of ${tot} cases` },
@@ -8983,6 +8984,20 @@ function ptTicket(key) {
   return PT_TICKET_INDEX.get(key) || null;
 }
 
+// Which platform a bug belongs to is read off its own title, not off which workbook
+// happened to list it: the test team writes the suite into the summary, and a ticket
+// can end up in one workbook while being about the other. PCTS means Android Auto,
+// Facets means CarPlay, and a title that names neither is counted against both rather
+// than guessed at — a bug nobody tied to a suite is one that could be either.
+const PT_RE_AA = /PCTS/i;
+const PT_RE_CP = /Facets?/i;
+function ptBugPlatforms(summary) {
+  const s = summary || '';
+  if (PT_RE_AA.test(s)) return ['AA'];
+  if (PT_RE_CP.test(s)) return ['CP'];
+  return ['CP', 'AA'];
+}
+
 // The bug list is the union of three places a pretest bug can be recorded: either
 // workbook's BugList, and the pretest label in Jira. Taking only the workbooks would
 // drop the tickets raised after the sheet was last saved.
@@ -9001,12 +9016,15 @@ function ptBugRows() {
   });
   return [...out.values()].map(b => {
     const tk = ptTicket(b.key);
+    const summary = b.summary || (tk && tk.summary) || '';
     return Object.assign(b, {
-      summary: b.summary || (tk && tk.summary) || '',
+      summary,
       status: tk ? tk.status : '',
       done: tk ? !!tk.done : false,
       assignee: tk ? tk.assignee : '',
       known: !!tk,
+      from: b.src.slice(),          // where it was recorded, kept for the chip's tooltip
+      src: ptBugPlatforms(summary),
     });
   }).sort((a, b) => Math.max(b.tagged, b.cases) - Math.max(a.tagged, a.cases)
                     || a.key.localeCompare(b.key));
@@ -9161,7 +9179,7 @@ function renderPretestPanel() {
 
   function drawFilters() {
     if (listKey === 'BUG') {
-      filters.innerHTML = sel('ptSrc', t('pt_all_src'), ['CP', 'AA', 'Jira'], state.src)
+      filters.innerHTML = sel('ptSrc', t('pt_all_src'), ['CP', 'AA'], state.src)
         + `<select id="ptBugState">
              <option value="">${esc(t('all_status'))}</option>
              <option value="open"${state.bug === 'open' ? ' selected' : ''}>${esc(t('pt_bug_open'))}</option>
@@ -9263,7 +9281,8 @@ function renderPretestPanel() {
       </tr>`;
       body.innerHTML = rows.length ? rows.map(b => `<tr>
         <td class="key"><a href="${ticketUrl(b.key)}" target="_blank">${esc(b.key)}</a></td>
-        <td>${b.src.map(s => `<span class="pt-src">${esc(s)}</span>`).join('')}</td>
+        <td title="${esc(t('pt_src_from', (b.from || []).join(', ') || '—'))}">${
+          b.src.map(s => `<span class="pt-src">${esc(s)}</span>`).join('')}</td>
         <td class="num">${b.cases ? ptCaseJumpCell(b, plats) : ''}</td>
         <td>${b.known ? bugStatusBadge(b) : `<span class="muted-cell">${esc(t('pt_bug_unknown'))}</span>`}</td>
         <td>${esc(b.assignee || '')}</td>
