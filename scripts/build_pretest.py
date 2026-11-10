@@ -286,11 +286,40 @@ def main():
         print("Pretest: no workbooks found; pretest_cases.json was NOT written")
         return 0
 
+    # The BugList's own "Affected Case Count" is typed in by hand and frequently
+    # disagrees with the rows actually tagged with that key in the same workbook
+    # (NR1LT-6888 says 45, 27 rows carry it). Neither number is safe to throw away:
+    # the tagged count is the one you can click through to, the stated one is what the
+    # test team reported, so both travel and the tab shows the difference.
+    tagged = {}
+    for pid, pdata in platforms.items():
+        for case in pdata["cases"]:
+            for key in case.get("bugs") or []:
+                tagged.setdefault(key, {}).setdefault(pid, 0)
+                tagged[key][pid] += 1
+    for key, counts in tagged.items():
+        b = bugs.setdefault(key, {"key": key, "src": sorted(counts), "summary": "",
+                                  "cases": 0, "comment": ""})
+        b["tagged_by"] = counts
+        b["tagged"] = sum(counts.values())
+        for pid in counts:
+            if pid not in b["src"]:
+                b["src"] = sorted(set(b["src"]) | {pid})
+    for b in bugs.values():
+        b.setdefault("tagged", 0)
+        b.setdefault("tagged_by", {})
+    mismatch = [b["key"] for b in bugs.values() if b["cases"] and b["tagged"] != b["cases"]]
+    if mismatch:
+        print(f"Pretest: {len(mismatch)} bug(s) whose BugList count differs from the rows "
+              f"tagged with them ({', '.join(sorted(mismatch)[:5])}"
+              f"{'…' if len(mismatch) > 5 else ''}) — both numbers are kept")
+
     out = {
         "generated_at": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
         "round": max(rounds) if rounds else None,
         "platforms": platforms,
-        "bugs": sorted(bugs.values(), key=lambda b: (-b["cases"], b["key"])),
+        "bugs": sorted(bugs.values(),
+                       key=lambda b: (-max(b["tagged"], b["cases"]), b["key"])),
     }
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=1)

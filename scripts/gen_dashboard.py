@@ -2316,6 +2316,15 @@ const STRINGS = {
   pt_th_jira: { zh: 'Jira 狀態', en: 'Jira status' },
   pt_th_executed: { zh: '已執行', en: 'Executed' },
   pt_open_bugs: { zh: '未解決 Bug', en: 'Open bugs' },
+  pt_all_bugs: { zh: '全部 Bug', en: 'Any bug, or none' },
+  pt_show_cases: { zh: k => `看 ${k} 卡住的題目`, en: k => `Show the cases ${k} is holding up` },
+  pt_stated: { zh: n => `(表列 ${n})`, en: n => `(sheet says ${n})` },
+  pt_stated_hint: {
+    zh: 'Excel 的 BugList 自己填的「Affected Case Count」,跟同一份 Excel 裡實際標了這張票的題數對不起來。左邊那個數字是真的標到的、點得進去的;這個是表上寫的。',
+    en: 'The BugList column "Affected Case Count" is typed in by hand and does not match the rows tagged with this key in the same workbook. The number on the left is the one you can click through to; this is what the sheet states.',
+  },
+  pt_bug_any: { zh: '— 有 Bug 單的 —', en: '— cases with a bug —' },
+  pt_bug_none: { zh: '— 沒有 Bug 單的 —', en: '— cases with no bug —' },
   pt_bug_open: { zh: '未解決', en: 'Open' },
   pt_bug_done: { zh: '已解決', en: 'Closed' },
   pt_bug_unknown_n: { zh: n => `另有 ${n} 張不在匯出範圍,狀態不明`, en: n => `${n} more outside the export, status unknown` },
@@ -8974,12 +8983,14 @@ function ptBugRows() {
   const out = new Map();
   ((PRETEST_CASES && PRETEST_CASES.bugs) || []).forEach(b => {
     out.set(b.key, { key: b.key, src: b.src.slice(), cases: b.cases || 0,
+                     tagged: b.tagged || 0, taggedBy: b.tagged_by || {},
                      summary: b.summary || '', comment: b.comment || '' });
   });
   (PRETEST || []).forEach(r => {
     const hit = out.get(r.key);
     if (hit) { if (!hit.src.includes('Jira')) hit.src.push('Jira'); }
-    else out.set(r.key, { key: r.key, src: ['Jira'], cases: 0, summary: r.summary || '', comment: '' });
+    else out.set(r.key, { key: r.key, src: ['Jira'], cases: 0, tagged: 0, taggedBy: {},
+                          summary: r.summary || '', comment: '' });
   });
   return [...out.values()].map(b => {
     const tk = ptTicket(b.key);
@@ -8990,7 +9001,8 @@ function ptBugRows() {
       assignee: tk ? tk.assignee : '',
       known: !!tk,
     });
-  }).sort((a, b) => b.cases - a.cases || a.key.localeCompare(b.key));
+  }).sort((a, b) => Math.max(b.tagged, b.cases) - Math.max(a.tagged, a.cases)
+                    || a.key.localeCompare(b.key));
 }
 
 // The bugs a platform's own workbook raised. A ticket that hit both lists counts for
@@ -9133,7 +9145,7 @@ function renderPretestPanel() {
   const head = document.getElementById('ptListHead');
   const body = document.getElementById('ptListBody');
   const caption = document.getElementById('ptListCaption');
-  const state = { res: '', sec: '', conn: '', src: '', bug: '', q: '' };
+  const state = { res: '', sec: '', conn: '', src: '', bug: '', cbug: '', q: '' };
 
   const sel = (id, label, values, cur) => `
     <select id="${id}"><option value="">${esc(label)}</option>
@@ -9155,9 +9167,22 @@ function renderPretestPanel() {
       const res = PT_RES_ORDER.filter(r => p.cases.some(c => c.res === r));
       const secs = [...new Set(p.cases.map(c => c.sec))].filter(Boolean).sort();
       const conns = [...new Set(p.cases.map(c => c.conn).filter(Boolean))].sort();
+      // One option per bug this platform's cases point at, the ones holding up the most
+      // cases first — that order is the question people are actually asking ("what is
+      // costing us the most cases?"), and an alphabetical list of 50 keys is not.
+      const bugCount = new Map();
+      p.cases.forEach(c => (c.bugs || []).forEach(k => bugCount.set(k, (bugCount.get(k) || 0) + 1)));
+      const bugOpts = [...bugCount.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+      const bugSel = `<select id="ptBug">
+          <option value="">${esc(t('pt_all_bugs'))}</option>
+          <option value="*any*"${state.cbug === '*any*' ? ' selected' : ''}>${esc(t('pt_bug_any'))}</option>
+          <option value="*none*"${state.cbug === '*none*' ? ' selected' : ''}>${esc(t('pt_bug_none'))}</option>
+          ${bugOpts.map(([k, n]) => `<option value="${esc(k)}"${k === state.cbug ? ' selected' : ''}>${esc(k)} (${n})</option>`).join('')}
+        </select>`;
       filters.innerHTML = sel('ptRes', t('pt_all_results'), res, state.res)
         + sel('ptSec', t('pt_all_sections'), secs, state.sec)
         + (conns.length > 1 ? sel('ptConn', t('pt_all_conn'), conns, state.conn) : '')
+        + (bugOpts.length ? bugSel : '')
         + `<input type="text" id="ptSearch" placeholder="${esc(t('pt_search_case'))}" value="${esc(state.q)}">`;
     }
     filters.querySelectorAll('select').forEach(s => s.addEventListener('change', () => {
@@ -9166,11 +9191,30 @@ function renderPretestPanel() {
       state.conn = (document.getElementById('ptConn') || {}).value || '';
       state.src = (document.getElementById('ptSrc') || {}).value || '';
       state.bug = (document.getElementById('ptBugState') || {}).value || '';
+      state.cbug = (document.getElementById('ptBug') || {}).value || '';
       drawList();
     }));
     const box = document.getElementById('ptSearch');
     box.addEventListener('input', () => { state.q = box.value; drawList(); });
   }
+
+  // The other direction: from a bug to the cases it is holding up. Lands on the list
+  // of the first platform whose workbook raised it.
+  // The clickable number is the one you can actually click through to: the rows tagged
+  // with this key. Where the workbook's own count says something else, that is shown
+  // beside it rather than silently preferred — they disagree on 18 of the 72 bugs, and
+  // which one is right is a question for the test team, not for this page.
+  const ptCaseJumpCell = (b, ps) => {
+    const to = b.src.find(x => ps[x] && (b.taggedBy || {})[x]);
+    const n = b.tagged || 0;
+    const shown = to
+      ? `<a href="#" class="pt-casejump" data-pt-bug="${esc(b.key)}" data-pt-to="${esc(to)}"
+           title="${esc(t('pt_show_cases', b.key))}">${n}</a>`
+      : String(n || b.cases || '');
+    return b.cases && b.cases !== n
+      ? `${shown} <span class="muted-cell" title="${esc(t('pt_stated_hint'))}">${esc(t('pt_stated', b.cases))}</span>`
+      : shown;
+  };
 
   const resPill = r => {
     const cls = { Pass: 'pass', Fail: 'fail', Block: 'block' }[r] || '';
@@ -9196,7 +9240,7 @@ function renderPretestPanel() {
       body.innerHTML = rows.length ? rows.map(b => `<tr>
         <td class="key"><a href="${ticketUrl(b.key)}" target="_blank">${esc(b.key)}</a></td>
         <td>${b.src.map(s => `<span class="pt-src">${esc(s)}</span>`).join('')}</td>
-        <td class="num">${b.cases || ''}</td>
+        <td class="num">${b.cases ? ptCaseJumpCell(b, plats) : ''}</td>
         <td>${b.known ? bugStatusBadge(b) : `<span class="muted-cell">${esc(t('pt_bug_unknown'))}</span>`}</td>
         <td>${esc(b.assignee || '')}</td>
         <td>${esc(b.summary)}</td>
@@ -9209,6 +9253,9 @@ function renderPretestPanel() {
     if (state.res) rows = rows.filter(c => c.res === state.res);
     if (state.sec) rows = rows.filter(c => c.sec === state.sec);
     if (state.conn) rows = rows.filter(c => c.conn === state.conn);
+    if (state.cbug === '*any*') rows = rows.filter(c => (c.bugs || []).length);
+    else if (state.cbug === '*none*') rows = rows.filter(c => !(c.bugs || []).length);
+    else if (state.cbug) rows = rows.filter(c => (c.bugs || []).includes(state.cbug));
     if (q) rows = rows.filter(c => c.id.toLowerCase().includes(q) ||
                                    (c.title || '').toLowerCase().includes(q) ||
                                    (c.sec || '').toLowerCase().includes(q) ||
@@ -9243,7 +9290,7 @@ function renderPretestPanel() {
     const chip = document.querySelector(`#ptListChips [data-pt-list="${CSS.escape(which)}"]`);
     if (!chip) return;
     listKey = which;
-    state.res = state.sec = state.conn = state.src = state.bug = ''; state.q = '';
+    state.res = state.sec = state.conn = state.src = state.bug = state.cbug = ''; state.q = '';
     Object.assign(state, filter || {});
     [...chip.parentElement.children].forEach(x => x.classList.toggle('active', x === chip));
     drawFilters();
@@ -9256,6 +9303,13 @@ function renderPretestPanel() {
     const b = e.target.closest('[data-pt-list]');
     if (!b) return;
     ptShow(b.dataset.ptList);
+  });
+
+  body.addEventListener('click', e => {
+    const a = e.target.closest('.pt-casejump');
+    if (!a) return;
+    e.preventDefault();
+    ptShow(a.dataset.ptTo, { cbug: a.dataset.ptBug });
   });
 
   // The rate tiles, and the bug tile beside them.

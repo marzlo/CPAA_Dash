@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-10T03:55:05+00:00",
+ "generated_at": "2026-11-10T04:20:54+00:00",
  "round": 2,
  "platforms": {
   "CP": {
@@ -9758,7 +9758,11 @@
    ],
    "summary": "[Highest][CPAA] [Wired/Wireless AA] [PCTS-IBTAF06]VR fails to recognize voice commands.(5/5)",
    "cases": 45,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "AA": 27
+   },
+   "tagged": 27
   },
   {
    "key": "NR1LT-6874",
@@ -9768,7 +9772,12 @@
    ],
    "summary": "[High][CPAA]Cold and hot startup cannot be confirmed.(5/5)",
    "cases": 44,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 20,
+    "AA": 21
+   },
+   "tagged": 41
   },
   {
    "key": "NR1LT-4171",
@@ -9777,7 +9786,11 @@
    ],
    "summary": "[Highest][CPAA]Instrument cluster does not display music information.（5/5）",
    "cases": 18,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "AA": 9
+   },
+   "tagged": 9
   },
   {
    "key": "NR1LT-7369",
@@ -9786,7 +9799,11 @@
    ],
    "summary": "[Highest][CPAA] [Wireless CP][Facets-751C1]ESiri function unavailable.(5/5)",
    "cases": 16,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 8
+   },
+   "tagged": 8
   },
   {
    "key": "NR1LT-6893",
@@ -9795,116 +9812,11 @@
    ],
    "summary": "[High][CPAA] [Wired AA] [PCTS-IBTDI23]Ringtone occasionally plays briefly then cuts off when music is playing.(2/5)",
    "cases": 12,
-   "comment": ""
-  },
-  {
-   "key": "NR1LT-6927",
-   "src": [
-    "AA"
-   ],
-   "summary": "[High][CPAA][Wireless AA][PCTS-WPC124]Test failed with error: Timed out waiting 45000 msfor message MESSAGE_WIFI_REQUEST_START_BT（3/5）",
-   "cases": 9,
-   "comment": ""
-  },
-  {
-   "key": "NR1LT-3438",
-   "src": [
-    "AA"
-   ],
-   "summary": "[Highest][CPAA][Wireless /Wired AA]Incoming call ringtone is extremely quiet and cannot be adjusted.（5/5）",
-   "cases": 8,
-   "comment": ""
-  },
-  {
-   "key": "NR1LT-7344",
-   "src": [
-    "CP"
-   ],
-   "summary": "[High][CPAA][Wireless CP][Facets-E92E6]No audio from the alternate audio source during Classic Siri announcement.(5/5)",
-   "cases": 8,
-   "comment": ""
-  },
-  {
-   "key": "NR1LT-7371",
-   "src": [
-    "CP"
-   ],
-   "summary": "[High][CPAA] [Wireless CP][Facets-758C4]Short-press Siri startup is too slow, and long-press cannot start Siri.(5/5)",
-   "cases": 8,
-   "comment": ""
-  },
-  {
-   "key": "NR1LT-7364",
-   "src": [
-    "CP"
-   ],
-   "summary": "[High][CPAA][Wireless CP][Facets-EDDCB]AUXOUT function is unavailable after CarPlay connection(5/5)",
-   "cases": 6,
-   "comment": ""
-  },
-  {
-   "key": "NR1LT-5187",
-   "src": [
-    "AA",
-    "CP"
-   ],
-   "summary": "[High][CPAA][Wireless/Wired CP]HU stutters after multiple devices are connected in the device list（2/5）",
-   "cases": 5,
-   "comment": ""
-  },
-  {
-   "key": "NR1LT-5217",
-   "src": [
-    "CP"
-   ],
-   "summary": "[High][CPAA][Wireless/Wired CP][Facets-69ABF]Day_Night mode is unavailable（5/5）",
-   "cases": 4,
-   "comment": "This issue has been closed. Use this ticket to track the CCR modification."
-  },
-  {
-   "key": "NR1LT-5648",
-   "src": [
-    "AA"
-   ],
-   "summary": "[Medium][CPAA][Wireless/Wired AA][PCTS-A204]No system notification sound can be triggered.(5/5)",
-   "cases": 4,
-   "comment": ""
-  },
-  {
-   "key": "NR1LT-5650",
-   "src": [
-    "AA"
-   ],
-   "summary": "[High][CPAA][Wireless/Wired AA][PCTS-A220/A221]VR audio playing, cannot open any local audio source.(5/5)",
-   "cases": 4,
-   "comment": ""
-  },
-  {
-   "key": "NR1LT-6908",
-   "src": [
-    "AA"
-   ],
-   "summary": "[Medium][CPAA] [Wired/Wireless AA]Intermittently, during AA calls, the HU has no audio output when the remote party speaks.(1/5)",
-   "cases": 4,
-   "comment": ""
-  },
-  {
-   "key": "NR1LT-7300",
-   "src": [
-    "CP"
-   ],
-   "summary": "[High][CPAA][Wireless CP][Facets-2F84F]No sound when playing cptest test tone for the first time in CP call scenario, no audio after clicking phone again(5/5)",
-   "cases": 4,
-   "comment": ""
-  },
-  {
-   "key": "NR1LT-7335",
-   "src": [
-    "CP"
-   ],
-   "summary": "[High][CPAA][Wireless CP][Facets-B0793]Long press Siri hard key cannot bring up paired device list screen(5/5)",
-   "cases": 4,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "AA": 6
+   },
+   "tagged": 6
   },
   {
    "key": "NR1LT-6827",
@@ -9914,52 +9826,131 @@
    ],
    "summary": "[Highest][CPAA][Degrade]Reverse function unavailable.(5/5)",
    "cases": 3,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 2,
+    "AA": 9
+   },
+   "tagged": 11
   },
   {
-   "key": "NR1LT-7353",
+   "key": "NR1LT-6927",
+   "src": [
+    "AA"
+   ],
+   "summary": "[High][CPAA][Wireless AA][PCTS-WPC124]Test failed with error: Timed out waiting 45000 msfor message MESSAGE_WIFI_REQUEST_START_BT（3/5）",
+   "cases": 9,
+   "comment": "",
+   "tagged_by": {
+    "AA": 9
+   },
+   "tagged": 9
+  },
+  {
+   "key": "NR1LT-3438",
+   "src": [
+    "AA"
+   ],
+   "summary": "[Highest][CPAA][Wireless /Wired AA]Incoming call ringtone is extremely quiet and cannot be adjusted.（5/5）",
+   "cases": 8,
+   "comment": "",
+   "tagged_by": {
+    "AA": 4
+   },
+   "tagged": 4
+  },
+  {
+   "key": "NR1LT-7344",
    "src": [
     "CP"
    ],
-   "summary": "[High][CPAA][Wireless CP][Facets-6F647]eSiri announcement audio cannot be mixed with CarPlay music(5/5)",
-   "cases": 3,
-   "comment": ""
+   "summary": "[High][CPAA][Wireless CP][Facets-E92E6]No audio from the alternate audio source during Classic Siri announcement.(5/5)",
+   "cases": 8,
+   "comment": "",
+   "tagged_by": {
+    "CP": 4
+   },
+   "tagged": 4
   },
   {
-   "key": "NR1LT-3385",
+   "key": "NR1LT-7371",
    "src": [
     "CP"
    ],
-   "summary": "[Highest][CPAA] [Wireless CP]No sound during calls.（5/5）",
-   "cases": 2,
-   "comment": ""
+   "summary": "[High][CPAA] [Wireless CP][Facets-758C4]Short-press Siri startup is too slow, and long-press cannot start Siri.(5/5)",
+   "cases": 8,
+   "comment": "",
+   "tagged_by": {
+    "CP": 4
+   },
+   "tagged": 4
   },
   {
-   "key": "NR1LT-4182",
+   "key": "NR1LT-7364",
+   "src": [
+    "CP"
+   ],
+   "summary": "[High][CPAA][Wireless CP][Facets-EDDCB]AUXOUT function is unavailable after CarPlay connection(5/5)",
+   "cases": 6,
+   "comment": "",
+   "tagged_by": {
+    "CP": 3
+   },
+   "tagged": 3
+  },
+  {
+   "key": "NR1LT-5187",
+   "src": [
+    "AA",
+    "CP"
+   ],
+   "summary": "[High][CPAA][Wireless/Wired CP]HU stutters after multiple devices are connected in the device list（2/5）",
+   "cases": 5,
+   "comment": "",
+   "tagged_by": {
+    "CP": 1,
+    "AA": 4
+   },
+   "tagged": 5
+  },
+  {
+   "key": "NR1LT-5217",
+   "src": [
+    "CP"
+   ],
+   "summary": "[High][CPAA][Wireless/Wired CP][Facets-69ABF]Day_Night mode is unavailable（5/5）",
+   "cases": 4,
+   "comment": "This issue has been closed. Use this ticket to track the CCR modification.",
+   "tagged_by": {
+    "CP": 4
+   },
+   "tagged": 4
+  },
+  {
+   "key": "NR1LT-5648",
    "src": [
     "AA"
    ],
-   "summary": "[CPAA]Ecall function not available.（5/5）",
-   "cases": 2,
-   "comment": ""
+   "summary": "[Medium][CPAA][Wireless/Wired AA][PCTS-A204]No system notification sound can be triggered.(5/5)",
+   "cases": 4,
+   "comment": "",
+   "tagged_by": {
+    "AA": 4
+   },
+   "tagged": 4
   },
   {
-   "key": "NR1LT-5647",
+   "key": "NR1LT-5650",
    "src": [
     "AA"
    ],
-   "summary": "[High][CPAA][Wireless AA][PCTS-A213] HU reports extra audio‑focus notification with focus_state=5 actively, resulting in PCTS A213 case failure（5/5）",
-   "cases": 2,
-   "comment": ""
-  },
-  {
-   "key": "NR1LT-6643",
-   "src": [
-    "AA"
-   ],
-   "summary": "[Medium][CPAA][Wireless AA][PCTS-IBTGS01] HU native UI lacks dial‑up interface（5/5）",
-   "cases": 2,
-   "comment": ""
+   "summary": "[High][CPAA][Wireless/Wired AA][PCTS-A220/A221]VR audio playing, cannot open any local audio source.(5/5)",
+   "cases": 4,
+   "comment": "",
+   "tagged_by": {
+    "AA": 4
+   },
+   "tagged": 4
   },
   {
    "key": "NR1LT-6749",
@@ -9969,7 +9960,129 @@
    ],
    "summary": "[High][CPAA][Wired/Wireless CP]Rotating the physical knob, there is no scrolling change on the music list screen.（5/5）",
    "cases": 2,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 2,
+    "AA": 2
+   },
+   "tagged": 4
+  },
+  {
+   "key": "NR1LT-6908",
+   "src": [
+    "AA"
+   ],
+   "summary": "[Medium][CPAA] [Wired/Wireless AA]Intermittently, during AA calls, the HU has no audio output when the remote party speaks.(1/5)",
+   "cases": 4,
+   "comment": "",
+   "tagged_by": {
+    "AA": 2
+   },
+   "tagged": 2
+  },
+  {
+   "key": "NR1LT-7300",
+   "src": [
+    "CP"
+   ],
+   "summary": "[High][CPAA][Wireless CP][Facets-2F84F]No sound when playing cptest test tone for the first time in CP call scenario, no audio after clicking phone again(5/5)",
+   "cases": 4,
+   "comment": "",
+   "tagged_by": {
+    "CP": 2
+   },
+   "tagged": 2
+  },
+  {
+   "key": "NR1LT-7335",
+   "src": [
+    "CP"
+   ],
+   "summary": "[High][CPAA][Wireless CP][Facets-B0793]Long press Siri hard key cannot bring up paired device list screen(5/5)",
+   "cases": 4,
+   "comment": "",
+   "tagged_by": {
+    "CP": 2
+   },
+   "tagged": 2
+  },
+  {
+   "key": "NR1LT-7353",
+   "src": [
+    "CP"
+   ],
+   "summary": "[High][CPAA][Wireless CP][Facets-6F647]eSiri announcement audio cannot be mixed with CarPlay music(5/5)",
+   "cases": 3,
+   "comment": "",
+   "tagged_by": {
+    "CP": 3
+   },
+   "tagged": 3
+  },
+  {
+   "key": "NR1LT-3385",
+   "src": [
+    "CP"
+   ],
+   "summary": "[Highest][CPAA] [Wireless CP]No sound during calls.（5/5）",
+   "cases": 2,
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
+  },
+  {
+   "key": "NR1LT-4182",
+   "src": [
+    "AA"
+   ],
+   "summary": "[CPAA]Ecall function not available.（5/5）",
+   "cases": 2,
+   "comment": "",
+   "tagged_by": {
+    "AA": 2
+   },
+   "tagged": 2
+  },
+  {
+   "key": "NR1LT-5647",
+   "src": [
+    "AA"
+   ],
+   "summary": "[High][CPAA][Wireless AA][PCTS-A213] HU reports extra audio‑focus notification with focus_state=5 actively, resulting in PCTS A213 case failure（5/5）",
+   "cases": 2,
+   "comment": "",
+   "tagged_by": {
+    "AA": 2
+   },
+   "tagged": 2
+  },
+  {
+   "key": "NR1LT-6643",
+   "src": [
+    "AA"
+   ],
+   "summary": "[Medium][CPAA][Wireless AA][PCTS-IBTGS01] HU native UI lacks dial‑up interface（5/5）",
+   "cases": 2,
+   "comment": "",
+   "tagged_by": {
+    "AA": 2
+   },
+   "tagged": 2
+  },
+  {
+   "key": "NR1LT-6861",
+   "src": [
+    "AA"
+   ],
+   "summary": "",
+   "cases": 0,
+   "comment": "",
+   "tagged_by": {
+    "AA": 2
+   },
+   "tagged": 2
   },
   {
    "key": "NR1LT-6863",
@@ -9978,7 +10091,11 @@
    ],
    "summary": "[High][CPAA][Wired / Wireless AA][PCTS-IBTME04]When switching to AA music under local music mute state, AA music does not automatically switch to unmute.(5/5)",
    "cases": 2,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "AA": 2
+   },
+   "tagged": 2
   },
   {
    "key": "NR1LT-6879",
@@ -9987,7 +10104,11 @@
    ],
    "summary": "[High][CPAA][Wired AA][PCTS-C2]Vehicle related information is incorrect.(5/5)",
    "cases": 2,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "AA": 2
+   },
+   "tagged": 2
   },
   {
    "key": "NR1LT-6930",
@@ -9996,7 +10117,11 @@
    ],
    "summary": "[High][CPAA] [Wired AA] [PCTS-VS8]music can't be started on media channel after voice session.(5/5)",
    "cases": 2,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "AA": 2
+   },
+   "tagged": 2
   },
   {
    "key": "NR1LT-7034",
@@ -10005,7 +10130,11 @@
    ],
    "summary": "[High][CPAA] [Wired AA] [PCTS-WPC117]Failed to connect wireless devices after factory reset.(5/5)",
    "cases": 2,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "AA": 2
+   },
+   "tagged": 2
   },
   {
    "key": "NR1LT-7062",
@@ -10014,7 +10143,11 @@
    ],
    "summary": "[High][CPAA] [Wired/Wireless AA] [PCTS-PT4]Timeout when entering AA from AppList.(5/5)",
    "cases": 2,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "AA": 2
+   },
+   "tagged": 2
   },
   {
    "key": "NR1LT-7119",
@@ -10023,7 +10156,11 @@
    ],
    "summary": "[Medium][CPAA][Wireless CP][Facets-FDC46]H grid test pattern display abnormal under CarPlay connection(5/5)",
    "cases": 2,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 2
+   },
+   "tagged": 2
   },
   {
    "key": "NR1LT-7126",
@@ -10032,7 +10169,11 @@
    ],
    "summary": "[High][CPAA][Wireless CP][Facets-1A3E6]Navigation voice disappears and music pauses directly after triggering navigation while playing music via(5/5)",
    "cases": 2,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7340",
@@ -10041,7 +10182,11 @@
    ],
    "summary": "[High][CPAA][Wireless CP][Facets-4AF72]When the driving restriction function is triggered, the whole system becomes unavailable instead of only partial functions.(5/5)",
    "cases": 2,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7361",
@@ -10050,7 +10195,11 @@
    ],
    "summary": "[High][CPAA][Wireless CP][Facets-ADD37]Main Siri announcement in CarPlay Test cannot be mixed with Alternate Audio(5/5)",
    "cases": 2,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7366",
@@ -10059,7 +10208,11 @@
    ],
    "summary": "[High][CPAA] [Wireless CP][Facets-98D6F]No popup prompt should appear during device switching in the device list.(5/5)",
    "cases": 2,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 2
+   },
+   "tagged": 2
   },
   {
    "key": "NR1LT-7377",
@@ -10068,7 +10221,11 @@
    ],
    "summary": "[High][CPAA] [Wired CP][Facets-4D6FC]No connection record is saved in the device list after wired CP disconnection.(5/5)",
    "cases": 2,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 2
+   },
+   "tagged": 2
   },
   {
    "key": "NR1LT-7383",
@@ -10077,7 +10234,37 @@
    ],
    "summary": "[High][CPAA] [Wireless CP][Facets-E5D68]Cannot trigger mute-related HID Send Report data.(5/5)",
    "cases": 2,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 2
+   },
+   "tagged": 2
+  },
+  {
+   "key": "NR1LT-3330",
+   "src": [
+    "AA"
+   ],
+   "summary": "",
+   "cases": 0,
+   "comment": "",
+   "tagged_by": {
+    "AA": 1
+   },
+   "tagged": 1
+  },
+  {
+   "key": "NR1LT-4174",
+   "src": [
+    "CP"
+   ],
+   "summary": "",
+   "cases": 0,
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-4660",
@@ -10086,7 +10273,11 @@
    ],
    "summary": "[Medium][CPAA][Wireless CP][Facets-8CBC9]The Dock bar displays \"CarPlay\" instead of \"Apple CarPlay\".（5/5）",
    "cases": 1,
-   "comment": "waiver"
+   "comment": "waiver",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-4661",
@@ -10095,7 +10286,11 @@
    ],
    "summary": "[Medium][CPAA][Wireless CP][Facets-5F282]Version mismatch between reported sourceVersion (480.7.1) and declaredPluginVersion (480.7.4) in CarPlay.Response.Info（5/5）",
    "cases": 1,
-   "comment": "This issue has been closed. Use this ticket to track the CCR modification."
+   "comment": "This issue has been closed. Use this ticket to track the CCR modification.",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-4712",
@@ -10104,7 +10299,11 @@
    ],
    "summary": "[Medium][CPAA][Wireless CP][Facets-8082E]Wireless CP still reconnects after the phone sends disassociation（5/5）",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-4717",
@@ -10113,7 +10312,24 @@
    ],
    "summary": "[Medium][CPAA][Wireless CP][Facets-3D9FD]No confirmation message displayed on screen after clicking device switch popup.（5/5）",
    "cases": 1,
-   "comment": "waiver"
+   "comment": "waiver",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
+  },
+  {
+   "key": "NR1LT-6747",
+   "src": [
+    "AA"
+   ],
+   "summary": "",
+   "cases": 0,
+   "comment": "",
+   "tagged_by": {
+    "AA": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-6891",
@@ -10122,7 +10338,11 @@
    ],
    "summary": "[Medium][CPAA][Wireless AA][PCTS-wpc28]Timed out waiting 11000 ms for message MESSAGE_WIFI_REQUEST_START_BT（5/5）",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "AA": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-6915",
@@ -10131,7 +10351,11 @@
    ],
    "summary": "[High][CPAA] [Wired/Wireless CP]No audio on both ends during FaceTime call.(5/5)",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-6922",
@@ -10140,7 +10364,11 @@
    ],
    "summary": "[High][CPAA][Wireless AA][PCTS-WPC72]Bluetooth fails to disconnect within 10 seconds（3/5）",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "AA": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-6924",
@@ -10149,7 +10377,11 @@
    ],
    "summary": "[High][CPAA] [Wired AA] [PCTS-USB6]USB plug/unplug 3s timeout.(4/5)",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "AA": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-6932",
@@ -10158,7 +10390,11 @@
    ],
    "summary": "[High][CPAA][Wireless AA][PCTS-WPC109]Timed out waiting 1100ms for MESSAGE_WIFI_REQUEST_START_BT（5/5）",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "AA": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7088",
@@ -10167,7 +10403,11 @@
    ],
    "summary": "[High][CPAA][Wireless CP][Facets-56CCB]Physical hard key press cannot trigger phone shortcut under CarPlay connection.(5/5)",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7306",
@@ -10176,7 +10416,11 @@
    ],
    "summary": "[Meidum][CPAA][Wireless CP][Facets-13408]CarPlay reports vehicle as left-hand drive, mismatched with right-hand drive vehicle configuration(5/5)",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7307",
@@ -10185,7 +10429,11 @@
    ],
    "summary": "[Meidum][CPAA][Wireless CP][Facets-63372]Sound declaration error for case 63372(5/5)",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7309",
@@ -10194,7 +10442,11 @@
    ],
    "summary": "[Medium][CPAA][Wireless CP][Facets-3B8DD]Sound declaration error for case 3B8DD(5/5)",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7348",
@@ -10203,7 +10455,11 @@
    ],
    "summary": "[High][CPAA][Wireless CP][Facets-E92E6]Accessory did not respond to the device's teardown request for stream within 100ms.(5/5)",
    "cases": 1,
-   "comment": "ATS reports errors in all surrounding cases."
+   "comment": "ATS reports errors in all surrounding cases.",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7349",
@@ -10212,7 +10468,11 @@
    ],
    "summary": "[High][CPAA][Wireless CP][Facets-E92E6]accessory did not respond to the device's request for a Main Audio stream within 10ms.(5/5)",
    "cases": 1,
-   "comment": "ATS reports errors in all surrounding cases."
+   "comment": "ATS reports errors in all surrounding cases.",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7351",
@@ -10221,7 +10481,11 @@
    ],
    "summary": "[Medium[CPAA[WirelessCP][FacetsE7E50]enhancedSiriInfo.enhancedSiriButton field in CarPlay.Response.Info，CarPlay.Response.Info message is not true, validation failed(5/5)",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7354",
@@ -10230,7 +10494,11 @@
    ],
    "summary": "[High][CPAA][Wireless CP][Facets-1571F]Audio Buffer High Latency setting does not take effect.(5/5)",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7368",
@@ -10239,7 +10507,11 @@
    ],
    "summary": "[High][CPAA] [Wireless CP][Facets-F3A92]Tx Power Level not found, VID is currently displayed as Google.(5/5)",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7370",
@@ -10248,7 +10520,11 @@
    ],
    "summary": "[High][CPAA][Wireless CP][Facets-35E2E]Wireless CarPlay Beacon frame actual interval exceeds threshold(5/5)",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7372",
@@ -10257,7 +10533,11 @@
    ],
    "summary": "[High][CPAA] [Wireless CP][Facets-0BCE9]\"Play\" is declared in hidDescriptor, but it cannot be triggered.(5/5)",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7373",
@@ -10266,7 +10546,11 @@
    ],
    "summary": "[High][CPAA][Wireless CP][Facets-AAF1A]Screen off function fails after HU screen is woken up by Siri under screen-off state(5/5)",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7375",
@@ -10275,7 +10559,11 @@
    ],
    "summary": "[High][CPAA][Wireless CP][Facets-1FD29]HU cannot trigger native alternative source(5/5)",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7380",
@@ -10284,7 +10572,11 @@
    ],
    "summary": "[High][CPAA] [Wired CP][Facets-4E15E]MainBufferedInfo is empty in ATS.(5/5)",
    "cases": 1,
-   "comment": "ATS reports errors in all surrounding cases."
+   "comment": "ATS reports errors in all surrounding cases.",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7385",
@@ -10293,7 +10585,11 @@
    ],
    "summary": "[High][CPAA][Wireless CP][Facets-B4C42]CarPlay reconnects abnormally after phone sends disassociate request frame on power off(5/5)",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7391",
@@ -10302,7 +10598,11 @@
    ],
    "summary": "[High][CPAA] [Wireless CP][Facets-37320]Vehicle related information is incorrect.(5/5)",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7404",
@@ -10311,7 +10611,11 @@
    ],
    "summary": "[High][CPAA] [Wireless CP][Facets-2814B]Intermittent reconnection at long distance: CP connects briefly then disconnects automatically, and reconnects after a period of time.(1/5)",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7407",
@@ -10320,7 +10624,11 @@
    ],
    "summary": "[High][CPAA][Wireless/Wired CP][Facets-3D9FD]accessory took longer than 3 seconds to establish the CarPlay session. For accuracy, wait 5 seconds between connections, Section(3/5)",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7418",
@@ -10329,7 +10637,11 @@
    ],
    "summary": "[High][CPAA] [Wireless CP][Facets-9F82D]The interval from screen tap to screen content change exceeds 140ms.(5/10)",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7419",
@@ -10338,7 +10650,11 @@
    ],
    "summary": "[High][CPAA] [Wireless CP][Facets-3F560]The duration from releasing the CP icon to CP screen display exceeds 500ms.(8/10)",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7420",
@@ -10347,7 +10663,11 @@
    ],
    "summary": "[High][CPAA][Wired CP][Facets-86E0B]Tier1 supplier VID is not confirmed(5/5)",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7421",
@@ -10356,7 +10676,11 @@
    ],
    "summary": "[High][CPAA] [Wireless CP][Facets-3F560]The interval from releasing the OEM icon to local HOME page display exceeds 500ms.(5/5)",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   },
   {
    "key": "NR1LT-7430",
@@ -10365,7 +10689,11 @@
    ],
    "summary": "[High][CPAA][Wired CP][Facets-3416D]Bluetooth pairing limit is 20, pairing record count becomes 21 after wired CarPlay connection, no over-limit reminder(5/5)",
    "cases": 1,
-   "comment": ""
+   "comment": "",
+   "tagged_by": {
+    "CP": 1
+   },
+   "tagged": 1
   }
  ]
 }
