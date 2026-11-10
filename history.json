@@ -5729,11 +5729,11 @@
    },
    "MDT_System": {
     "done": 1,
-    "total": 9
+    "total": 8
    },
    "TS_CPAA": {
     "done": 267,
-    "total": 282
+    "total": 283
    },
    "TS_FW": {
     "done": 28,
@@ -5745,8 +5745,25 @@
    }
   },
   "date": "2026-11-10",
+  "pretest": {
+   "AA": {
+    "open": 10,
+    "total": 71,
+    "unknown": 0
+   },
+   "CP": {
+    "open": 25,
+    "total": 80,
+    "unknown": 0
+   },
+   "all": {
+    "open": 30,
+    "total": 138,
+    "unknown": 0
+   }
+  },
   "swe2": {
-   "done": 537,
+   "done": 539,
    "total": 1147
   },
   "swe3": {
