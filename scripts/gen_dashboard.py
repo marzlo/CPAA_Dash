@@ -82,6 +82,17 @@ except FileNotFoundError:
 
 DATA["qna_notes"] = QNA_NOTES
 
+# The Facets / PCTS test-case results, built from the two round workbooks by
+# build_pretest.py. Optional: without it the Pretest tab shows only the Jira bug list,
+# which is what it showed before this file existed.
+try:
+    with open("pretest_cases.json", encoding="utf-8") as f:
+        PRETEST_CASES = json.load(f)
+except FileNotFoundError:
+    PRETEST_CASES = None
+
+DATA["pretest_cases"] = PRETEST_CASES
+
 # The certification schedule, built from the Gantt workbook by build_schedule.py.
 # Optional: without it the Schedule tab says there is nothing loaded.
 try:
@@ -277,6 +288,42 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .share-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
   .share-note { margin: 9px 0 0; font-size: 11.5px; color: var(--muted); line-height: 1.5; }
   nav.tabs button[hidden] { display: none; }
+  /* Pretest: one block per platform, because CP and AA are different denominators and
+     a combined rate hides that CP fails three times as often. */
+  .pt-platform { margin-bottom: 22px; }
+  .pt-head { display: flex; align-items: baseline; gap: 10px; margin: 0 0 10px; flex-wrap: wrap; }
+  .pt-head h3 { font-size: 15px; margin: 0; }
+  .pt-tag { font-size: 11px; font-weight: 700; letter-spacing: .04em; padding: 2px 9px;
+            border-radius: 4px; color: #fff; }
+  .pt-cov { font-size: 12px; color: var(--text-secondary); margin-left: auto; }
+  .pt-tile .value i { font-style: normal; font-size: 15px; font-weight: 600;
+                      color: var(--text-secondary); margin-left: 6px; }
+  .pt-split { display: flex; height: 18px; border-radius: 5px; overflow: hidden;
+              background: var(--grid); margin-top: 12px; }
+  .pt-split span { display: block; }
+  .pt-legend { font-size: 12px; color: var(--text-secondary); display: flex; gap: 16px;
+               flex-wrap: wrap; margin-top: 8px; }
+  .pt-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px;
+                 margin-right: 4px; }
+  .pt-bar { display: flex; height: 9px; width: 140px; border-radius: 3px; overflow: hidden;
+            background: var(--grid); }
+  .pt-bar span { display: block; }
+  .pt-rate { font-weight: 700; }
+  .pt-dim td { color: var(--muted); }
+  .pt-pill { font-size: 11.5px; padding: 2px 8px; border-radius: 4px;
+             background: var(--page); color: var(--text-secondary); white-space: nowrap; }
+  .pt-pill.pass { background: color-mix(in srgb, var(--good) 15%, transparent); color: #0a7a0a; }
+  .pt-pill.fail { background: color-mix(in srgb, var(--critical) 15%, transparent); color: var(--critical); }
+  .pt-pill.block { background: color-mix(in srgb, var(--warning) 22%, transparent); color: #8a6200; }
+  .pt-src { font-size: 11px; padding: 1px 7px; border-radius: 4px; background: var(--page);
+            color: var(--text-secondary); margin-right: 3px; }
+  .pt-remark { color: var(--text-secondary); font-size: 12px; }
+  #panel-Pretest td.num, #panel-Pretest th.num {
+    text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums;
+  }
+  /* A key is one word. Letting it wrap puts "NR1LT-" over "6888", which reads as two
+     different tickets. */
+  #panel-Pretest td.key, #panel-Pretest td.key a { white-space: nowrap; }
   nav.tabs {
     display: flex; gap: 8px; padding: 4px 28px 16px; flex-wrap: wrap;
     border-bottom: 1px solid var(--grid);
@@ -1455,6 +1502,9 @@ const DATA = RAW.tickets;
 const BUGS = RAW.bugs;
 const AUDIO = RAW.audio;
 const PRETEST = RAW.pretest;
+// The Facets / PCTS case results for the round whose workbooks are in the repo.
+// null until build_pretest.py has run, and the Pretest tab copes with that.
+const PRETEST_CASES = RAW.pretest_cases || null;
 const HISTORY = RAW.history || {};
 const TRACE = RAW.traceability || null;
 const TRACE_NOTES = Object.assign({ updated_at: null, updated_by: null, confirmed: {}, comments: {}, owners: {} },
@@ -2225,6 +2275,53 @@ const STRINGS = {
   audio_caption: { zh: (n, total) => `共 ${n} 張未完成票 (Audio 未完成總數 ${total} 張)`, en: (n, total) => `${n} not-done tickets shown (out of ${total} not-done Audio tickets total)` },
   audio_group_header_row: { zh: (name, n) => `${name} — 未完成 ${n} 張`, en: (name, n) => `${name} — ${n} not done` },
 
+  pt_round: { zh: (n, src) => `Round ${n} · ${src}`, en: (n, src) => `Round ${n} · ${src}` },
+  pt_pass_rate: { zh: 'Pass rate', en: 'Pass rate' },
+  pt_fail_rate: { zh: 'Fail rate', en: 'Fail rate' },
+  pt_block_rate: { zh: 'Block rate', en: 'Block rate' },
+  pt_of: { zh: (n, d) => `${n} / ${d}`, en: (n, d) => `${n} / ${d}` },
+  pt_cov_full: { zh: n => `全部 ${n} 題都執行了,沒有 N/A 或未執行`, en: n => `All ${n} cases executed — no N/A, none skipped` },
+  pt_cov_part: { zh: (ex, tot, na, ne) => `已執行 ${ex} / ${tot} 題 —— N/A ${na}、未執行 ${ne},這些不列入上面的分母`,
+                 en: (ex, tot, na, ne) => `${ex} of ${tot} executed — N/A ${na}, not executed ${ne}; neither is in the rates above` },
+  pt_denominator: {
+    zh: '比率的分母是「已執行」= Pass + Fail + Block。沒跑到的題目不列入分母,否則一個還沒測的段落看起來會像測壞了;覆蓋率分開在每組右上角講。',
+    en: 'The rates are over executed cases = Pass + Fail + Block. Cases that were never run stay out of the denominator — otherwise a section nobody has tested yet reads like one that failed. Coverage is stated separately per platform.',
+  },
+  pt_sections_heading: { zh: '各段落通過率', en: 'Pass rate by test section' },
+  pt_sections_caption: { zh: '依通過率由低到高排,最需要看的排在最上面。整段沒有執行的排在最後。',
+                         en: 'Worst first — the sections worth looking at are at the top. Sections with nothing executed sort to the end.' },
+  pt_lists_heading: { zh: '清單', en: 'Lists' },
+  pt_list_cp: { zh: n => `CP test case(${n})`, en: n => `CP test cases (${n})` },
+  pt_list_aa: { zh: n => `AA test case(${n})`, en: n => `AA test cases (${n})` },
+  pt_list_bug: { zh: n => `Bug list(${n})`, en: n => `Bug list (${n})` },
+  pt_all_results: { zh: '全部結果', en: 'All results' },
+  pt_all_sections: { zh: '全部段落', en: 'All sections' },
+  pt_all_conn: { zh: '全部連線方式', en: 'Wired and wireless' },
+  pt_all_src: { zh: '全部來源', en: 'All sources' },
+  pt_search_case: { zh: '搜尋 case ID / 標題 / bug 單號', en: 'Search case ID, title or bug key' },
+  pt_th_section: { zh: '段落', en: 'Section' },
+  pt_th_case: { zh: 'Case ID', en: 'Case ID' },
+  pt_th_title: { zh: '標題', en: 'Title' },
+  pt_th_conn: { zh: '連線', en: 'Link' },
+  pt_th_result: { zh: '結果', en: 'Result' },
+  pt_th_bug: { zh: 'Bug', en: 'Bug' },
+  pt_th_tester: { zh: '測試者', en: 'Tester' },
+  pt_th_remark: { zh: '備註', en: 'Remarks' },
+  pt_th_src: { zh: '來源', en: 'From' },
+  pt_th_cases: { zh: '影響題數', en: 'Cases hit' },
+  pt_th_jira: { zh: 'Jira 狀態', en: 'Jira status' },
+  pt_th_executed: { zh: '已執行', en: 'Executed' },
+  pt_res_ne: { zh: '未執行', en: 'Not run' },
+  pt_th_split: { zh: '分布', en: 'Split' },
+  pt_th_pass: { zh: 'Pass', en: 'Pass' },
+  pt_bug_caption: {
+    zh: n => `${n} 張票:兩份 Excel 的 BugList 合併去重,加上 Jira 上標了 pretest 但兩份 Excel 都沒列到的票。Jira 狀態是從匯出資料查的 —— Excel 只記得當時打了這張票,不會告訴你現在修好了沒。`,
+    en: n => `${n} tickets: both workbooks' bug lists merged, plus pretest-labelled Jira tickets neither workbook lists. The Jira status is looked up in the export — a workbook only records that a ticket was raised, never whether it is fixed.`,
+  },
+  pt_bug_unknown: { zh: '不在匯出範圍', en: 'outside the export' },
+  pt_cases_caption: { zh: (n, tot) => `顯示 ${n} / ${tot} 題`, en: (n, tot) => `${n} of ${tot} cases` },
+  pt_no_cases: { zh: '還沒有測試案例資料 —— 把該輪的 Facets / PCTS 結果 Excel 放進 repo,CI 會自己產生。',
+                 en: 'No test-case data yet — drop the Facets / PCTS result workbooks for the round into the repo, and CI picks them up.' },
   pretest_list_heading: { zh: 'Pretest 清單(Bug 票中 title 含「PCTS」或「Facet」)', en: 'Pretest list (Bug tickets whose title contains "PCTS" or "Facet")' },
   pretest_caption: { zh: n => `共 ${n} 張票 (Pretest 總數 ${PRETEST.length} 張)`, en: n => `${n} tickets shown (out of ${PRETEST.length} Pretest tickets total)` },
 };
@@ -8827,116 +8924,294 @@ function renderTraceabilityPanel() {
   });
 }
 
+// --- Pretest -----------------------------------------------------------------------
+// Two things live on this tab: the round's own test-case results (from the Facets and
+// PCTS workbooks) and the bug tickets they produced. CP and AA are kept apart all the
+// way through, because their denominators are not comparable — CP runs every case it
+// has, AA leaves 299 N/A and 92 unrun, so one combined "CPAA pass rate" would quietly
+// average a tested platform with a half-tested one.
+const PT_RES_ORDER = ['Pass', 'Fail', 'Block', 'Not executed', 'N/A', 'Other'];
+const PT_EXECUTED = ['Pass', 'Fail', 'Block'];
+const PT_COLOR = { Pass: 'var(--good)', Fail: 'var(--critical)', Block: 'var(--warning)' };
+
+function ptPct(n, d) { return d ? (n / d * 100) : 0; }
+function ptPctText(n, d) { return d ? ptPct(n, d).toFixed(1) + '%' : '—'; }
+
+// Returns the segments only. The caller supplies the track, because a segment's width
+// is a percentage of its parent: wrapping these in a second, unsized span would make
+// every one of them 0px wide.
+function ptSplitSegments(counts, executed) {
+  return PT_EXECUTED.filter(k => counts[k])
+    .map(k => `<span style="width:${ptPct(counts[k], executed).toFixed(2)}%;` +
+              `background:${PT_COLOR[k]}" title="${k} ${counts[k]}"></span>`).join('');
+}
+
+// Every ticket the export knows about, so a bug raised during the round can be shown
+// with the state it is in now rather than the state it was in when it was written down.
+let PT_TICKET_INDEX = null;
+function ptTicket(key) {
+  if (!PT_TICKET_INDEX) {
+    PT_TICKET_INDEX = new Map();
+    [RAW.tickets, BUGS, PRETEST, RAW.watch, RAW.swe3].forEach(list => {
+      (list || []).forEach(r => { if (r && r.key && !PT_TICKET_INDEX.has(r.key)) PT_TICKET_INDEX.set(r.key, r); });
+    });
+  }
+  return PT_TICKET_INDEX.get(key) || null;
+}
+
+// The bug list is the union of three places a pretest bug can be recorded: either
+// workbook's BugList, and the pretest label in Jira. Taking only the workbooks would
+// drop the tickets raised after the sheet was last saved.
+function ptBugRows() {
+  const out = new Map();
+  ((PRETEST_CASES && PRETEST_CASES.bugs) || []).forEach(b => {
+    out.set(b.key, { key: b.key, src: b.src.slice(), cases: b.cases || 0,
+                     summary: b.summary || '', comment: b.comment || '' });
+  });
+  (PRETEST || []).forEach(r => {
+    const hit = out.get(r.key);
+    if (hit) { if (!hit.src.includes('Jira')) hit.src.push('Jira'); }
+    else out.set(r.key, { key: r.key, src: ['Jira'], cases: 0, summary: r.summary || '', comment: '' });
+  });
+  return [...out.values()].map(b => {
+    const tk = ptTicket(b.key);
+    return Object.assign(b, {
+      summary: b.summary || (tk && tk.summary) || '',
+      status: tk ? tk.status : '',
+      done: tk ? !!tk.done : false,
+      assignee: tk ? tk.assignee : '',
+      known: !!tk,
+    });
+  }).sort((a, b) => b.cases - a.cases || a.key.localeCompare(b.key));
+}
+
 function renderPretestPanel() {
   const panel = document.getElementById('panel-Pretest');
+  const plats = (PRETEST_CASES && PRETEST_CASES.platforms) || {};
+  const order = ['CP', 'AA'].filter(k => plats[k]);
+  const tagColor = { CP: 'var(--series-cp)', AA: 'var(--series-aa)' };
+
+  const platformBlock = p => {
+    const c = p.counts, ex = p.executed;
+    const cov = (c['N/A'] || c['Not executed'])
+      ? t('pt_cov_part', ex, p.total, c['N/A'] || 0, c['Not executed'] || 0)
+      : t('pt_cov_full', p.total);
+    const tile = (label, key, color) => `
+      <div class="stat-tile pt-tile">
+        <div class="label">${esc(t(label))}</div>
+        <div class="value" style="color:${color}">${ptPctText(c[key], ex)}<i>${esc(t('pt_of', c[key], ex))}</i></div>
+      </div>`;
+    return `
+      <div class="pt-platform">
+        <div class="pt-head">
+          <span class="pt-tag" style="background:${tagColor[p.id]}">${esc(p.id)}</span>
+          <h3>${esc(p.name)}${p.suite ? ' — ' + esc(p.suite) : ''}${p.round ? ' · Round ' + p.round : ''}</h3>
+          <span class="pt-cov">${esc(cov)}</span>
+        </div>
+        <div class="stat-row">
+          ${tile('pt_pass_rate', 'Pass', 'var(--good)')}
+          ${tile('pt_fail_rate', 'Fail', 'var(--critical)')}
+          ${tile('pt_block_rate', 'Block', '#b57c00')}
+        </div>
+        <div class="pt-split">${ptSplitSegments(c, ex)}</div>
+        <div class="pt-legend">
+          ${PT_EXECUTED.map(k => `<span><i style="background:${PT_COLOR[k]}"></i>${k} ${c[k] || 0}</span>`).join('')}
+        </div>
+      </div>`;
+  };
+
+  const bugs = ptBugRows();
   panel.innerHTML = `
-    <div class="stat-row" id="pretestTiles"></div>
+    ${order.length ? order.map(k => platformBlock(plats[k])).join('') : ''}
+    ${order.length ? `<p class="caption" style="margin:-6px 0 20px">${esc(t('pt_denominator'))}</p>` : ''}
+    ${order.length ? `
     <section class="card">
-      <h2>${esc(t('pretest_list_heading'))}</h2>
-      <p class="caption" id="pretestCaption"></p>
-      <div class="filters">
-        <select id="pretestGroupFilter">
-          <option value="">${esc(t('all_group'))}</option>
-          <option value="CP (Facet)">CP (Facet)</option>
-          <option value="AA (PCTS)">AA (PCTS)</option>
-        </select>
-        <select id="pretestStatusFilter">
-          <option value="">${esc(t('all_status'))}</option>
-          <option value="done">${esc(t('status_done'))}</option>
-          <option value="not-done">${esc(t('status_not_done'))}</option>
-        </select>
-        <select id="pretestSeverityFilter">
-          <option value="">${esc(t('all_severity'))}</option>
-        </select>
-        <input type="text" id="pretestSearch" placeholder="${esc(t('search_placeholder'))}">
+      <h2>${esc(t('pt_sections_heading'))}</h2>
+      <p class="caption">${esc(t('pt_sections_caption'))}</p>
+      <div class="chips" id="ptSecChips">
+        ${order.map((k, i) => `<button class="chip${i ? '' : ' active'}" data-pt-sec="${k}">${esc(k)}（${plats[k].sections.length}）</button>`).join('')}
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th data-sort="key">Key</th><th data-sort="pretestGroup">${esc(t('th_group'))}</th><th data-sort="assignee">${esc(t('th_assignee'))}</th>
-            <th data-sort="severity">${esc(t('th_severity'))}</th><th data-sort="status">${esc(t('th_status'))}</th><th data-sort="summary">${esc(t('th_summary'))}</th>
-          </tr></thead>
-          <tbody id="pretestTbody"></tbody>
-        </table>
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th>${esc(t('pt_th_section'))}</th><th class="num">${esc(t('pt_th_executed'))}</th>
+          <th>${esc(t('pt_th_split'))}</th><th class="num">${esc(t('pt_th_pass'))}</th>
+          <th class="num">P</th><th class="num">F</th><th class="num">B</th>
+          <th class="num">${esc(t('pt_res_ne'))}</th><th class="num">N/A</th>
+        </tr></thead>
+        <tbody id="ptSecBody"></tbody>
+      </table></div>
+    </section>` : `<section class="card"><p class="caption">${esc(t('pt_no_cases'))}</p></section>`}
+
+    <section class="card">
+      <h2>${esc(t('pt_lists_heading'))}</h2>
+      <p class="caption" id="ptListCaption"></p>
+      <div class="chips" id="ptListChips">
+        ${plats.CP ? `<button class="chip active" data-pt-list="CP">${esc(t('pt_list_cp', plats.CP.total))}</button>` : ''}
+        ${plats.AA ? `<button class="chip${plats.CP ? '' : ' active'}" data-pt-list="AA">${esc(t('pt_list_aa', plats.AA.total))}</button>` : ''}
+        <button class="chip${order.length ? '' : ' active'}" data-pt-list="BUG">${esc(t('pt_list_bug', bugs.length))}</button>
       </div>
+      <div class="filters" id="ptFilters"></div>
+      <div class="table-wrap"><table>
+        <thead id="ptListHead"></thead>
+        <tbody id="ptListBody"></tbody>
+      </table></div>
     </section>
   `;
 
-  function renderPretestTiles() {
-    const el = document.getElementById('pretestTiles');
-    el.innerHTML = '';
-    const makeTile = (label, subset, clickValue) => {
-      const d = subset.filter(r => r.done).length;
-      const total = subset.length;
-      const notDone = total - d;
-      const p = total ? Math.round(d / total * 100) : 0;
-      const tile = document.createElement('div');
-      tile.className = 'stat-tile stat-tile-clickable';
-      tile.innerHTML = `
-        <div class="label">${esc(label)}</div>
-        <div class="value">${notDone}</div>
-        <div class="sub">${esc(t('tile_sub', d, total, p))}</div>
-        <div class="meter"><div style="width:${p}%"></div></div>
-      `;
-      tile.addEventListener('click', () => jumpToPretestGroup(clickValue));
-      el.appendChild(tile);
+  // ---- section table ----
+  if (order.length) {
+    let secPlat = order[0];
+    const secBody = document.getElementById('ptSecBody');
+    const drawSections = () => {
+      const p = plats[secPlat];
+      secBody.innerHTML = p.sections.map(s => {
+        const counts = { Pass: s.Pass || 0, Fail: s.Fail || 0, Block: s.Block || 0 };
+        return `<tr${s.executed ? '' : ' class="pt-dim"'}>
+          <td>${esc(s.sec)}</td>
+          <td class="num">${s.executed || '—'}</td>
+          <td>${s.executed ? `<span class="pt-bar">${ptSplitSegments(counts, s.executed)}</span>` : ''}</td>
+          <td class="num pt-rate">${s.rate === null || s.rate === undefined ? '—' : Math.round(s.rate) + '%'}</td>
+          <td class="num">${s.Pass || ''}</td>
+          <td class="num" style="color:var(--critical)">${s.Fail || ''}</td>
+          <td class="num" style="color:#8a6200">${s.Block || ''}</td>
+          <td class="num muted">${s['Not executed'] || ''}</td>
+          <td class="num muted">${s['N/A'] || ''}</td>
+        </tr>`;
+      }).join('');
     };
-    makeTile('CP (Facet)', PRETEST.filter(r => r.pretestGroup === 'CP (Facet)'), 'CP (Facet)');
-    makeTile('AA (PCTS)', PRETEST.filter(r => r.pretestGroup === 'AA (PCTS)'), 'AA (PCTS)');
-  }
-  renderPretestTiles();
-
-  const groupSel = document.getElementById('pretestGroupFilter');
-  const statusSel = document.getElementById('pretestStatusFilter');
-  const severitySel = document.getElementById('pretestSeverityFilter');
-  const search = document.getElementById('pretestSearch');
-  const tbody = document.getElementById('pretestTbody');
-
-  (function populateSeverityFilter() {
-    SEVERITY_ORDER.filter(s => PRETEST.some(r => r.severity === s)).forEach(sev => {
-      const opt = document.createElement('option');
-      opt.value = sev;
-      opt.textContent = severityText(sev);
-      severitySel.appendChild(opt);
+    document.getElementById('ptSecChips').addEventListener('click', e => {
+      const b = e.target.closest('[data-pt-sec]');
+      if (!b) return;
+      secPlat = b.dataset.ptSec;
+      [...b.parentElement.children].forEach(x => x.classList.toggle('active', x === b));
+      drawSections();
     });
-  })();
-
-  const pretestSortState = { key: '', dir: 'asc' };
-
-  function renderPretestTable() {
-    let rows = PRETEST;
-    if (groupSel.value) rows = rows.filter(r => r.pretestGroup === groupSel.value);
-    if (statusSel.value === 'done') rows = rows.filter(r => r.done);
-    if (statusSel.value === 'not-done') rows = rows.filter(r => !r.done);
-    if (severitySel.value) rows = rows.filter(r => r.severity === severitySel.value);
-    const q = search.value.toLowerCase();
-    if (q) rows = rows.filter(r => r.key.toLowerCase().includes(q) || r.summary.toLowerCase().includes(q));
-    rows = sortRows(rows, pretestSortState.key, pretestSortState.dir);
-    document.getElementById('pretestCaption').textContent = t('pretest_caption', rows.length);
-    tbody.innerHTML = rows.length ? rows.map(r => `
-      <tr>
-        <td class="key"><a href="${ticketUrl(r.key)}" target="_blank">${r.key}</a></td>
-        <td>${esc(r.pretestGroup)}</td>
-        <td>${esc(r.assignee)}</td>
-        <td>${esc(severityText(r.severity))}</td>
-        <td>${bugStatusBadge(r)}</td>
-        <td>${esc(r.summary)}</td>
-      </tr>
-    `).join('') : `<tr><td colspan="7" class="empty-state">${esc(t('empty_state'))}</td></tr>`;
+    drawSections();
   }
-  [groupSel, statusSel, severitySel].forEach(el => el.addEventListener('change', renderPretestTable));
-  search.addEventListener('input', renderPretestTable);
-  attachSortHandlers(tbody.closest('table').querySelector('thead'), pretestSortState, renderPretestTable);
-  renderPretestTable();
 
-  function jumpToPretestGroup(group) {
-    groupSel.value = group;
-    statusSel.value = 'not-done';
-    severitySel.value = '';
-    search.value = '';
-    renderPretestTable();
-    tbody.closest('section.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // ---- the three lists ----
+  let listKey = order.length ? order[0] : 'BUG';
+  const filters = document.getElementById('ptFilters');
+  const head = document.getElementById('ptListHead');
+  const body = document.getElementById('ptListBody');
+  const caption = document.getElementById('ptListCaption');
+  const state = { res: '', sec: '', conn: '', src: '', q: '' };
+
+  const sel = (id, label, values, cur) => `
+    <select id="${id}"><option value="">${esc(label)}</option>
+    ${values.map(v => `<option value="${esc(v)}"${v === cur ? ' selected' : ''}>${esc(v)}</option>`).join('')}
+    </select>`;
+
+  function drawFilters() {
+    if (listKey === 'BUG') {
+      filters.innerHTML = sel('ptSrc', t('pt_all_src'), ['CP', 'AA', 'Jira'], state.src)
+        + `<input type="text" id="ptSearch" placeholder="${esc(t('search_placeholder'))}" value="${esc(state.q)}">`;
+    } else {
+      const p = plats[listKey];
+      const res = PT_RES_ORDER.filter(r => p.cases.some(c => c.res === r));
+      const secs = [...new Set(p.cases.map(c => c.sec))].filter(Boolean).sort();
+      const conns = [...new Set(p.cases.map(c => c.conn).filter(Boolean))].sort();
+      filters.innerHTML = sel('ptRes', t('pt_all_results'), res, state.res)
+        + sel('ptSec', t('pt_all_sections'), secs, state.sec)
+        + (conns.length > 1 ? sel('ptConn', t('pt_all_conn'), conns, state.conn) : '')
+        + `<input type="text" id="ptSearch" placeholder="${esc(t('pt_search_case'))}" value="${esc(state.q)}">`;
+    }
+    filters.querySelectorAll('select').forEach(s => s.addEventListener('change', () => {
+      state.res = (document.getElementById('ptRes') || {}).value || '';
+      state.sec = (document.getElementById('ptSec') || {}).value || '';
+      state.conn = (document.getElementById('ptConn') || {}).value || '';
+      state.src = (document.getElementById('ptSrc') || {}).value || '';
+      drawList();
+    }));
+    const box = document.getElementById('ptSearch');
+    box.addEventListener('input', () => { state.q = box.value; drawList(); });
   }
+
+  const resPill = r => {
+    const cls = { Pass: 'pass', Fail: 'fail', Block: 'block' }[r] || '';
+    return `<span class="pt-pill ${cls}">${esc(r)}</span>`;
+  };
+  const bugLinks = keys => (keys || []).map(k =>
+    `<a href="${ticketUrl(k)}" target="_blank">${esc(k)}</a>`).join(' ');
+
+  function drawList() {
+    const q = state.q.trim().toLowerCase();
+    if (listKey === 'BUG') {
+      let rows = bugs;
+      if (state.src) rows = rows.filter(b => b.src.includes(state.src));
+      if (q) rows = rows.filter(b => b.key.toLowerCase().includes(q) ||
+                                     (b.summary || '').toLowerCase().includes(q));
+      head.innerHTML = `<tr>
+        <th>Key</th><th>${esc(t('pt_th_src'))}</th><th class="num">${esc(t('pt_th_cases'))}</th>
+        <th>${esc(t('pt_th_jira'))}</th><th>${esc(t('th_assignee'))}</th><th>${esc(t('th_summary'))}</th>
+      </tr>`;
+      body.innerHTML = rows.length ? rows.map(b => `<tr>
+        <td class="key"><a href="${ticketUrl(b.key)}" target="_blank">${esc(b.key)}</a></td>
+        <td>${b.src.map(s => `<span class="pt-src">${esc(s)}</span>`).join('')}</td>
+        <td class="num">${b.cases || ''}</td>
+        <td>${b.known ? bugStatusBadge(b) : `<span class="muted-cell">${esc(t('pt_bug_unknown'))}</span>`}</td>
+        <td>${esc(b.assignee || '')}</td>
+        <td>${esc(b.summary)}</td>
+      </tr>`).join('') : `<tr><td colspan="6" class="empty-state">${esc(t('empty_state'))}</td></tr>`;
+      caption.textContent = t('pt_bug_caption', rows.length);
+      return;
+    }
+    const p = plats[listKey];
+    let rows = p.cases;
+    if (state.res) rows = rows.filter(c => c.res === state.res);
+    if (state.sec) rows = rows.filter(c => c.sec === state.sec);
+    if (state.conn) rows = rows.filter(c => c.conn === state.conn);
+    if (q) rows = rows.filter(c => c.id.toLowerCase().includes(q) ||
+                                   (c.title || '').toLowerCase().includes(q) ||
+                                   (c.sec || '').toLowerCase().includes(q) ||
+                                   (c.bugs || []).some(k => k.toLowerCase().includes(q)));
+    const hasTitle = p.cases.some(c => c.title);
+    const hasConn = p.cases.some(c => c.conn);
+    head.innerHTML = `<tr>
+      <th>${esc(t('pt_th_section'))}</th><th>${esc(t('pt_th_case'))}</th>
+      ${hasTitle ? `<th>${esc(t('pt_th_title'))}</th>` : ''}
+      ${hasConn ? `<th>${esc(t('pt_th_conn'))}</th>` : ''}
+      <th>${esc(t('pt_th_result'))}</th><th>${esc(t('pt_th_bug'))}</th>
+      <th>${esc(t('pt_th_tester'))}</th><th>${esc(t('pt_th_remark'))}</th>
+    </tr>`;
+    const cols = 6 + (hasTitle ? 1 : 0) + (hasConn ? 1 : 0);
+    body.innerHTML = rows.length ? rows.map(c => `<tr data-pt-case="${esc(c.id)}">
+      <td>${esc(c.sec)}</td>
+      <td class="key">${esc(c.id)}</td>
+      ${hasTitle ? `<td>${esc(c.title || '')}</td>` : ''}
+      ${hasConn ? `<td>${esc(c.conn || '')}</td>` : ''}
+      <td>${resPill(c.res === 'Other' ? (c.raw || 'Other') : c.res)}</td>
+      <td class="key">${bugLinks(c.bugs)}</td>
+      <td>${esc(c.tester || '')}</td>
+      <td class="pt-remark">${esc(c.remark || '')}</td>
+    </tr>`).join('') : `<tr><td colspan="${cols}" class="empty-state">${esc(t('empty_state'))}</td></tr>`;
+    caption.textContent = t('pt_cases_caption', rows.length, p.total);
+  }
+
+  document.getElementById('ptListChips').addEventListener('click', e => {
+    const b = e.target.closest('[data-pt-list]');
+    if (!b) return;
+    listKey = b.dataset.ptList;
+    state.res = state.sec = state.conn = state.src = ''; state.q = '';
+    [...b.parentElement.children].forEach(x => x.classList.toggle('active', x === b));
+    drawFilters();
+    drawList();
+  });
+  drawFilters();
+  drawList();
+
+  // The Stats tab jumps here with a platform in mind; land on that list rather than
+  // on whichever one happens to be first.
+  panel.dataset.ptWired = '1';
+}
+
+// Open the Pretest tab on one of its lists — used by the Stats tab's jumps.
+function jumpToPretestList(which) {
+  showTab('Pretest');
+  const chip = document.querySelector(`#ptListChips [data-pt-list="${CSS.escape(which)}"]`);
+  if (chip) chip.click();
+  const card = chip && chip.closest('section.card');
+  if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // --- Tabs, each with its own URL -------------------------------------------------

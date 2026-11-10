@@ -124,6 +124,13 @@ jobs:
       - name: Build schedule.json
         run: python scripts/build_schedule.py
 
+      # The Facets / PCTS round results. Same deal as the schedule: the workbooks live
+      # in the repo and this is a pure local transform. Both are optional — a round with
+      # only one platform's workbook still builds, and with neither the Pretest tab just
+      # shows the Jira bug list.
+      - name: Build pretest_cases.json
+        run: python scripts/build_pretest.py
+
       - name: Record today's snapshot into history.json
         run: python scripts/update_history.py
 
