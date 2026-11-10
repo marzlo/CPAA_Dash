@@ -17,11 +17,18 @@ adding a second one.
 """
 import json
 import os
+import re
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
 DATA_PATH = "dashboard_data.json"
 HISTORY_PATH = "history.json"
+PRETEST_CASES_PATH = "pretest_cases.json"
+
+# Same title rules as gen_dashboard.py's PT_RE_AA / PT_RE_CP (ptBugPlatforms): PCTS
+# means Android Auto, Facet(s) CarPlay, and a title naming neither counts on both sides.
+PT_RE_AA = re.compile(r"PCTS", re.I)
+PT_RE_CP = re.compile(r"Facets?", re.I)
 
 # Same fixed team order as gen_dashboard.py's TEAM_ORDER, so the trend chart's
 # per-team lines get a stable, non-cycled color assignment (TEAM_COLORS there).
@@ -65,6 +72,56 @@ def rca_bucket(row):
     return "filled" if v else "empty"
 
 
+def pretest_counts(data):
+    """Today's Pretest bug numbers, counted exactly the way the Pretest tab counts them.
+
+    The ticket list is the tab's ptBugRows(): every bug either Round workbook lists
+    (pretest_cases.json) plus every Jira Bug titled PCTS / Facet (data["pretest"]).
+    A ticket's status is looked up in the same lists, in the same order, as ptTicket().
+    "open" = known to Jira and not done; a key no export carries is "unknown" and is
+    left out of open, as the tile does. "all" counts a ticket once even when it sits on
+    both platforms, so all.open can be less than CP.open + AA.open.
+
+    These daily numbers are what the tab's weekly trend card reads for every week after
+    pretest_trend_backfill.json runs out.
+    """
+    try:
+        with open(PRETEST_CASES_PATH, encoding="utf-8") as f:
+            cases = json.load(f) or {}
+    except FileNotFoundError:
+        cases = {}
+
+    index = {}
+    for name in ("tickets", "bugs", "pretest", "watch", "swe3"):
+        for r in data.get(name) or []:
+            if r and r.get("key") and r["key"] not in index:
+                index[r["key"]] = r
+
+    summaries = {}
+    for b in cases.get("bugs") or []:
+        summaries[b["key"]] = b.get("summary") or ""
+    for r in data.get("pretest") or []:
+        summaries.setdefault(r["key"], r.get("summary") or "")
+
+    out = {k: {"total": 0, "open": 0, "unknown": 0} for k in ("all", "CP", "AA")}
+    for key, summary in summaries.items():
+        tk = index.get(key)
+        title = summary or (tk or {}).get("summary") or ""
+        if PT_RE_AA.search(title):
+            plats = ["AA"]
+        elif PT_RE_CP.search(title):
+            plats = ["CP"]
+        else:
+            plats = ["CP", "AA"]
+        for p in ["all"] + plats:
+            out[p]["total"] += 1
+            if tk is None:
+                out[p]["unknown"] += 1
+            elif not tk.get("done"):
+                out[p]["open"] += 1
+    return out
+
+
 def main():
     with open(DATA_PATH, encoding="utf-8") as f:
         data = json.load(f)
@@ -86,6 +143,9 @@ def main():
         # a zero.
         "bugs_by_rca": group(bugs, rca_bucket),
         "bugs_by_status": group(bugs, lambda r: r.get("status") or "(none)"),
+        # Pretest open bugs, CP / AA / both. Started 2026-11-10; the weeks before that
+        # come from pretest_trend_backfill.json, reconstructed from Jira by hand.
+        "pretest": pretest_counts(data),
     }
 
     if os.path.exists(HISTORY_PATH):

@@ -93,6 +93,15 @@ except FileNotFoundError:
 
 DATA["pretest_cases"] = PRETEST_CASES
 
+# The weeks before history.json started recording Pretest counts (2026-11-10): open
+# bugs at each Monday 00:00, reconstructed once from Jira's status history. Optional:
+# without it the Pretest trend card starts at the first daily snapshot.
+try:
+    with open("pretest_trend_backfill.json", encoding="utf-8") as f:
+        DATA["pretest_backfill"] = json.load(f)
+except FileNotFoundError:
+    DATA["pretest_backfill"] = None
+
 # The certification schedule, built from the Gantt workbook by build_schedule.py.
 # Optional: without it the Schedule tab says there is nothing loaded.
 try:
@@ -320,6 +329,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .pt-remark { color: var(--text-secondary); font-size: 12px; }
   .pt-tile .sub { font-size: 11.5px; color: var(--muted); margin-top: 5px; }
   .pt-tile:focus-visible { outline: 2px solid var(--series-cp); outline-offset: 2px; }
+  .pt-trend details { margin-top: 12px; font-size: 12.5px; }
+  .pt-trend summary { cursor: pointer; color: var(--text-secondary); }
+  .pt-trend summary:hover { color: var(--text-primary); }
+  .pt-trend .table-wrap { margin-top: 8px; }
   .pt-secrow { cursor: pointer; }
   .pt-secrow:hover td { background: var(--page); }
   #panel-Pretest td.num, #panel-Pretest th.num {
@@ -1509,6 +1522,9 @@ const PRETEST = RAW.pretest;
 // The Facets / PCTS case results for the round whose workbooks are in the repo.
 // null until build_pretest.py has run, and the Pretest tab copes with that.
 const PRETEST_CASES = RAW.pretest_cases || null;
+// Open Pretest bugs at each Monday 00:00 before the daily snapshots began — see
+// pretest_trend_backfill.json. null when the file is absent.
+const PT_BACKFILL = RAW.pretest_backfill || null;
 const HISTORY = RAW.history || {};
 const TRACE = RAW.traceability || null;
 const TRACE_NOTES = Object.assign({ updated_at: null, updated_by: null, confirmed: {}, comments: {}, owners: {} },
@@ -2322,6 +2338,30 @@ const STRINGS = {
   pt_th_jira: { zh: 'Jira 狀態', en: 'Jira status' },
   pt_th_executed: { zh: '已執行', en: 'Executed' },
   pt_open_bugs: { zh: '未解決 Bug', en: 'Open bugs' },
+  pt_trend_heading: { zh: '未解決 Bug 每週趨勢', en: 'Open bugs, week by week' },
+  pt_trend_caption: {
+    zh: 'CP + AA 合計,兩邊都算的票只算一次;「未解決」的定義跟上面的 Open Bugs 卡片一樣。新開看 Jira 建立日期;淨關閉 = 週初未解決 + 新開 − 週末未解決,所以重開會抵掉關閉,重開比關的多的那週會畫在 0 以下。',
+    en: 'CP and AA together, a ticket on both sides counted once; "open" means the same as on the Open bugs tiles above. Opened goes by the Jira created date. Net closed = open at the start + opened − open at the end, so a reopen cancels a close, and a week that reopened more than it closed dips below zero.',
+  },
+  pt_trend_backfill_note: {
+    zh: (d, until) => `${until} 以前的週末數字是 ${d} 用 Jira 狀態歷史回推的(用當天的票清單,之後才補連的票也會算進較早的週);之後是每天自動快照;本週是即時數字,還沒過完。`,
+    en: (d, until) => `Week-end figures up to ${until} were reconstructed from Jira's status history on ${d}, over that day's ticket list (a ticket linked later still counts in earlier weeks). After that they come from the daily snapshot; this week is live and not over yet.`,
+  },
+  pt_trend_opened: { zh: '新開', en: 'Opened' },
+  pt_trend_closed: { zh: '淨關閉', en: 'Net closed' },
+  pt_trend_open: { zh: '週末未解決', en: 'Open at week end' },
+  pt_trend_tip_start: { zh: '週初未解決', en: 'Open at start' },
+  pt_trend_tip_now: { zh: '目前未解決', en: 'Open now' },
+  pt_trend_tip_reopened: { zh: '重開多於關閉', en: 'Reopened, net' },
+  pt_trend_src_live: { zh: '即時,本週至今', en: 'live, week so far' },
+  pt_trend_src_backfill: { zh: 'Jira 回推', en: 'reconstructed from Jira' },
+  pt_trend_src_snapshot: { zh: '每日快照', en: 'daily snapshot' },
+  pt_trend_inprogress: { zh: '本週', en: 'so far' },
+  pt_trend_table: { zh: '看數字', en: 'Show the numbers' },
+  pt_trend_th_week: { zh: '週', en: 'Week' },
+  pt_trend_th_range: { zh: '期間', en: 'Dates' },
+  pt_trend_th_src: { zh: '來源', en: 'Source' },
+  pt_trend_empty: { zh: '還沒有可以畫的資料。', en: 'Nothing to plot yet.' },
   pt_outof: { zh: n => `/ ${n} 張`, en: n => `of ${n}` },
   pt_all_bugs: { zh: '全部 Bug', en: 'Any bug, or none' },
   pt_show_cases: { zh: k => `看 ${k} 卡住的題目`, en: k => `Show the cases ${k} is holding up` },
@@ -9041,6 +9081,225 @@ function ptPlatformBugs(id) {
   return ptAllBugs().filter(b => b.src.includes(id));
 }
 
+// --- Pretest open bugs, week by week -------------------------------------------------
+// One row per ISO week (Monday start, Taipei dates). Three numbers per week:
+//   opened — tickets in today's Pretest list whose Jira created date falls in the week;
+//   open   — open at the end of the week: the backfill's next-Monday figure, else the
+//            last daily snapshot up to next Monday's, else (this week) the live count;
+//   closed — net: open at the start + opened − open at the end. A reopen cancels a close,
+//            so a week can be negative. It is never measured directly; Jira's export
+//            only says where a ticket is now.
+function ptDayIso(d) { return d.toISOString().slice(0, 10); }
+function ptAddDays(iso, n) {
+  const d = new Date(iso + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return ptDayIso(d);
+}
+function ptMondayOf(iso) { return ptDayIso(fcWeekStart(new Date(iso + 'T00:00:00Z'))); }
+
+function ptTrendRows() {
+  const bugs = ptAllBugs();
+  const newBy = {};
+  bugs.forEach(b => {
+    const tk = ptTicket(b.key);
+    // Jira writes the timestamp in Taipei time (+0800), so its first ten characters are
+    // already the local calendar day.
+    const c = tk && tk.created ? String(tk.created).slice(0, 10) : '';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(c)) return;
+    const wk = ptMondayOf(c);
+    newBy[wk] = (newBy[wk] || 0) + 1;
+  });
+  const back = (PT_BACKFILL && PT_BACKFILL.open_at) || {};
+  const snaps = Object.keys(HISTORY)
+    .filter(d => HISTORY[d] && HISTORY[d].pretest && HISTORY[d].pretest.all).sort();
+  const thisWeek = ptMondayOf(ptDayIso(new Date(Date.now() + 8 * 3600000)));
+  const firstNew = Object.keys(newBy).sort()[0];
+  const first = [firstNew, ...Object.keys(back), ...snaps.map(ptMondayOf)].filter(Boolean).sort()[0];
+  if (!first) return [];
+  const liveOpen = bugs.filter(b => b.known && !b.done).length;
+
+  const endOf = wk => {
+    if (wk === thisWeek) return { v: liveOpen, src: 'live' };
+    const next = ptAddDays(wk, 7);
+    if (back[next] != null) return { v: back[next], src: 'backfill' };
+    // A snapshot is taken at 09:00, so next Monday's is the nearest to "end of this
+    // week"; failing that, the latest one inside the week.
+    const inWeek = snaps.filter(d => d > wk && d <= next);
+    if (inWeek.length) return { v: HISTORY[inWeek[inWeek.length - 1]].pretest.all.open, src: 'snapshot' };
+    return null;
+  };
+
+  const rows = [];
+  let prev = back[first] != null ? { v: back[first] } : (first === firstNew ? { v: 0 } : null);
+  for (let wk = first; wk <= thisWeek; wk = ptAddDays(wk, 7)) {
+    const end = endOf(wk);
+    const opened = newBy[wk] || 0;
+    const start = prev ? prev.v : null;
+    rows.push({
+      iso: wk, sunday: ptAddDays(wk, 6), wk: fcWeekMeta(new Date(wk + 'T00:00:00Z')),
+      start, opened, open: end ? end.v : null, src: end ? end.src : null,
+      closed: start != null && end ? start + opened - end.v : null,
+      partial: wk === thisWeek,
+    });
+    prev = end;
+  }
+  return rows;
+}
+
+function ptTrendSrc(src) {
+  return src ? t('pt_trend_src_' + src) : '—';
+}
+function ptMd(iso) { return +iso.slice(5, 7) + '/' + +iso.slice(8, 10); }
+
+function ptTrendTip(e, r) {
+  const tip = fcTipEl();
+  const line = (label, val, sw) =>
+    `<div class="r"><span>${sw ? `<i class="fc-sw" style="background:${sw}"></i>` : ''}${esc(label)}</span><b>${val}</b></div>`;
+  tip.innerHTML =
+    `<h4>${esc(r.wk.tag)} <span style="color:var(--muted);font-weight:400">${ptMd(r.iso)}–${ptMd(r.sunday)}` +
+    `${r.src ? ' · ' + esc(ptTrendSrc(r.src)) : ''}</span></h4>` +
+    (r.start != null ? line(t('pt_trend_tip_start'), r.start) : '') +
+    line(t('pt_trend_opened'), '+' + r.opened, 'var(--flow-arr)') +
+    (r.closed == null ? ''
+      : r.closed < 0 ? line(t('pt_trend_tip_reopened'), '+' + (-r.closed), 'var(--flow-clo)')
+      : line(t('pt_trend_closed'), '−' + r.closed, 'var(--flow-clo)')) +
+    `<div class="r" style="margin-top:4px;border-top:1px solid var(--grid);padding-top:4px">` +
+    `<span>${esc(r.partial ? t('pt_trend_tip_now') : t('pt_trend_open'))}</span><b>${r.open == null ? '—' : r.open}</b></div>`;
+  tip.style.opacity = 1;
+  const b = tip.getBoundingClientRect();
+  tip.style.left = Math.min(window.innerWidth - b.width - 10, e.clientX + 14) + 'px';
+  tip.style.top = Math.max(8, e.clientY - b.height - 10) + 'px';
+}
+
+function renderPtTrend() {
+  const host = document.getElementById('ptTrend');
+  if (!host) return;
+  const rows = ptTrendRows();
+  if (!rows.length) { host.innerHTML = `<p class="empty-state">${esc(t('pt_trend_empty'))}</p>`; return; }
+
+  // Opened, net closed and open are all counts of bugs, so they share one axis.
+  const PAD = { t: 24, r: 30, b: 46, l: 36 };
+  const BAR = 14, IN = 2, GAP = 18, COL = BAR * 2 + IN + GAP;
+  const W = PAD.l + PAD.r + rows.length * COL, H = 300, plotH = H - PAD.t - PAD.b;
+  const vals = rows.flatMap(r => [r.opened, r.closed, r.open]).filter(v => v != null);
+  const hi = Math.max(10, ...vals), lo = Math.min(0, ...vals);
+  const step = hi > 40 ? 10 : 5;
+  const top = Math.ceil(hi / step) * step;
+  // Room under zero only when a week actually went negative, and only as much as it needs.
+  const bot = lo < 0 ? Math.min(lo, -2) * 1.4 : 0;
+  const y = v => PAD.t + (top - v) / (top - bot) * plotH;
+  const colX = i => PAD.l + i * COL + GAP / 2;
+  const mid = i => colX(i) + BAR + IN / 2;
+
+  let g = '';
+  for (let v = 0; v <= top; v += step) {
+    g += `<line x1="${PAD.l}" x2="${W - PAD.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)" stroke-width="1"/>` +
+         `<text x="${PAD.l - 7}" y="${y(v) + 4}" text-anchor="end" fill="var(--muted)" font-size="11">${v}</text>`;
+  }
+  g += `<line x1="${PAD.l}" x2="${W - PAD.r}" y1="${y(0)}" y2="${y(0)}" stroke="var(--text-secondary)" stroke-width="1" opacity=".5"/>`;
+
+  const bar = (x, v, col, faded) => {
+    if (!v) return '';
+    const y1 = y(Math.max(v, 0)), y2 = y(Math.min(v, 0));
+    return `<rect x="${x}" y="${y1}" width="${BAR}" height="${Math.max(1, y2 - y1)}" rx="2.5" fill="${col}"${faded ? ' opacity=".45"' : ''}/>`;
+  };
+  rows.forEach((r, i) => {
+    const x = colX(i);
+    g += bar(x, r.opened, 'var(--flow-arr)', r.partial) + bar(x + BAR + IN, r.closed, 'var(--flow-clo)', r.partial);
+    g += `<text x="${mid(i)}" y="${H - PAD.b + 15}" text-anchor="middle" font-size="10"` +
+         ` fill="${r.partial ? 'var(--text-secondary)' : 'var(--muted)'}"${r.partial ? ' font-weight="600"' : ''}>${esc(r.wk.short)}</text>`;
+    if (i === 0 || r.wk.month !== rows[i - 1].wk.month) {
+      g += `<text x="${mid(i)}" y="${H - PAD.b + 30}" text-anchor="middle" font-size="10" font-weight="600"` +
+           ` fill="var(--text-secondary)">${r.wk.my}-${String(r.wk.month).padStart(2, '0')}</text>`;
+    }
+    if (r.partial) {
+      g += `<text x="${mid(i)}" y="${PAD.t - 10}" text-anchor="middle" font-size="9" fill="var(--text-secondary)">${esc(t('pt_trend_inprogress'))}</text>`;
+    }
+  });
+
+  // The open line, drawn twice — a casing in the card colour, then the line — so it
+  // stays readable where it crosses a bar. A gap in the data breaks the line.
+  const runs = [[]];
+  rows.forEach((r, i) => {
+    if (r.open == null) { if (runs[runs.length - 1].length) runs.push([]); return; }
+    runs[runs.length - 1].push([mid(i), y(r.open)]);
+  });
+  runs.filter(run => run.length > 1).forEach(run => {
+    const d = run.map(p => p.join(',')).join(' ');
+    g += `<polyline points="${d}" fill="none" stroke="var(--surface-1)" stroke-width="5.5" stroke-linejoin="round" stroke-linecap="round" opacity=".9"/>` +
+         `<polyline points="${d}" fill="none" stroke="var(--text-primary)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  });
+  rows.forEach((r, i) => {
+    if (r.open == null) return;
+    g += `<circle cx="${mid(i)}" cy="${y(r.open)}" r="4" fill="${r.partial ? 'var(--surface-1)' : 'var(--text-primary)'}"` +
+         ` stroke="${r.partial ? 'var(--text-primary)' : 'var(--surface-1)'}" stroke-width="2"/>`;
+  });
+  // Direct labels on two points only: the peak and where it stands now.
+  const withOpen = rows.map((r, i) => ({ r, i })).filter(o => o.r.open != null);
+  const last = withOpen[withOpen.length - 1];
+  const peak = withOpen.reduce((a, b) => (b.r.open > a.r.open ? b : a), withOpen[0]);
+  [peak, last].filter((o, k, arr) => o && arr.indexOf(o) === k).forEach(o => {
+    g += `<text x="${mid(o.i)}" y="${y(o.r.open) - 9}" text-anchor="middle" font-size="11" font-weight="600"` +
+         ` fill="var(--text-primary)" paint-order="stroke" stroke="var(--surface-1)" stroke-width="3">${o.r.open}</text>`;
+  });
+  rows.forEach((r, i) => {
+    g += `<rect class="pt-trend-hit" data-i="${i}" x="${colX(i) - GAP / 2}" y="${PAD.t}" width="${COL}" height="${plotH}" fill="transparent"/>`;
+  });
+
+  const sw = col => `<i class="fc-sw" style="background:${col}"></i>`;
+  const lineSw = `<svg width="22" height="10" style="overflow:visible"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--text-primary)" stroke-width="2"/>` +
+                 `<circle cx="11" cy="5" r="3.5" fill="var(--text-primary)" stroke="var(--surface-1)" stroke-width="2"/></svg>`;
+  const backDays = Object.keys((PT_BACKFILL && PT_BACKFILL.open_at) || {}).sort();
+  const note = backDays.length
+    ? ' ' + t('pt_trend_backfill_note', PT_BACKFILL.computed_at || '', ptAddDays(backDays[backDays.length - 1], -1))
+    : '';
+
+  host.innerHTML = `
+    <div class="fc-legend">
+      <span>${sw('var(--flow-arr)')}${esc(t('pt_trend_opened'))}</span>
+      <span>${sw('var(--flow-clo)')}${esc(t('pt_trend_closed'))}</span>
+      <span>${lineSw}${esc(t('pt_trend_open'))}</span>
+    </div>
+    <div class="fc-chart-host">
+      <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t('pt_trend_heading'))}">${g}</svg>
+    </div>
+    <p class="caption" style="margin:10px 0 0">${esc(t('pt_trend_caption') + note)}</p>
+    <details>
+      <summary>${esc(t('pt_trend_table'))}</summary>
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th>${esc(t('pt_trend_th_week'))}</th><th>${esc(t('pt_trend_th_range'))}</th>
+          <th class="num">${esc(t('pt_trend_tip_start'))}</th><th class="num">${esc(t('pt_trend_opened'))}</th>
+          <th class="num">${esc(t('pt_trend_closed'))}</th><th class="num">${esc(t('pt_trend_open'))}</th>
+          <th>${esc(t('pt_trend_th_src'))}</th>
+        </tr></thead>
+        <tbody>${rows.slice().reverse().map(r => `<tr>
+          <td>${esc(r.wk.tag)}</td><td>${ptMd(r.iso)}–${ptMd(r.sunday)}</td>
+          <td class="num">${r.start == null ? '—' : r.start}</td><td class="num">+${r.opened}</td>
+          <td class="num">${r.closed == null ? '—' : (r.closed < 0 ? esc(t('pt_trend_tip_reopened')) + ' +' + (-r.closed) : '−' + r.closed)}</td>
+          <td class="num">${r.open == null ? '—' : r.open}</td><td>${esc(ptTrendSrc(r.src))}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    </details>`;
+
+  host.querySelectorAll('.pt-trend-hit').forEach(el => {
+    el.addEventListener('mousemove', e => ptTrendTip(e, rows[+el.dataset.i]));
+    el.addEventListener('mouseleave', fcHideTip);
+  });
+  // Newest weeks matter most: when the chart is wider than the card, start scrolled right.
+  // The tab is usually hidden when this runs, and a hidden box has no width to scroll,
+  // so wait until it is first on screen.
+  const sc = host.querySelector('.fc-chart-host');
+  const toEnd = () => { sc.scrollLeft = sc.scrollWidth; };
+  if (sc.clientWidth) toEnd();
+  else if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(es => {
+      if (es.some(en => en.isIntersecting)) { toEnd(); io.disconnect(); }
+    });
+    io.observe(sc);
+  }
+}
+
 function renderPretestPanel() {
   const panel = document.getElementById('panel-Pretest');
   const plats = (PRETEST_CASES && PRETEST_CASES.platforms) || {};
@@ -9095,6 +9354,10 @@ function renderPretestPanel() {
   panel.innerHTML = `
     ${order.length ? order.map(k => platformBlock(plats[k])).join('') : ''}
     ${order.length ? `<p class="caption" style="margin:-6px 0 20px">${esc(t('pt_denominator'))}</p>` : ''}
+    <section class="card pt-trend">
+      <h2>${esc(t('pt_trend_heading'))}</h2>
+      <div id="ptTrend"></div>
+    </section>
     ${order.length ? `
     <section class="card">
       <h2>${esc(t('pt_sections_heading'))}</h2>
@@ -9128,6 +9391,8 @@ function renderPretestPanel() {
       </table></div>
     </section>
   `;
+
+  renderPtTrend();
 
   // ---- section table ----
   if (order.length) {

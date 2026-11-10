@@ -1,0 +1,23 @@
+{
+ "computed_at": "2026-11-10",
+ "method": "Open Pretest bugs at 00:00 Asia/Taipei on each Monday, counted in Jira with `status WAS NOT IN (Done, \"Non-issue\", \"Ready for test\", \"Eng build\", \"Monitoring\", \"Ready for integration\") ON <Monday 00:00> AND created < <Monday 00:00>`, over the ticket list as it stood on computed_at: both Round2 workbooks' BugList keys plus filter 12399 Bugs whose title has PCTS or Facet. CP and AA together, a ticket on both sides counted once. Written once by hand; the daily pretest snapshots in history.json take over from here.",
+ "open_at": {
+  "2026-07-20": 0,
+  "2026-07-27": 2,
+  "2026-08-03": 4,
+  "2026-08-10": 4,
+  "2026-08-17": 11,
+  "2026-08-24": 21,
+  "2026-08-31": 27,
+  "2026-09-07": 21,
+  "2026-09-14": 21,
+  "2026-09-21": 23,
+  "2026-09-28": 25,
+  "2026-10-05": 25,
+  "2026-10-12": 34,
+  "2026-10-19": 36,
+  "2026-10-26": 51,
+  "2026-11-02": 42,
+  "2026-11-09": 40
+ }
+}
