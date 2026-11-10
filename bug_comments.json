@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-05T02:45:00.322Z",
+  "updated_at": "2026-11-10T08:38:31.705Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -384,6 +384,14 @@
         "text": "調整Flextech建議的配置字",
         "by": "Leyo",
         "at": "2026-11-05T02:44:59.745Z"
+      }
+    ],
+    "NR1LT-6874": [
+      {
+        "id": "mwafu82f1lt2m",
+        "text": "Cold boot is fine. Hot boot (IGN off -> STR) is an issue\nNow after IGN off, CAN will not sleep, we observe that TBM will keep sending NM to awake CAN.",
+        "by": "Leyo",
+        "at": "2026-11-10T08:38:30.999Z"
       }
     ]
   }
