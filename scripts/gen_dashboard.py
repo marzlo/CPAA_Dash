@@ -2324,6 +2324,7 @@ const STRINGS = {
   pt_outof: { zh: n => `/ ${n} 張`, en: n => `of ${n}` },
   pt_all_bugs: { zh: '全部 Bug', en: 'Any bug, or none' },
   pt_show_cases: { zh: k => `看 ${k} 卡住的題目`, en: k => `Show the cases ${k} is holding up` },
+  pt_show_cases_in: { zh: (k, p) => `看 ${k} 在 ${p} 卡住的題目`, en: (k, p) => `Show the ${p} cases ${k} is holding up` },
   pt_stated: { zh: n => `(表列 ${n})`, en: n => `(sheet says ${n})` },
   pt_stated_hint: {
     zh: 'Excel 的 BugList 自己填的「Affected Case Count」,跟同一份 Excel 裡實際標了這張票的題數對不起來。左邊那個數字是真的標到的、點得進去的;這個是表上寫的。',
@@ -9211,13 +9212,18 @@ function renderPretestPanel() {
   // beside it rather than silently preferred — they disagree on 18 of the 72 bugs, and
   // which one is right is a question for the test team, not for this page.
   const ptCaseJumpCell = (b, ps) => {
-    const to = b.src.find(x => ps[x] && (b.taggedBy || {})[x]);
-    const n = b.tagged || 0;
-    const shown = to
-      ? `<a href="#" class="pt-casejump" data-pt-bug="${esc(b.key)}" data-pt-to="${esc(to)}"
-           title="${esc(t('pt_show_cases', b.key))}">${n}</a>`
-      : String(n || b.cases || '');
-    return b.cases && b.cases !== n
+    const by = b.taggedBy || {};
+    const hits = Object.keys(by).filter(x => ps[x] && by[x]);
+    const link = (id, n, label) =>
+      `<a href="#" class="pt-casejump" data-pt-bug="${esc(b.key)}" data-pt-to="${esc(id)}"
+         title="${esc(t('pt_show_cases_in', b.key, id))}">${label ? esc(id) + ' ' : ''}${n}</a>`;
+    // A ticket that hit both workbooks has two piles of cases and there is no list that
+    // holds both, so one link labelled with the total would take you to half of it and
+    // silently drop the rest. Link each platform's own count instead.
+    const shown = hits.length > 1
+      ? hits.map(id => link(id, by[id], true)).join(' · ')
+      : (hits.length ? link(hits[0], b.tagged || 0, false) : String(b.tagged || b.cases || ''));
+    return b.cases && b.cases !== (b.tagged || 0)
       ? `${shown} <span class="muted-cell" title="${esc(t('pt_stated_hint'))}">${esc(t('pt_stated', b.cases))}</span>`
       : shown;
   };
