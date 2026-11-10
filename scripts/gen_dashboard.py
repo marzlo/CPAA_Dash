@@ -318,6 +318,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .pt-src { font-size: 11px; padding: 1px 7px; border-radius: 4px; background: var(--page);
             color: var(--text-secondary); margin-right: 3px; }
   .pt-remark { color: var(--text-secondary); font-size: 12px; }
+  .pt-tile .sub { font-size: 11.5px; color: var(--muted); margin-top: 5px; }
+  .pt-tile:focus-visible { outline: 2px solid var(--series-cp); outline-offset: 2px; }
+  .pt-secrow { cursor: pointer; }
+  .pt-secrow:hover td { background: var(--page); }
   #panel-Pretest td.num, #panel-Pretest th.num {
     text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums;
   }
@@ -2311,6 +2315,10 @@ const STRINGS = {
   pt_th_cases: { zh: '影響題數', en: 'Cases hit' },
   pt_th_jira: { zh: 'Jira 狀態', en: 'Jira status' },
   pt_th_executed: { zh: '已執行', en: 'Executed' },
+  pt_open_bugs: { zh: '未解決 Bug', en: 'Open bugs' },
+  pt_bug_open: { zh: '未解決', en: 'Open' },
+  pt_bug_done: { zh: '已解決', en: 'Closed' },
+  pt_bug_unknown_n: { zh: n => `另有 ${n} 張不在匯出範圍,狀態不明`, en: n => `${n} more outside the export, status unknown` },
   pt_res_ne: { zh: '未執行', en: 'Not run' },
   pt_th_split: { zh: '分布', en: 'Split' },
   pt_th_pass: { zh: 'Pass', en: 'Pass' },
@@ -8985,6 +8993,17 @@ function ptBugRows() {
   }).sort((a, b) => b.cases - a.cases || a.key.localeCompare(b.key));
 }
 
+// The bugs a platform's own workbook raised. A ticket that hit both lists counts for
+// both, because it is open work on both sides.
+let PT_BUGS = null;
+function ptAllBugs() {
+  if (!PT_BUGS) PT_BUGS = ptBugRows();
+  return PT_BUGS;
+}
+function ptPlatformBugs(id) {
+  return ptAllBugs().filter(b => b.src.includes(id));
+}
+
 function renderPretestPanel() {
   const panel = document.getElementById('panel-Pretest');
   const plats = (PRETEST_CASES && PRETEST_CASES.platforms) || {};
@@ -8996,10 +9015,23 @@ function renderPretestPanel() {
     const cov = (c['N/A'] || c['Not executed'])
       ? t('pt_cov_part', ex, p.total, c['N/A'] || 0, c['Not executed'] || 0)
       : t('pt_cov_full', p.total);
+    // Every tile is a way into the list below it: a number nobody can click is a number
+    // you then have to go and find by hand.
     const tile = (label, key, color) => `
-      <div class="stat-tile pt-tile">
+      <div class="stat-tile pt-tile stat-tile-clickable" data-pt-jump="${p.id}" data-pt-res="${key}"
+           tabindex="0" role="button">
         <div class="label">${esc(t(label))}</div>
         <div class="value" style="color:${color}">${ptPctText(c[key], ex)}<i>${esc(t('pt_of', c[key], ex))}</i></div>
+      </div>`;
+    const bugs = ptPlatformBugs(p.id);
+    const open = bugs.filter(b => b.known && !b.done).length;
+    const unknown = bugs.filter(b => !b.known).length;
+    const bugTile = `
+      <div class="stat-tile pt-tile stat-tile-clickable" data-pt-jump="BUG" data-pt-src="${p.id}"
+           tabindex="0" role="button">
+        <div class="label">${esc(t('pt_open_bugs'))}</div>
+        <div class="value">${open}<i>${esc(t('pt_of', open, bugs.length))}</i></div>
+        ${unknown ? `<div class="sub">${esc(t('pt_bug_unknown_n', unknown))}</div>` : ''}
       </div>`;
     return `
       <div class="pt-platform">
@@ -9012,6 +9044,7 @@ function renderPretestPanel() {
           ${tile('pt_pass_rate', 'Pass', 'var(--good)')}
           ${tile('pt_fail_rate', 'Fail', 'var(--critical)')}
           ${tile('pt_block_rate', 'Block', '#b57c00')}
+          ${bugTile}
         </div>
         <div class="pt-split">${ptSplitSegments(c, ex)}</div>
         <div class="pt-legend">
@@ -9020,7 +9053,8 @@ function renderPretestPanel() {
       </div>`;
   };
 
-  const bugs = ptBugRows();
+  PT_BUGS = null;            // rebuilt per render, so a language switch picks up new text
+  const bugs = ptAllBugs();
   panel.innerHTML = `
     ${order.length ? order.map(k => platformBlock(plats[k])).join('') : ''}
     ${order.length ? `<p class="caption" style="margin:-6px 0 20px">${esc(t('pt_denominator'))}</p>` : ''}
@@ -9066,7 +9100,7 @@ function renderPretestPanel() {
       const p = plats[secPlat];
       secBody.innerHTML = p.sections.map(s => {
         const counts = { Pass: s.Pass || 0, Fail: s.Fail || 0, Block: s.Block || 0 };
-        return `<tr${s.executed ? '' : ' class="pt-dim"'}>
+        return `<tr class="pt-secrow${s.executed ? '' : ' pt-dim'}" data-pt-sec-row="${esc(s.sec)}">
           <td>${esc(s.sec)}</td>
           <td class="num">${s.executed || '—'}</td>
           <td>${s.executed ? `<span class="pt-bar">${ptSplitSegments(counts, s.executed)}</span>` : ''}</td>
@@ -9079,6 +9113,10 @@ function renderPretestPanel() {
         </tr>`;
       }).join('');
     };
+    secBody.addEventListener('click', e => {
+      const row = e.target.closest('[data-pt-sec-row]');
+      if (row && panel.ptShow) panel.ptShow(secPlat, { sec: row.dataset.ptSecRow });
+    });
     document.getElementById('ptSecChips').addEventListener('click', e => {
       const b = e.target.closest('[data-pt-sec]');
       if (!b) return;
@@ -9095,7 +9133,7 @@ function renderPretestPanel() {
   const head = document.getElementById('ptListHead');
   const body = document.getElementById('ptListBody');
   const caption = document.getElementById('ptListCaption');
-  const state = { res: '', sec: '', conn: '', src: '', q: '' };
+  const state = { res: '', sec: '', conn: '', src: '', bug: '', q: '' };
 
   const sel = (id, label, values, cur) => `
     <select id="${id}"><option value="">${esc(label)}</option>
@@ -9105,6 +9143,12 @@ function renderPretestPanel() {
   function drawFilters() {
     if (listKey === 'BUG') {
       filters.innerHTML = sel('ptSrc', t('pt_all_src'), ['CP', 'AA', 'Jira'], state.src)
+        + `<select id="ptBugState">
+             <option value="">${esc(t('all_status'))}</option>
+             <option value="open"${state.bug === 'open' ? ' selected' : ''}>${esc(t('pt_bug_open'))}</option>
+             <option value="done"${state.bug === 'done' ? ' selected' : ''}>${esc(t('pt_bug_done'))}</option>
+             <option value="unknown"${state.bug === 'unknown' ? ' selected' : ''}>${esc(t('pt_bug_unknown'))}</option>
+           </select>`
         + `<input type="text" id="ptSearch" placeholder="${esc(t('search_placeholder'))}" value="${esc(state.q)}">`;
     } else {
       const p = plats[listKey];
@@ -9121,6 +9165,7 @@ function renderPretestPanel() {
       state.sec = (document.getElementById('ptSec') || {}).value || '';
       state.conn = (document.getElementById('ptConn') || {}).value || '';
       state.src = (document.getElementById('ptSrc') || {}).value || '';
+      state.bug = (document.getElementById('ptBugState') || {}).value || '';
       drawList();
     }));
     const box = document.getElementById('ptSearch');
@@ -9139,6 +9184,9 @@ function renderPretestPanel() {
     if (listKey === 'BUG') {
       let rows = bugs;
       if (state.src) rows = rows.filter(b => b.src.includes(state.src));
+      if (state.bug === 'open') rows = rows.filter(b => b.known && !b.done);
+      else if (state.bug === 'done') rows = rows.filter(b => b.known && b.done);
+      else if (state.bug === 'unknown') rows = rows.filter(b => !b.known);
       if (q) rows = rows.filter(b => b.key.toLowerCase().includes(q) ||
                                      (b.summary || '').toLowerCase().includes(q));
       head.innerHTML = `<tr>
@@ -9188,15 +9236,41 @@ function renderPretestPanel() {
     caption.textContent = t('pt_cases_caption', rows.length, p.total);
   }
 
+  // Switch to one of the lists with a filter already applied, and scroll it into view.
+  // Every tile and every section row goes through here, so "52.1% pass" and "the 58
+  // CP cases that failed" are one click apart instead of a filter to set by hand.
+  function ptShow(which, filter) {
+    const chip = document.querySelector(`#ptListChips [data-pt-list="${CSS.escape(which)}"]`);
+    if (!chip) return;
+    listKey = which;
+    state.res = state.sec = state.conn = state.src = state.bug = ''; state.q = '';
+    Object.assign(state, filter || {});
+    [...chip.parentElement.children].forEach(x => x.classList.toggle('active', x === chip));
+    drawFilters();
+    drawList();
+    chip.closest('section.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  panel.ptShow = ptShow;
+
   document.getElementById('ptListChips').addEventListener('click', e => {
     const b = e.target.closest('[data-pt-list]');
     if (!b) return;
-    listKey = b.dataset.ptList;
-    state.res = state.sec = state.conn = state.src = ''; state.q = '';
-    [...b.parentElement.children].forEach(x => x.classList.toggle('active', x === b));
-    drawFilters();
-    drawList();
+    ptShow(b.dataset.ptList);
   });
+
+  // The rate tiles, and the bug tile beside them.
+  const tileJump = el => {
+    const to = el.dataset.ptJump;
+    if (to === 'BUG') ptShow('BUG', { src: el.dataset.ptSrc, bug: 'open' });
+    else ptShow(to, { res: el.dataset.ptRes });
+  };
+  panel.querySelectorAll('[data-pt-jump]').forEach(el => {
+    el.addEventListener('click', () => tileJump(el));
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tileJump(el); }
+    });
+  });
+
   drawFilters();
   drawList();
 
