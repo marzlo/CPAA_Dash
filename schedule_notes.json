@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-09T09:07:40.455Z",
+  "updated_at": "2026-11-11T06:11:16.866Z",
   "updated_by": "Leyo",
   "state": {
     "carplay|certification-1st|itut-siri-esiri": {
@@ -40,6 +40,11 @@
     "android-auto|certification-1st|submit-system-testing-assessment": {
       "text": "AA目前现在PCTS通过率大概80%。这个文档主要也是填PCTS的结果和通过情况，得再等一等通过率上升，再准备这个就可以。最终提交的时候，谷歌要求，除了Waiver的以外，其他都应该pass",
       "at": "2026-11-09T09:07:40.455Z",
+      "by": "Leyo"
+    },
+    "carplay|hardware-certification|usb-if-usb-signal-integrity": {
+      "text": "Target to be finished at <span style=\"color: rgb(12, 163, 12); font-weight: bold\">Dec 18</span>",
+      "at": "2026-11-11T06:11:16.866Z",
       "by": "Leyo"
     }
   },
