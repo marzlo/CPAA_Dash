@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-10T08:38:31.705Z",
+  "updated_at": "2026-11-11T05:35:03.895Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -392,6 +392,14 @@
         "text": "Cold boot is fine. Hot boot (IGN off -> STR) is an issue\nNow after IGN off, CAN will not sleep, we observe that TBM will keep sending NM to awake CAN.",
         "by": "Leyo",
         "at": "2026-11-10T08:38:30.999Z"
+      }
+    ],
+    "NR1LT-7691": [
+      {
+        "id": "mwboq53rpwza6",
+        "text": "此票與https://mobiledrivetech.atlassian.net/browse/NR1LT-6874應相關",
+        "by": "Leyo",
+        "at": "2026-11-11T05:35:03.255Z"
       }
     ]
   }
