@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-11T06:11:16.866Z",
+  "updated_at": "2026-11-11T06:13:11.590Z",
   "updated_by": "Leyo",
   "state": {
     "carplay|certification-1st|itut-siri-esiri": {
@@ -43,8 +43,8 @@
       "by": "Leyo"
     },
     "carplay|hardware-certification|usb-if-usb-signal-integrity": {
-      "text": "Target to be finished at <span style=\"color: rgb(12, 163, 12); font-weight: bold\">Dec 18</span>",
-      "at": "2026-11-11T06:11:16.866Z",
+      "text": "Target to be finished at <span style=\"color: rgb(12, 163, 12); font-weight: bold\">Dec 18</span><div>USB IF certification report will block audit planning<br><span style=\"background-color: rgb(249, 249, 247)\">Since we can't add 3 party lab to our PPID without USB IF certification, blocks audit planning.&nbsp;</span></div>",
+      "at": "2026-11-11T06:13:11.590Z",
       "by": "Leyo"
     }
   },
