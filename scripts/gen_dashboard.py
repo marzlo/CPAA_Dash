@@ -327,6 +327,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .pt-src { font-size: 11px; padding: 1px 7px; border-radius: 4px; background: var(--page);
             color: var(--text-secondary); margin-right: 3px; }
   .pt-remark { color: var(--text-secondary); font-size: 12px; }
+  .pt-export { float: right; display: flex; gap: 6px; margin: -34px 0 0; }
   .pt-tile .sub { font-size: 11.5px; color: var(--muted); margin-top: 5px; }
   .pt-tile:focus-visible { outline: 2px solid var(--series-cp); outline-offset: 2px; }
   .pt-lastcmt { margin-top: 5px; font-size: 12px; color: var(--text-secondary);
@@ -2322,6 +2323,24 @@ const STRINGS = {
   pt_sections_caption: { zh: '依通過率由低到高排,最需要看的排在最上面。整段沒有執行的排在最後。',
                          en: 'Worst first — the sections worth looking at are at the top. Sections with nothing executed sort to the end.' },
   pt_lists_heading: { zh: '清單', en: 'Lists' },
+  pt_dl_csv: { zh: '⬇ CSV(目前這份)', en: '⬇ CSV (this list)' },
+  pt_dl_xlsx: { zh: '⬇ Excel(全部)', en: '⬇ Excel (everything)' },
+  pt_dl_done: { zh: n => `已下載 ${n} 列`, en: n => `${n} rows downloaded` },
+  pt_dl_empty: { zh: '這份清單是空的', en: 'nothing in this list' },
+  pt_dl_failed: { zh: '產生失敗', en: 'could not build the file' },
+  pt_x_summary: { zh: '統計摘要', en: 'Summary' },
+  pt_x_title: { zh: 'CPAA Pretest 結果', en: 'CPAA pretest results' },
+  pt_x_platform: { zh: '平台', en: 'Platform' },
+  pt_x_raw: { zh: '原始結果字串', en: 'Result as written' },
+  pt_x_from: { zh: '記錄在', en: 'Recorded in' },
+  pt_x_tagged: { zh: '實際標到的題數', en: 'Cases tagged' },
+  pt_x_stated: { zh: 'BugList 表列題數', en: 'Cases per the sheet' },
+  pt_x_comments: { zh: '儀表板留言', en: 'Dashboard comments' },
+  pt_x_generated: { zh: '匯出時間', en: 'Exported' },
+  pt_x_denominator_note: {
+    zh: '通過率的分母是「已執行」= Pass + Fail + Block;N/A 與未執行另計,不列入分母。',
+    en: 'Rates are over executed cases = Pass + Fail + Block. N/A and not-executed are counted separately and are not in the denominator.',
+  },
   pt_list_cp_name: { zh: 'CP test case', en: 'CP test cases' },
   pt_list_aa_name: { zh: 'AA test case', en: 'AA test cases' },
   pt_list_bug_name: { zh: 'Bug list', en: 'Bug list' },
@@ -9025,6 +9044,127 @@ function renderTraceabilityPanel() {
   });
 }
 
+// --- Downloads ---------------------------------------------------------------------
+function dlBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function csvText(rows) {
+  // The BOM is what makes Excel read it as UTF-8 instead of mangling the Chinese.
+  return '﻿' + rows.map(r => r.map(c => {
+    const v = c === null || c === undefined ? '' : String(c);
+    return `"${v.replace(/"/g, '""')}"`;
+  }).join(',')).join('\r\n');
+}
+
+// --- A minimal .xlsx writer ---------------------------------------------------------
+// An xlsx is a zip of XML. The page can load no library, so this writes the zip itself,
+// stored (no compression) — which needs a real CRC32 per entry or Excel refuses the
+// file. Enough for plain grids: text and numbers, one sheet per table, no styling.
+const ZIP_CRC = (() => {
+  const t = new Int32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c;
+  }
+  return t;
+})();
+function crc32(bytes) {
+  let c = -1;
+  for (let i = 0; i < bytes.length; i++) c = ZIP_CRC[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ -1) >>> 0;
+}
+
+function zipStore(files) {
+  const enc = new TextEncoder();
+  const parts = [], central = [];
+  let offset = 0;
+  const u16 = n => [n & 0xFF, (n >> 8) & 0xFF];
+  const u32 = n => [n & 0xFF, (n >> 8) & 0xFF, (n >> 16) & 0xFF, (n >>> 24) & 0xFF];
+  files.forEach(f => {
+    const nameB = enc.encode(f.name);
+    const data = enc.encode(f.data);
+    const crc = crc32(data);
+    const local = [...u32(0x04034b50), ...u16(20), ...u16(0), ...u16(0), ...u16(0), ...u16(0),
+                   ...u32(crc), ...u32(data.length), ...u32(data.length),
+                   ...u16(nameB.length), ...u16(0)];
+    parts.push(new Uint8Array(local), nameB, data);
+    central.push([...u32(0x02014b50), ...u16(20), ...u16(20), ...u16(0), ...u16(0),
+                  ...u16(0), ...u16(0), ...u32(crc), ...u32(data.length), ...u32(data.length),
+                  ...u16(nameB.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0),
+                  ...u32(0), ...u32(offset), ...nameB]);
+    offset += local.length + nameB.length + data.length;
+  });
+  const dir = [].concat(...central);
+  const end = [...u32(0x06054b50), ...u16(0), ...u16(0), ...u16(files.length), ...u16(files.length),
+               ...u32(dir.length), ...u32(offset), ...u16(0)];
+  return new Blob([...parts, new Uint8Array(dir), new Uint8Array(end)],
+                  { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
+function xlEsc(v) {
+  return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    // Excel rejects the control characters a pasted cell can carry.
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+}
+function xlCol(i) {
+  let s = '';
+  for (i += 1; i > 0; i = Math.floor((i - 1) / 26)) s = String.fromCharCode(65 + (i - 1) % 26) + s;
+  return s;
+}
+function xlSheet(rows) {
+  const body = rows.map((row, r) => {
+    const cells = row.map((v, c) => {
+      const ref = xlCol(c) + (r + 1);
+      if (v === null || v === undefined || v === '') return '';
+      if (typeof v === 'number' && isFinite(v)) return `<c r="${ref}"><v>${v}</v></c>`;
+      return `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${xlEsc(v)}</t></is></c>`;
+    }).join('');
+    return `<row r="${r + 1}">${cells}</row>`;
+  }).join('');
+  // Without <dimension> a reader that streams the sheet cannot tell how big it is, and
+  // reports the row count as unknown rather than wrong — which is worse.
+  const wide = rows.reduce((n, r) => Math.max(n, r.length), 0);
+  const dim = rows.length ? `A1:${xlCol(Math.max(0, wide - 1))}${rows.length}` : 'A1';
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="${dim}"/><sheetData>${body}</sheetData></worksheet>`;
+}
+// Excel's own rules: 31 characters, and none of : \ / ? * [ ]
+function xlName(n, used) {
+  let base = String(n).replace(/[:\\\/?*\[\]]/g, ' ').trim().slice(0, 31) || 'Sheet';
+  let name = base, i = 2;
+  while (used.has(name)) { name = base.slice(0, 28) + '_' + i++; }
+  used.add(name);
+  return name;
+}
+function xlsxBlob(sheets) {
+  const used = new Set();
+  const named = sheets.map(s => ({ name: xlName(s.name, used), rows: s.rows }));
+  const files = [
+    { name: '[Content_Types].xml', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>` +
+      named.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('') +
+      `</Types>` },
+    { name: '_rels/.rels', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>` },
+    { name: 'xl/workbook.xml', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>` +
+      named.map((s, i) => `<sheet name="${xlEsc(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('') +
+      `</sheets></workbook>` },
+    { name: 'xl/_rels/workbook.xml.rels', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+      named.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('') +
+      `</Relationships>` },
+  ];
+  named.forEach((s, i) => files.push({ name: `xl/worksheets/sheet${i + 1}.xml`, data: xlSheet(s.rows) }));
+  return zipStore(files);
+}
+
 // --- Pretest -----------------------------------------------------------------------
 // Two things live on this tab: the round's own test-case results (from the Facets and
 // PCTS workbooks) and the bug tickets they produced. CP and AA are kept apart all the
@@ -9429,6 +9569,10 @@ function renderPretestPanel() {
     <section class="card">
       <h2>${esc(t('pt_lists_heading'))}</h2>
       <p class="caption" id="ptListCaption"></p>
+      <div class="pt-export">
+        <button type="button" class="btn small" id="ptCsvBtn">${esc(t('pt_dl_csv'))}</button>
+        <button type="button" class="btn small" id="ptXlsxBtn">${esc(t('pt_dl_xlsx'))}</button>
+      </div>
       <div class="chips" id="ptListChips">
         ${plats.CP ? `<button class="chip active" data-pt-list="CP" data-pt-total="${plats.CP.total}" data-pt-label="${esc(t('pt_list_cp_name'))}">${esc(t('pt_list_cp', plats.CP.total))}</button>` : ''}
         ${plats.AA ? `<button class="chip${plats.CP ? '' : ' active'}" data-pt-list="AA" data-pt-total="${plats.AA.total}" data-pt-label="${esc(t('pt_list_aa_name'))}">${esc(t('pt_list_aa', plats.AA.total))}</button>` : ''}
@@ -9583,18 +9727,40 @@ function renderPretestPanel() {
   const bugLinks = keys => (keys || []).map(k =>
     `<a href="${ticketUrl(k)}" target="_blank">${esc(k)}</a>`).join(' ');
 
-  function drawList() {
+  // The filters live here rather than inside drawList, so the download and the table on
+  // screen can never disagree about what "this list" means.
+  function filteredBugs() {
     const q = state.q.trim().toLowerCase();
+    let rows = bugs;
+    if (state.src) rows = rows.filter(b => b.src.includes(state.src));
+    if (state.bug === 'open') rows = rows.filter(b => b.known && !b.done);
+    else if (state.bug === 'done') rows = rows.filter(b => b.known && b.done);
+    else if (state.bug === 'unknown') rows = rows.filter(b => !b.known);
+    if (state.cmt) rows = rows.filter(b => bugComments(b.key).length);
+    if (q) rows = rows.filter(b => b.key.toLowerCase().includes(q) ||
+                                   (b.summary || '').toLowerCase().includes(q) ||
+                                   bugComments(b.key).some(c => (c.text || '').toLowerCase().includes(q)));
+    return rows;
+  }
+  function filteredCases(p) {
+    const q = state.q.trim().toLowerCase();
+    let rows = p.cases;
+    if (state.res) rows = rows.filter(c => c.res === state.res);
+    if (state.sec) rows = rows.filter(c => c.sec === state.sec);
+    if (state.conn) rows = rows.filter(c => c.conn === state.conn);
+    if (state.cbug === '*any*') rows = rows.filter(c => (c.bugs || []).length);
+    else if (state.cbug === '*none*') rows = rows.filter(c => !(c.bugs || []).length);
+    else if (state.cbug) rows = rows.filter(c => (c.bugs || []).includes(state.cbug));
+    if (q) rows = rows.filter(c => c.id.toLowerCase().includes(q) ||
+                                   (c.title || '').toLowerCase().includes(q) ||
+                                   (c.sec || '').toLowerCase().includes(q) ||
+                                   (c.bugs || []).some(k => k.toLowerCase().includes(q)));
+    return rows;
+  }
+
+  function drawList() {
     if (listKey === 'BUG') {
-      let rows = bugs;
-      if (state.src) rows = rows.filter(b => b.src.includes(state.src));
-      if (state.bug === 'open') rows = rows.filter(b => b.known && !b.done);
-      else if (state.bug === 'done') rows = rows.filter(b => b.known && b.done);
-      else if (state.bug === 'unknown') rows = rows.filter(b => !b.known);
-      if (state.cmt) rows = rows.filter(b => bugComments(b.key).length);
-      if (q) rows = rows.filter(b => b.key.toLowerCase().includes(q) ||
-                                     (b.summary || '').toLowerCase().includes(q) ||
-                                     bugComments(b.key).some(c => (c.text || '').toLowerCase().includes(q)));
+      const rows = filteredBugs();
       head.innerHTML = `<tr>
         <th class="cmt-col" title="${esc(t('bug_comment_col'))}">💬</th>
         <th>Key</th><th>${esc(t('pt_th_src'))}</th><th class="num">${esc(t('pt_th_cases'))}</th>
@@ -9615,17 +9781,7 @@ function renderPretestPanel() {
       return;
     }
     const p = plats[listKey];
-    let rows = p.cases;
-    if (state.res) rows = rows.filter(c => c.res === state.res);
-    if (state.sec) rows = rows.filter(c => c.sec === state.sec);
-    if (state.conn) rows = rows.filter(c => c.conn === state.conn);
-    if (state.cbug === '*any*') rows = rows.filter(c => (c.bugs || []).length);
-    else if (state.cbug === '*none*') rows = rows.filter(c => !(c.bugs || []).length);
-    else if (state.cbug) rows = rows.filter(c => (c.bugs || []).includes(state.cbug));
-    if (q) rows = rows.filter(c => c.id.toLowerCase().includes(q) ||
-                                   (c.title || '').toLowerCase().includes(q) ||
-                                   (c.sec || '').toLowerCase().includes(q) ||
-                                   (c.bugs || []).some(k => k.toLowerCase().includes(q)));
+    const rows = filteredCases(p);
     const hasTitle = p.cases.some(c => c.title);
     const hasConn = p.cases.some(c => c.conn);
     head.innerHTML = `<tr>
@@ -9665,6 +9821,82 @@ function renderPretestPanel() {
     chip.closest('section.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   panel.ptShow = ptShow;
+
+  // --- downloads ---------------------------------------------------------------
+  // Two different jobs, so two buttons: CSV hands over exactly the list you are
+  // looking at, filters and all; the workbook hands over everything, one sheet per
+  // list, for someone who is going to pivot it rather than read it.
+  const CASE_HEAD = [t('pt_th_section'), t('pt_th_case'), t('pt_th_title'), t('pt_th_conn'),
+                     t('pt_th_result'), t('pt_x_raw'), t('pt_th_bug'), t('pt_th_tester'), t('pt_th_remark')];
+  const caseRow = c => [c.sec || '', c.id, c.title || '', c.conn || '',
+                        c.res === 'Other' ? (c.raw || 'Other') : c.res,
+                        c.raw || '', (c.bugs || []).join(' '), c.tester || '', c.remark || ''];
+  const BUG_HEAD = ['Key', t('pt_th_src'), t('pt_x_from'), t('pt_x_tagged'), t('pt_x_stated'),
+                    t('pt_th_jira'), t('th_assignee'), t('th_summary'), t('pt_x_comments')];
+  const bugRow = b => [b.key, b.src.join(' '), (b.from || []).join(' '),
+                       b.tagged || 0, b.cases || 0,
+                       b.known ? b.status : t('pt_bug_unknown'), b.assignee || '', b.summary || '',
+                       bugComments(b.key).map(c => `${c.text} — ${c.by || '?'} ${(c.at || '').slice(0, 10)}`).join(' | ')];
+
+  function summaryRows() {
+    const out = [[t('pt_x_title'), PRETEST_CASES && PRETEST_CASES.round ? 'Round ' + PRETEST_CASES.round : '',
+                  t('pt_x_generated'), new Date().toISOString().slice(0, 16).replace('T', ' ')], []];
+    out.push([t('pt_x_platform'), t('pt_th_executed'), 'Pass', 'Fail', 'Block',
+              t('pt_res_ne'), 'N/A', t('pt_pass_rate'), t('pt_fail_rate'), t('pt_block_rate')]);
+    order.forEach(k => {
+      const p = plats[k], c = p.counts, ex = p.executed;
+      out.push([p.name + (p.suite ? ' — ' + p.suite : ''), ex, c.Pass, c.Fail, c.Block,
+                c['Not executed'] || 0, c['N/A'] || 0,
+                +ptPct(c.Pass, ex).toFixed(1), +ptPct(c.Fail, ex).toFixed(1), +ptPct(c.Block, ex).toFixed(1)]);
+    });
+    out.push([], [t('pt_sections_heading')]);
+    out.push([t('pt_x_platform'), t('pt_th_section'), t('pt_th_executed'), 'Pass', 'Fail', 'Block',
+              t('pt_res_ne'), 'N/A', t('pt_pass_rate')]);
+    order.forEach(k => plats[k].sections.forEach(sec => out.push([
+      k, sec.sec, sec.executed, sec.Pass || 0, sec.Fail || 0, sec.Block || 0,
+      sec['Not executed'] || 0, sec['N/A'] || 0,
+      sec.rate === null || sec.rate === undefined ? '' : sec.rate])));
+    out.push([], [t('pt_x_denominator_note')]);
+    return out;
+  }
+
+  const stamp = () => new Date().toISOString().slice(0, 10);
+  const roundTag = () => (PRETEST_CASES && PRETEST_CASES.round) ? 'round' + PRETEST_CASES.round : 'pretest';
+
+  document.getElementById('ptCsvBtn').addEventListener('click', e => {
+    const btn = e.currentTarget;
+    const rows = listKey === 'BUG'
+      ? [BUG_HEAD, ...filteredBugs().map(bugRow)]
+      : [CASE_HEAD, ...filteredCases(plats[listKey]).map(caseRow)];
+    if (rows.length < 2) { ptFlash(btn, t('pt_dl_empty')); return; }
+    dlBlob(new Blob([csvText(rows)], { type: 'text/csv;charset=utf-8' }),
+           `pretest_${roundTag()}_${listKey}_${stamp()}.csv`);
+    ptFlash(btn, t('pt_dl_done', rows.length - 1));
+  });
+
+  document.getElementById('ptXlsxBtn').addEventListener('click', e => {
+    const btn = e.currentTarget;
+    const sheets = [{ name: t('pt_x_summary'), rows: summaryRows() }];
+    order.forEach(k => sheets.push({
+      name: k === 'CP' ? t('pt_list_cp_name') : k === 'AA' ? t('pt_list_aa_name') : k,
+      rows: [CASE_HEAD, ...plats[k].cases.map(caseRow)],
+    }));
+    sheets.push({ name: t('pt_list_bug_name'), rows: [BUG_HEAD, ...bugs.map(bugRow)] });
+    try {
+      dlBlob(xlsxBlob(sheets), `pretest_${roundTag()}_${stamp()}.xlsx`);
+      ptFlash(btn, t('pt_dl_done', sheets.reduce((n, s) => n + s.rows.length - 1, 0)));
+    } catch (err) {
+      ptFlash(btn, t('pt_dl_failed'));
+    }
+  });
+
+  function ptFlash(btn, msg) {
+    const was = btn.dataset.ptLabel || btn.textContent;
+    btn.dataset.ptLabel = was;
+    btn.textContent = msg;
+    clearTimeout(btn._ptT);
+    btn._ptT = setTimeout(() => { btn.textContent = btn.dataset.ptLabel; }, 2200);
+  }
 
   document.getElementById('ptListChips').addEventListener('click', e => {
     const b = e.target.closest('[data-pt-list]');
