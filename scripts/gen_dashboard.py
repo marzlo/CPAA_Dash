@@ -841,6 +841,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
      than under a line — so no left indent, and it spans the full width. */
   td.cmt-cell { padding: 0 !important; background: var(--page); }
   td.cmt-cell .cmt-box { margin: 0; border-left: none; border-right: none; border-radius: 0; }
+  /* The cell spans every column, so on a table wider than the window the panel would
+     stretch past the right edge and take the Send button with it. fitCommentBox() sets
+     the width to what is actually on screen; sticky keeps it there while the table is
+     scrolled sideways. */
+  td.cmt-cell .cmt-box { position: sticky; left: 0; box-sizing: border-box; }
   td.cmt-col { width: 1%; white-space: nowrap; }
   th.cmt-col { width: 1%; }
   .cmt-status { font-size: 12px; color: var(--muted); margin-left: 8px; align-self: center; }
@@ -1609,7 +1614,7 @@ async function commitTeamOverrides(apply) {
       try { remote = JSON.parse(decodeURIComponent(escape(atob((meta.content || '').replace(/\n/g, ''))))); }
       catch (e) { remote = {}; }
     } else if (getResp.status !== 404) {
-      throw new Error('GET ' + getResp.status);
+      throw new Error(ghErr('GET', getResp.status));
     }
     const teams = Object.assign({}, remote.teams || {});
     apply(teams);
@@ -1625,7 +1630,7 @@ async function commitTeamOverrides(apply) {
       headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: 'Update assignee team overrides via dashboard', content: b64, sha, branch: 'main' }),
     });
-    if (!putResp.ok) throw new Error('PUT ' + putResp.status + ': ' + (await putResp.text()).slice(0, 200));
+    if (!putResp.ok) throw new Error(ghErr('PUT', putResp.status, (await putResp.text()).slice(0, 200)));
     TEAM_OVERRIDES.teams = payload.teams;
     TEAM_OVERRIDES.updated_at = payload.updated_at;
     TEAM_OVERRIDES.updated_by = payload.updated_by;
@@ -1653,7 +1658,7 @@ async function commitForecastBaseline(entry) {
       try { remote = JSON.parse(decodeURIComponent(escape(atob((meta.content || '').replace(/\n/g, ''))))); }
       catch (e) { remote = {}; }
     } else if (getResp.status !== 404) {
-      throw new Error('GET ' + getResp.status);
+      throw new Error(ghErr('GET', getResp.status));
     }
     // Whatever was active becomes history. Nothing is ever dropped — the point of a
     // baseline is that you can still see what you committed to three months ago.
@@ -1671,7 +1676,7 @@ async function commitForecastBaseline(entry) {
       headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: 'Freeze forecast baseline via dashboard', content: b64, sha, branch: 'main' }),
     });
-    if (!putResp.ok) throw new Error('PUT ' + putResp.status + ': ' + (await putResp.text()).slice(0, 200));
+    if (!putResp.ok) throw new Error(ghErr('PUT', putResp.status, (await putResp.text()).slice(0, 200)));
     FORECAST_BASELINE.active = payload.active;
     FORECAST_BASELINE.archive = payload.archive;
     FORECAST_BASELINE.updated_at = payload.updated_at;
@@ -2248,6 +2253,8 @@ const STRINGS = {
   trace_saving: { zh: '儲存中…', en: 'Saving…' },
   trace_saved: { zh: '已儲存', en: 'Saved' },
   trace_save_error: { zh: msg => `儲存失敗:${msg}`, en: msg => `Save failed: ${msg}` },
+  gh_err_401: { zh: 'GitHub token 無效或已過期,請按右上角 🔑 重新設定', en: 'the GitHub token is invalid or has expired — set it again with the 🔑 button' },
+  gh_err_403: { zh: 'token 沒有這個 repo 的寫入權限(需要 Contents: read and write)', en: 'the token has no write access to this repo (it needs Contents: read and write)' },
   trace_notes_meta: { zh: (at, who) => `確認與留言最後更新:${at} by ${who}`, en: (at, who) => `Confirmations and comments last updated ${at} by ${who}` },
   trace_notes_meta_never: { zh: '目前還沒有任何確認或留言', en: 'No confirmations or comments yet' },
   trace_owner_set: { zh: '設定確認後的 owner', en: 'Set the confirmed owner' },
@@ -3424,7 +3431,7 @@ function makeTabNotes(cfg) {
       if (getResp.ok) {
         sha = (await getResp.json()).sha;
       } else if (getResp.status !== 404) {
-        throw new Error('GET ' + getResp.status);
+        throw new Error(ghErr('GET', getResp.status));
       }
       const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
       const putResp = await fetch(apiBase, {
@@ -3434,7 +3441,7 @@ function makeTabNotes(cfg) {
       });
       if (!putResp.ok) {
         const errBody = await putResp.text();
-        throw new Error('PUT ' + putResp.status + ': ' + errBody.slice(0, 200));
+        throw new Error(ghErr('PUT', putResp.status, errBody.slice(0, 200)));
       }
       try {
         await fetch(`https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/refresh-dashboard.yml/dispatches`, {
@@ -3553,7 +3560,7 @@ async function saveOverviewNotes() {
     if (getResp.ok) {
       sha = (await getResp.json()).sha;
     } else if (getResp.status !== 404) {
-      throw new Error('GET ' + getResp.status);
+      throw new Error(ghErr('GET', getResp.status));
     }
     const contentStr = JSON.stringify(payload, null, 2);
     const b64 = btoa(unescape(encodeURIComponent(contentStr)));
@@ -3564,7 +3571,7 @@ async function saveOverviewNotes() {
     });
     if (!putResp.ok) {
       const errBody = await putResp.text();
-      throw new Error('PUT ' + putResp.status + ': ' + errBody.slice(0, 200));
+      throw new Error(ghErr('PUT', putResp.status, errBody.slice(0, 200)));
     }
     try {
       await fetch(`https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/refresh-dashboard.yml/dispatches`, {
@@ -7322,7 +7329,7 @@ async function commitBugComments(apply, statusEl) {
       try { remote = JSON.parse(decodeURIComponent(escape(atob((meta.content || '').replace(/\n/g, ''))))); }
       catch (e) { remote = {}; }
     } else if (getResp.status !== 404) {
-      throw new Error('GET ' + getResp.status);
+      throw new Error(ghErr('GET', getResp.status));
     }
     const comments = Object.assign({}, remote.comments || {});
     apply(comments);
@@ -7337,7 +7344,7 @@ async function commitBugComments(apply, statusEl) {
       headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: 'Update bug comments via dashboard', content: b64, sha, branch: 'main' }),
     });
-    if (!putResp.ok) throw new Error('PUT ' + putResp.status + ': ' + (await putResp.text()).slice(0, 200));
+    if (!putResp.ok) throw new Error(ghErr('PUT', putResp.status, (await putResp.text()).slice(0, 200)));
     BUG_COMMENTS.comments = payload.comments;
     BUG_COMMENTS.updated_at = payload.updated_at;
     BUG_COMMENTS.updated_by = payload.updated_by;
@@ -7371,6 +7378,29 @@ function bugCommentPanelHtml(key) {
       <span class="cmt-status" data-bug-cmt-status="${esc(key)}"></span>
     </div>
   </div>`;
+}
+
+// "GET 401" on its own tells nobody what to do. On this page the token is the only
+// thing that can cause it, and it is the user's to replace, so the message says so.
+function ghErr(verb, status, body) {
+  const base = verb + ' ' + status + (body ? ': ' + body : '');
+  if (status === 401) return base + ' \u2014 ' + t('gh_err_401');
+  if (status === 403) return base + ' \u2014 ' + t('gh_err_403');
+  return base;
+}
+
+// Size an open comment panel to the visible width of its scroller. Without this the
+// panel inherits the full width of a table that is wider than the window, and the Send
+// button ends up somewhere off to the right where nobody can click it.
+function fitCommentBox(box) {
+  if (!box) return;
+  const wrap = box.closest('.table-wrap');
+  if (!wrap) return;
+  const set = () => { box.style.width = wrap.clientWidth + 'px'; };
+  set();
+  if (typeof ResizeObserver !== 'function') return;
+  const ro = new ResizeObserver(() => { box.isConnected ? set() : ro.disconnect(); });
+  ro.observe(wrap);
 }
 
 function renderBugPanel() {
@@ -7577,6 +7607,7 @@ function renderBugPanel() {
       row.className = 'bug-cmt-row';
       row.innerHTML = `<td class="cmt-cell" colspan="9">${bugCommentPanelHtml(tr.dataset.bugRow)}</td>`;
       tr.after(row);
+      fitCommentBox(row.querySelector('.cmt-box'));
       const ta = row.querySelector('textarea');
       if (ta) ta.focus();
       return;
@@ -7801,7 +7832,7 @@ async function commitAudioCats(apply, statusEl) {
       try { remote = JSON.parse(decodeURIComponent(escape(atob((meta.content || '').replace(/\n/g, ''))))); }
       catch (e) { remote = {}; }
     } else if (getResp.status !== 404) {
-      throw new Error('GET ' + getResp.status);
+      throw new Error(ghErr('GET', getResp.status));
     }
     const base = (getResp.status === 404) ? AUDIO_CATS : remote;
     const state = { options: (base.options || []).slice(), cats: Object.assign({}, base.cats || {}) };
@@ -7818,7 +7849,7 @@ async function commitAudioCats(apply, statusEl) {
       headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: 'Update audio categories via dashboard', content: b64, sha, branch: 'main' }),
     });
-    if (!putResp.ok) throw new Error('PUT ' + putResp.status + ': ' + (await putResp.text()).slice(0, 200));
+    if (!putResp.ok) throw new Error(ghErr('PUT', putResp.status, (await putResp.text()).slice(0, 200)));
     AUDIO_CATS.options = payload.options;
     AUDIO_CATS.cats = payload.cats;
     AUDIO_CATS.updated_at = payload.updated_at;
@@ -8345,7 +8376,7 @@ async function saveTraceNotes(btn) {
       sha = meta.sha;
       try { remote = JSON.parse(decodeURIComponent(escape(atob(meta.content.replace(/\n/g, ''))))); } catch (e) { remote = {}; }
     } else if (getResp.status !== 404) {
-      throw new Error('GET ' + getResp.status);
+      throw new Error(ghErr('GET', getResp.status));
     }
     const merged = mergeTraceNotes(remote);
     const payload = Object.assign({ updated_at: new Date().toISOString(), updated_by: who }, merged);
@@ -8357,7 +8388,7 @@ async function saveTraceNotes(btn) {
     });
     if (!putResp.ok) {
       const errBody = await putResp.text();
-      throw new Error('PUT ' + putResp.status + ': ' + errBody.slice(0, 200));
+      throw new Error(ghErr('PUT', putResp.status, errBody.slice(0, 200)));
     }
     tracePending.confirmed = {};
     tracePending.comments = {};
@@ -9686,6 +9717,7 @@ function renderPretestPanel() {
       row.className = 'bug-cmt-row';
       row.innerHTML = `<td class="cmt-cell" colspan="${PT_BUG_COLS}">${bugCommentPanelHtml(tr.dataset.bugRow)}</td>`;
       tr.after(row);
+      fitCommentBox(row.querySelector('.cmt-box'));
       const ta = row.querySelector('textarea');
       if (ta) ta.focus();
       return;
@@ -9913,7 +9945,7 @@ async function commitQnaNotes(apply, statusEl) {
       try { remote = JSON.parse(decodeURIComponent(escape(atob((meta.content || '').replace(/\n/g, ''))))); }
       catch (e) { remote = {}; }
     } else if (getResp.status !== 404) {
-      throw new Error('GET ' + getResp.status);
+      throw new Error(ghErr('GET', getResp.status));
     }
     // Remote wins: it is the authority, so two people working on different questions
     // merge instead of overwriting each other, and a delete made elsewhere stays
@@ -9936,7 +9968,7 @@ async function commitQnaNotes(apply, statusEl) {
       headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: 'Update Q&A notes via dashboard', content: b64, sha, branch: 'main' }),
     });
-    if (!putResp.ok) throw new Error('PUT ' + putResp.status + ': ' + (await putResp.text()).slice(0, 200));
+    if (!putResp.ok) throw new Error(ghErr('PUT', putResp.status, (await putResp.text()).slice(0, 200)));
     QNA_NOTES.status = payload.status;
     QNA_NOTES.comments = payload.comments;
     QNA_NOTES.updated_at = payload.updated_at;
@@ -10365,7 +10397,7 @@ async function commitSchedNotes(apply, statusEl) {
       try { remote = JSON.parse(decodeURIComponent(escape(atob((meta.content || '').replace(/\n/g, ''))))); }
       catch (e) { remote = {}; }
     } else if (getResp.status !== 404) {
-      throw new Error('GET ' + getResp.status);
+      throw new Error(ghErr('GET', getResp.status));
     }
     // Remote wins so two people editing different tasks merge; a 404 means there is
     // no file yet, so carry in whatever this page already holds rather than dropping it.
@@ -10387,7 +10419,7 @@ async function commitSchedNotes(apply, statusEl) {
       headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: 'Update schedule progress via dashboard', content: b64, sha, branch: 'main' }),
     });
-    if (!putResp.ok) throw new Error('PUT ' + putResp.status + ': ' + (await putResp.text()).slice(0, 200));
+    if (!putResp.ok) throw new Error(ghErr('PUT', putResp.status, (await putResp.text()).slice(0, 200)));
     SCHED_NOTES.state = payload.state;
     SCHED_NOTES.notes = payload.notes;
     SCHED_NOTES.comments = payload.comments;
