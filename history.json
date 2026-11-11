@@ -5777,31 +5777,31 @@
  },
  "2026-11-11": {
   "bugs": {
-   "done": 360,
-   "total": 441
+   "done": 363,
+   "total": 447
   },
   "bugs_by_rca": {
    "empty": {
     "done": 175,
-    "total": 241
+    "total": 244
    },
    "filled": {
-    "done": 185,
-    "total": 200
+    "done": 188,
+    "total": 203
    }
   },
   "bugs_by_status": {
    "Blocked": {
     "done": 0,
-    "total": 37
+    "total": 36
    },
    "Done": {
-    "done": 308,
-    "total": 308
+    "done": 314,
+    "total": 314
    },
    "Eng build": {
-    "done": 9,
-    "total": 9
+    "done": 2,
+    "total": 2
    },
    "In Progress": {
     "done": 0,
@@ -5809,10 +5809,6 @@
    },
    "Monitoring": {
     "done": 1,
-    "total": 1
-   },
-   "Need info": {
-    "done": 0,
     "total": 1
    },
    "Non-issue": {
@@ -5824,16 +5820,16 @@
     "total": 21
    },
    "Ready for test": {
-    "done": 6,
-    "total": 6
+    "done": 10,
+    "total": 10
    },
    "Reopen": {
     "done": 0,
-    "total": 7
+    "total": 6
    },
    "To Do": {
     "done": 0,
-    "total": 8
+    "total": 14
    }
   },
   "bugs_by_team": {
@@ -5843,7 +5839,7 @@
    },
    "MDT_App": {
     "done": 12,
-    "total": 28
+    "total": 26
    },
    "MDT_PM": {
     "done": 39,
@@ -5854,16 +5850,16 @@
     "total": 2
    },
    "MDT_System": {
-    "done": 1,
-    "total": 7
+    "done": 2,
+    "total": 6
    },
    "TS_CPAA": {
-    "done": 270,
-    "total": 283
+    "done": 272,
+    "total": 291
    },
    "TS_FW": {
     "done": 28,
-    "total": 30
+    "total": 31
    },
    "Unknown": {
     "done": 7,
@@ -5873,23 +5869,23 @@
   "date": "2026-11-11",
   "pretest": {
    "AA": {
-    "open": 10,
+    "open": 9,
     "total": 72,
     "unknown": 0
    },
    "CP": {
-    "open": 25,
-    "total": 80,
+    "open": 28,
+    "total": 84,
     "unknown": 0
    },
    "all": {
-    "open": 30,
-    "total": 139,
+    "open": 32,
+    "total": 143,
     "unknown": 0
    }
   },
   "swe2": {
-   "done": 554,
+   "done": 638,
    "total": 1147
   },
   "swe3": {
