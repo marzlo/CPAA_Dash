@@ -5839,7 +5839,7 @@
   "bugs_by_team": {
    "MDI_System": {
     "done": 2,
-    "total": 32
+    "total": 33
    },
    "MDT_App": {
     "done": 12,
@@ -5863,7 +5863,7 @@
    },
    "TS_FW": {
     "done": 28,
-    "total": 31
+    "total": 30
    },
    "Unknown": {
     "done": 7,
