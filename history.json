@@ -5777,7 +5777,7 @@
  },
  "2026-11-11": {
   "bugs": {
-   "done": 360,
+   "done": 359,
    "total": 441
   },
   "bugs_by_rca": {
@@ -5786,7 +5786,7 @@
     "total": 242
    },
    "filled": {
-    "done": 186,
+    "done": 185,
     "total": 199
    }
   },
@@ -5800,16 +5800,16 @@
     "total": 306
    },
    "Eng build": {
-    "done": 10,
-    "total": 10
+    "done": 9,
+    "total": 9
    },
    "In Progress": {
     "done": 0,
     "total": 29
    },
    "Monitoring": {
-    "done": 2,
-    "total": 2
+    "done": 1,
+    "total": 1
    },
    "Need info": {
     "done": 0,
@@ -5824,12 +5824,12 @@
     "total": 21
    },
    "Ready for test": {
-    "done": 7,
-    "total": 7
+    "done": 8,
+    "total": 8
    },
    "Reopen": {
     "done": 0,
-    "total": 5
+    "total": 6
    },
    "To Do": {
     "done": 0,
@@ -5847,7 +5847,7 @@
    },
    "MDT_PM": {
     "done": 38,
-    "total": 48
+    "total": 49
    },
    "MDT_Sys_QA": {
     "done": 1,
@@ -5858,12 +5858,12 @@
     "total": 7
    },
    "TS_CPAA": {
-    "done": 271,
+    "done": 270,
     "total": 285
    },
    "TS_FW": {
     "done": 28,
-    "total": 32
+    "total": 31
    },
    "Unknown": {
     "done": 7,
@@ -5889,7 +5889,7 @@
    }
   },
   "swe2": {
-   "done": 540,
+   "done": 542,
    "total": 1147
   },
   "swe3": {
