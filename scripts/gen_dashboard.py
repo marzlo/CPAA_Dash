@@ -263,14 +263,31 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     background: var(--page);
     color: var(--text-primary);
   }
-  header {
-    padding: 20px 28px 8px;
+  /* The toolbar used to be absolutely positioned over the header, which meant the
+     subtitle ran underneath it whenever it was long — in English, at every width. They
+     are one flex row now, so the text can never reach the buttons, and on a narrow
+     screen the buttons wrap onto their own line instead of covering the title. */
+  .topbar {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 12px 16px; flex-wrap: wrap-reverse; padding: 20px 28px 8px;
   }
+  header { flex: 1 1 320px; min-width: 0; padding: 0; }
   header h1 { margin: 0 0 4px; font-size: 22px; }
   header p { margin: 0; color: var(--text-secondary); font-size: 13px; }
+  /* flex: none would hold the row at its max-content width, so its own wrap never
+     fired and the last button hung off the right edge of a phone. */
   .toggle-row {
-    position: absolute; top: 20px; right: 28px;
     display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;
+    flex: 0 1 auto; min-width: 0; max-width: 100%;
+  }
+  @media (max-width: 760px) {
+    .topbar { padding: 12px 16px 8px; }
+    .toggle-row { justify-content: flex-start; }
+    header h1 { font-size: 19px; }
+    main { padding: 16px 16px 60px; }
+    nav.tabs { padding: 4px 16px 12px; gap: 4px; }
+    nav.tabs button { padding: 7px 10px; font-size: 13px; }
+    .share-pop { width: min(340px, calc(100vw - 32px)); }
   }
   .theme-toggle, .lang-toggle, .refresh-toggle, .share-toggle {
     background: var(--surface-1); border: 1px solid var(--border);
@@ -327,7 +344,19 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .pt-src { font-size: 11px; padding: 1px 7px; border-radius: 4px; background: var(--page);
             color: var(--text-secondary); margin-right: 3px; }
   .pt-remark { color: var(--text-secondary); font-size: 12px; }
-  .pt-export { float: right; display: flex; gap: 6px; margin: -34px 0 0; }
+  /* These used to be floated up with a negative margin, which put them on top of the
+     caption as soon as it wrapped to two lines — which is every phone. The heading,
+     the caption and the buttons now share one flex row that wraps instead. */
+  .pt-head-row {
+    display: flex; gap: 12px; align-items: flex-start;
+    justify-content: space-between; flex-wrap: wrap;
+  }
+  .pt-head-row > div:first-child { min-width: 220px; flex: 1 1 320px; }
+  .pt-head-row h2 { margin: 0 0 4px; }
+  .pt-head-row .caption { margin: 0; }
+  .pt-head-row { margin-bottom: 12px; }
+  .pt-export { display: flex; gap: 6px; flex: none; }
+  @media (max-width: 760px) { .pt-export { width: 100%; } .pt-export .btn { flex: 1; } }
   .pt-tile .sub { font-size: 11.5px; color: var(--muted); margin-top: 5px; }
   .pt-tile:focus-visible { outline: 2px solid var(--series-cp); outline-offset: 2px; }
   .pt-lastcmt { margin-top: 5px; font-size: 12px; color: var(--text-secondary);
@@ -1384,6 +1413,12 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 </style>
 </head>
 <body>
+<div class="topbar">
+<header>
+  <h1 id="headerTitle"></h1>
+  <p id="headerSubtitle"></p>
+  <p style="margin-top:4px; font-weight:600;" id="headerUpdatedAt"></p>
+</header>
 <div class="toggle-row">
   <button class="refresh-toggle" id="refreshDataBtn" data-i18n="refresh_data_button"></button>
   <span class="share-wrap">
@@ -1404,11 +1439,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <button class="lang-toggle" id="langToggle">中文 / EN</button>
   <button class="theme-toggle" id="themeToggle">🌓 Theme</button>
 </div>
-<header>
-  <h1 id="headerTitle"></h1>
-  <p id="headerSubtitle"></p>
-  <p style="margin-top:4px; font-weight:600;" id="headerUpdatedAt"></p>
-</header>
+</div>
 <div class="refresh-status" id="refreshStatus" hidden>
   <div class="refresh-status-head">
     <span id="refreshStatusText"></span>
@@ -9567,11 +9598,15 @@ function renderPretestPanel() {
     </section>` : `<section class="card"><p class="caption">${esc(t('pt_no_cases'))}</p></section>`}
 
     <section class="card">
-      <h2>${esc(t('pt_lists_heading'))}</h2>
-      <p class="caption" id="ptListCaption"></p>
-      <div class="pt-export">
-        <button type="button" class="btn small" id="ptCsvBtn">${esc(t('pt_dl_csv'))}</button>
-        <button type="button" class="btn small" id="ptXlsxBtn">${esc(t('pt_dl_xlsx'))}</button>
+      <div class="pt-head-row">
+        <div>
+          <h2>${esc(t('pt_lists_heading'))}</h2>
+          <p class="caption" id="ptListCaption"></p>
+        </div>
+        <div class="pt-export">
+          <button type="button" class="btn small" id="ptCsvBtn">${esc(t('pt_dl_csv'))}</button>
+          <button type="button" class="btn small" id="ptXlsxBtn">${esc(t('pt_dl_xlsx'))}</button>
+        </div>
       </div>
       <div class="chips" id="ptListChips">
         ${plats.CP ? `<button class="chip active" data-pt-list="CP" data-pt-total="${plats.CP.total}" data-pt-label="${esc(t('pt_list_cp_name'))}">${esc(t('pt_list_cp', plats.CP.total))}</button>` : ''}
@@ -10071,7 +10106,15 @@ function initShareBox(lockedTab) {
   if (!btn || !pop) return;
   // Someone who arrived through a one-tab link is a reader, not the author: offering
   // them a "see every tab" switch would just be a signpost to the hidden tabs.
-  if (lockedTab) { btn.hidden = true; return; }
+  if (lockedTab) {
+    // Hide the wrapper too: an empty flex item still costs a gap, which is enough to
+    // push the last toolbar button off a narrow screen.
+    btn.hidden = true;
+    if (btn.parentElement && btn.parentElement.classList.contains('share-wrap')) {
+      btn.parentElement.hidden = true;
+    }
+    return;
+  }
 
   const draw = () => {
     const cur = document.querySelector('nav.tabs button.active');
