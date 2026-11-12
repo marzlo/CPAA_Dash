@@ -1,6 +1,6 @@
 {
  "source": "NR1L_CPAA_Certification.xlsx",
- "built_at": "2026-10-23T07:37:03+00:00",
+ "built_at": "2026-11-12T14:02:01+00:00",
  "anchor": "2025-12-29",
  "assume_done_before": 42,
  "weeks": [
@@ -790,27 +790,27 @@
    "feature": "CarPlay",
    "phase": "Certification(1st)",
    "name": "ITUT & siri&esiri",
-   "s": 40,
-   "e": 51,
+   "s": 44,
+   "e": 55,
    "segs": [
     {
-     "s": 40,
-     "e": 47,
+     "s": 44,
+     "e": 51,
      "kind": "supplier"
     },
     {
-     "s": 48,
-     "e": 51,
+     "s": 52,
+     "e": 55,
      "kind": "ours"
     }
    ],
    "marks": [
     {
-     "i": 48,
+     "i": 52,
      "text": "Submit report"
     },
     {
-     "i": 51,
+     "i": 55,
      "text": "Approval"
     }
    ],
@@ -835,7 +835,7 @@
      "text": "pre test + Issue Fix"
     },
     {
-     "i": 58,
+     "i": 55,
      "text": "Audit"
     }
    ],
@@ -1912,12 +1912,12 @@
    "feature": "Android Auto",
    "phase": "Certification(2nd)",
    "name": "InVehicleTest",
-   "s": 53,
+   "s": 50,
    "e": 84,
    "segs": [
     {
-     "s": 53,
-     "e": 61,
+     "s": 50,
+     "e": 58,
      "kind": "ours"
     },
     {
@@ -1928,7 +1928,7 @@
    ],
    "marks": [
     {
-     "i": 53,
+     "i": 50,
      "text": "pretest"
     },
     {
