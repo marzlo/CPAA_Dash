@@ -6025,7 +6025,7 @@
  },
  "2026-11-13": {
   "bugs": {
-   "done": 365,
+   "done": 366,
    "total": 459
   },
   "bugs_by_rca": {
@@ -6034,7 +6034,7 @@
     "total": 248
    },
    "filled": {
-    "done": 186,
+    "done": 187,
     "total": 211
    }
   },
@@ -6048,12 +6048,12 @@
     "total": 333
    },
    "Eng build": {
-    "done": 2,
-    "total": 2
+    "done": 3,
+    "total": 3
    },
    "In Progress": {
     "done": 0,
-    "total": 28
+    "total": 27
    },
    "Monitoring": {
     "done": 2,
@@ -6082,7 +6082,7 @@
   },
   "bugs_by_team": {
    "MDI_System": {
-    "done": 3,
+    "done": 4,
     "total": 35
    },
    "MDT_App": {
