@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-13T14:39:57.000Z",
+  "updated_at": "2026-11-13T14:40:00.069Z",
   "updated_by": "Leyo",
   "state": {
     "carplay|certification-1st|usb-performance": {
@@ -9,6 +9,11 @@
       "done": true,
       "at": "2026-10-23T08:37:59.308Z",
       "by": "Leyo"
+    },
+    "carplay|certification-1st|itut-siri-esiri": {
+      "blocked": true,
+      "blockedAt": "2026-11-13T14:40:00.069Z",
+      "blockedBy": "Leyo"
     }
   },
   "notes": {
