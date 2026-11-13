@@ -6025,7 +6025,7 @@
  },
  "2026-11-13": {
   "bugs": {
-   "done": 366,
+   "done": 358,
    "total": 459
   },
   "bugs_by_rca": {
@@ -6034,7 +6034,7 @@
     "total": 248
    },
    "filled": {
-    "done": 187,
+    "done": 179,
     "total": 211
    }
   },
@@ -6064,7 +6064,7 @@
     "total": 14
    },
    "Ready for integration": {
-    "done": 8,
+    "done": 0,
     "total": 8
    },
    "Ready for test": {
@@ -6086,11 +6086,11 @@
     "total": 35
    },
    "MDT_App": {
-    "done": 12,
+    "done": 11,
     "total": 26
    },
    "MDT_PM": {
-    "done": 28,
+    "done": 21,
     "total": 38
    },
    "MDT_Sys_QA": {
@@ -6099,7 +6099,7 @@
    },
    "MDT_System": {
     "done": 3,
-    "total": 10
+    "total": 12
    },
    "TS_CPAA": {
     "done": 285,
@@ -6115,16 +6115,17 @@
    },
    "Unknown": {
     "done": 2,
-    "total": 4
+    "total": 2
    }
   },
   "date": "2026-11-13",
   "pretest": {
    "AA": {
-    "open": 19,
+    "open": 20,
     "open_by_status": {
      "Blocked": 7,
      "In Progress": 5,
+     "Ready for integration": 1,
      "Reopen": 3,
      "To Do": 4
     },
@@ -6143,10 +6144,11 @@
     "unknown": 0
    },
    "all": {
-    "open": 45,
+    "open": 46,
     "open_by_status": {
      "Blocked": 23,
      "In Progress": 13,
+     "Ready for integration": 1,
      "Reopen": 3,
      "To Do": 6
     },
