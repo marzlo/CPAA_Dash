@@ -6083,7 +6083,7 @@
   "bugs_by_team": {
    "MDI_System": {
     "done": 1,
-    "total": 31
+    "total": 32
    },
    "MDT_App": {
     "done": 13,
@@ -6102,32 +6102,50 @@
     "total": 8
    },
    "TS_CPAA": {
-    "done": 287,
-    "total": 311
+    "done": 293,
+    "total": 317
    },
    "TS_FW": {
     "done": 30,
     "total": 32
    },
    "Unknown": {
-    "done": 9,
-    "total": 10
+    "done": 3,
+    "total": 3
    }
   },
   "date": "2026-11-13",
   "pretest": {
    "AA": {
     "open": 13,
+    "open_by_status": {
+     "Blocked": 3,
+     "In Progress": 3,
+     "Reopen": 2,
+     "To Do": 5
+    },
     "total": 77,
     "unknown": 0
    },
    "CP": {
     "open": 28,
+    "open_by_status": {
+     "Blocked": 13,
+     "In Progress": 8,
+     "Reopen": 2,
+     "To Do": 5
+    },
     "total": 85,
     "unknown": 0
    },
    "all": {
     "open": 36,
+    "open_by_status": {
+     "Blocked": 14,
+     "In Progress": 10,
+     "Reopen": 2,
+     "To Do": 10
+    },
     "total": 149,
     "unknown": 0
    }
