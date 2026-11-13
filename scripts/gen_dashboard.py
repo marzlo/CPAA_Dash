@@ -2413,12 +2413,12 @@ const STRINGS = {
   pt_trend_closed: { zh: '淨關閉', en: 'Net closed' },
   pt_trend_open: { zh: '週末未解決', en: 'Open at week end' },
   pt_trend_seg_red: { zh: 'Blocked / To Do / Reopen', en: 'Blocked / To Do / Reopen' },
-  pt_trend_seg_yellow: { zh: 'In Progress', en: 'In Progress' },
+  pt_trend_seg_yellow: { zh: 'In Progress / Ready for integration', en: 'In Progress / Ready for integration' },
   pt_trend_seg_other: { zh: '其他未結案狀態', en: 'Other open statuses' },
   pt_trend_th_split: { zh: '組成 紅/黃/灰', en: 'Split R/Y/G' },
   pt_trend_split_note: {
-    zh: '週末那根直條把「未解決」依當下的 Jira 狀態疊起來:紅 = Blocked / To Do / Reopen(停著沒動),黃 = In Progress(手上在做),灰 = 其他還沒結案的狀態(Need info、Ready for review)。灰色整根的那週表示那天的快照還沒記狀態,只知道總數。',
-    en: 'The week-end bar stacks those open tickets by the Jira status each was in at that moment: red = Blocked / To Do / Reopen (not moving), yellow = In Progress (in hand), grey = any other status that is still open (Need info, Ready for review). An all-grey bar is a week whose snapshot predates the breakdown, so only the total is known.',
+    zh: '週末那根直條把「未解決」依當下的 Jira 狀態疊起來:紅 = Blocked / To Do / Reopen(停著沒動),黃 = In Progress / Ready for integration(手上在做，或改好了還沒進 build),灰 = 其他還沒結案的狀態(Need info、Ready for review)。灰色整根的那週表示那天的快照還沒記狀態,只知道總數。',
+    en: 'The week-end bar stacks those open tickets by the Jira status each was in at that moment: red = Blocked / To Do / Reopen (not moving), yellow = In Progress or Ready for integration (in hand, or fixed but not yet in a build), grey = any other status that is still open (Need info, Ready for review). An all-grey bar is a week whose snapshot predates the breakdown, so only the total is known.',
   },
   pt_trend_tip_start: { zh: '週初未解決', en: 'Open at start' },
   pt_trend_tip_now: { zh: '目前未解決', en: 'Open now' },
@@ -9330,11 +9330,14 @@ function ptMondayOf(iso) { return ptDayIso(fcWeekStart(new Date(iso + 'T00:00:00
 // open bugs can be read as "thirty of them not moving" instead of just "forty". Red is
 // work that is sitting still, yellow is work in somebody's hands; every other open status
 // (Need info, Ready for review) is grey rather than folded into red, because calling it
-// blocked would overstate it. The status names live here and only here — update_history.py
+// blocked would overstate it. "Ready for integration" joined yellow on 2026-11-13, when it
+// also stopped counting as done in build_data.py: the fix is written but not yet in a build
+// anyone can test, so it is work in hand rather than work finished.
+// The status names live here and only here — update_history.py
 // records raw Jira statuses precisely so a status nobody has bucketed yet lands in grey
 // instead of disappearing.
 const PT_TREND_RED = ['blocked', 'to do', 'reopen'];
-const PT_TREND_YELLOW = ['in progress'];
+const PT_TREND_YELLOW = ['in progress', 'ready for integration'];
 const PT_TREND_SEGS = [['red', 'var(--critical)'], ['yellow', 'var(--warning)'], ['other', 'var(--muted)']];
 
 function ptTrendBucket(status) {

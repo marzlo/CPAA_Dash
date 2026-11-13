@@ -154,6 +154,7 @@ TEAM_MAP = {
     # it, which is why no earlier spelling matched.
     '林嘉漳': 'TS_CPAA',
     'Hemalatha': 'MDI_System',
+    'CraigJXFu(傅嘉祥)': 'MDT_System',
 }
 
 # Per-assignee team corrections made from the dashboard itself and committed back to
@@ -178,12 +179,17 @@ NEW_STATUSES = {"To Do", "Blocked", "Reopen", "Need info"}
 INDET_STATUSES = {"In Progress", "Ready for review", "Ready for integration"}
 # "Non-issue" -> treat as done-ish (closed, won't fix) -> count as done for completion purposes? We'll bucket separately.
 
-# Per user request: for Bug tickets only, "Ready for test", "Eng build", "Monitoring"
-# and "Ready for integration" also count as completed — the fix exists by then, so the
-# ticket is no longer work owed. Note "Ready for integration" is also in
-# INDET_STATUSES: status_category checks extra_done first, so it counts as done for
-# bugs while staying "in progress" for the SWE progress tables, which is intended.
-BUG_EXTRA_DONE_STATUSES = {"Ready for test", "Eng build", "Monitoring", "Ready for integration"}
+# Per user request: for Bug tickets only, "Ready for test", "Eng build" and
+# "Monitoring" also count as completed — the fix exists by then, so the ticket is no
+# longer work owed.
+#
+# "Ready for integration" was in this set until 2026-11-13 and is not any more (user
+# request): the fix is written but not yet in a build anyone can test, so it is still
+# work owed. It stays in INDET_STATUSES, where it now takes effect for bugs too, which
+# means a bug sitting there counts as open everywhere — the Bug tab, the Stats tiles and
+# the Pretest trend alike. The Pretest trend also paints it yellow next to "In Progress";
+# that bucketing lives in gen_dashboard.py.
+BUG_EXTRA_DONE_STATUSES = {"Ready for test", "Eng build", "Monitoring"}
 
 def status_category(status, extra_done=None):
     if status in DONE_STATUSES:
