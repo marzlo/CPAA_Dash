@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-13T14:39:06.130Z",
+  "updated_at": "2026-11-13T14:39:57.000Z",
   "updated_by": "Leyo",
   "state": {
     "carplay|certification-1st|usb-performance": {
@@ -18,8 +18,8 @@
       "by": "Leyo"
     },
     "carplay|certification-1st|itut-siri-esiri": {
-      "text": "Status: Now is blocking by APQM\nPrerequisite: Resolve critical Audio issues by the end of October.​​\n\nKey Blockers: APQM, Siri Distortion, Premium Audio, Enhanced Siri.​​\n\nRisk: Unresolved Audio issues may delay ITU-T testing. Vehicle availability is currently assumed only through mid-December.​​",
-      "at": "2026-10-23T07:49:46.438Z",
+      "text": "<ul><li><span style=\"font-style: inherit; font-weight: inherit\">.​​</span>Key Blockers: Vehicle audio issue, Premium Audio, Enhanced Siri.​​</li><li>Risk: Unresolved Audio issues may delay ITU-T testing. Vehicle availability is currently assumed only through mid-December.​​</li></ul>",
+      "at": "2026-11-13T14:39:57.000Z",
       "by": "Leyo"
     },
     "carplay|certification-1st|location-test-wireless-performance": {
