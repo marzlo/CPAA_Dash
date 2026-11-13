@@ -6030,30 +6030,30 @@
   },
   "bugs_by_rca": {
    "empty": {
-    "done": 177,
+    "done": 178,
     "total": 251
    },
    "filled": {
-    "done": 182,
+    "done": 181,
     "total": 207
    }
   },
   "bugs_by_status": {
    "Blocked": {
     "done": 0,
-    "total": 48
+    "total": 47
    },
    "Done": {
-    "done": 319,
-    "total": 319
+    "done": 320,
+    "total": 320
    },
    "Eng build": {
-    "done": 3,
-    "total": 3
+    "done": 2,
+    "total": 2
    },
    "In Progress": {
     "done": 0,
-    "total": 29
+    "total": 30
    },
    "Monitoring": {
     "done": 2,
@@ -6119,8 +6119,8 @@
    "AA": {
     "open": 18,
     "open_by_status": {
-     "Blocked": 8,
-     "In Progress": 3,
+     "Blocked": 7,
+     "In Progress": 4,
      "Reopen": 3,
      "To Do": 4
     },
@@ -6141,8 +6141,8 @@
    "all": {
     "open": 44,
     "open_by_status": {
-     "Blocked": 24,
-     "In Progress": 11,
+     "Blocked": 23,
+     "In Progress": 12,
      "Reopen": 3,
      "To Do": 6
     },
