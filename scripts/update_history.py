@@ -84,6 +84,14 @@ def pretest_counts(data):
 
     These daily numbers are what the tab's weekly trend card reads for every week after
     pretest_trend_backfill.json runs out.
+
+    "open_by_status" breaks the open tickets down by the Jira status they are sitting in,
+    so the trend card can stack its week-end bar the same way the backfill does. The
+    buckets themselves (blocked-ish red, in-progress yellow, everything else grey) live in
+    gen_dashboard.py, not here: recording the raw status names means a status nobody has
+    bucketed yet still shows up in the data instead of being silently dropped. Days
+    recorded before 2026-11-13 have no open_by_status, and the card draws those weeks as a
+    plain total rather than inventing a split.
     """
     try:
         with open(PRETEST_CASES_PATH, encoding="utf-8") as f:
@@ -103,7 +111,7 @@ def pretest_counts(data):
     for r in data.get("pretest") or []:
         summaries.setdefault(r["key"], r.get("summary") or "")
 
-    out = {k: {"total": 0, "open": 0, "unknown": 0} for k in ("all", "CP", "AA")}
+    out = {k: {"total": 0, "open": 0, "unknown": 0, "open_by_status": {}} for k in ("all", "CP", "AA")}
     for key, summary in summaries.items():
         tk = index.get(key)
         title = summary or (tk or {}).get("summary") or ""
@@ -119,6 +127,10 @@ def pretest_counts(data):
                 out[p]["unknown"] += 1
             elif not tk.get("done"):
                 out[p]["open"] += 1
+                st = tk.get("status") or "(none)"
+                out[p]["open_by_status"][st] = out[p]["open_by_status"].get(st, 0) + 1
+    for v in out.values():
+        v["open_by_status"] = dict(sorted(v["open_by_status"].items()))
     return out
 
 
@@ -143,8 +155,9 @@ def main():
         # a zero.
         "bugs_by_rca": group(bugs, rca_bucket),
         "bugs_by_status": group(bugs, lambda r: r.get("status") or "(none)"),
-        # Pretest open bugs, CP / AA / both. Started 2026-11-10; the weeks before that
-        # come from pretest_trend_backfill.json, reconstructed from Jira by hand.
+        # Pretest open bugs, CP / AA / both, with the open ones broken down by status
+        # (added 2026-11-13). Started 2026-11-10; the weeks before that come from
+        # pretest_trend_backfill.json, reconstructed from Jira by hand.
         "pretest": pretest_counts(data),
     }
 

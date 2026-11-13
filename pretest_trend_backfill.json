@@ -1,6 +1,8 @@
 {
  "computed_at": "2026-11-10",
  "method": "Open Pretest bugs at 00:00 Asia/Taipei on each Monday, counted in Jira with `status WAS NOT IN (Done, \"Non-issue\", \"Ready for test\", \"Eng build\", \"Monitoring\", \"Ready for integration\") ON <Monday 00:00> AND created < <Monday 00:00>`, over the ticket list as it stood on computed_at: both Round2 workbooks' BugList keys plus filter 12399 Bugs whose title has PCTS or Facet. CP and AA together, a ticket on both sides counted once. Written once by hand; the daily pretest snapshots in history.json take over from here.",
+ "split_computed_at": "2026-11-13",
+ "split_method": "Same instants and same 148-key scope as open_at, split by the status each ticket was in at that moment: red = `status WAS IN (Blocked, \"To Do\", Reopen) ON <Monday 00:00>`, yellow = `status WAS IN (\"In Progress\") ON <Monday 00:00>`, both with `AND created < <Monday 00:00>`. \"other\" is open_at minus those two — tickets sitting in an open status that is neither (Need info / Ready for review); it is not queried, it is the residual, and it is non-zero in only three weeks. Run by hand in Jira advanced search, 32 queries; every weekly red + yellow + other was checked against open_at before it was written here.",
  "open_at": {
   "2026-07-20": 0,
   "2026-07-27": 2,
@@ -19,5 +21,92 @@
   "2026-10-26": 51,
   "2026-11-02": 42,
   "2026-11-09": 40
+ },
+ "open_by_bucket": {
+  "2026-07-20": {
+   "red": 0,
+   "yellow": 0,
+   "other": 0
+  },
+  "2026-07-27": {
+   "red": 1,
+   "yellow": 1,
+   "other": 0
+  },
+  "2026-08-03": {
+   "red": 2,
+   "yellow": 2,
+   "other": 0
+  },
+  "2026-08-10": {
+   "red": 3,
+   "yellow": 1,
+   "other": 0
+  },
+  "2026-08-17": {
+   "red": 8,
+   "yellow": 3,
+   "other": 0
+  },
+  "2026-08-24": {
+   "red": 15,
+   "yellow": 6,
+   "other": 0
+  },
+  "2026-08-31": {
+   "red": 13,
+   "yellow": 14,
+   "other": 0
+  },
+  "2026-09-07": {
+   "red": 11,
+   "yellow": 10,
+   "other": 0
+  },
+  "2026-09-14": {
+   "red": 14,
+   "yellow": 7,
+   "other": 0
+  },
+  "2026-09-21": {
+   "red": 14,
+   "yellow": 7,
+   "other": 2
+  },
+  "2026-09-28": {
+   "red": 15,
+   "yellow": 10,
+   "other": 0
+  },
+  "2026-10-05": {
+   "red": 14,
+   "yellow": 10,
+   "other": 1
+  },
+  "2026-10-12": {
+   "red": 20,
+   "yellow": 14,
+   "other": 0
+  },
+  "2026-10-19": {
+   "red": 21,
+   "yellow": 15,
+   "other": 0
+  },
+  "2026-10-26": {
+   "red": 34,
+   "yellow": 16,
+   "other": 1
+  },
+  "2026-11-02": {
+   "red": 27,
+   "yellow": 15,
+   "other": 0
+  },
+  "2026-11-09": {
+   "red": 30,
+   "yellow": 10,
+   "other": 0
+  }
  }
 }

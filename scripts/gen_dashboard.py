@@ -2412,6 +2412,14 @@ const STRINGS = {
   pt_trend_opened: { zh: '新開', en: 'Opened' },
   pt_trend_closed: { zh: '淨關閉', en: 'Net closed' },
   pt_trend_open: { zh: '週末未解決', en: 'Open at week end' },
+  pt_trend_seg_red: { zh: 'Blocked / To Do / Reopen', en: 'Blocked / To Do / Reopen' },
+  pt_trend_seg_yellow: { zh: 'In Progress', en: 'In Progress' },
+  pt_trend_seg_other: { zh: '其他未結案狀態', en: 'Other open statuses' },
+  pt_trend_th_split: { zh: '組成 紅/黃/灰', en: 'Split R/Y/G' },
+  pt_trend_split_note: {
+    zh: '週末那根直條把「未解決」依當下的 Jira 狀態疊起來:紅 = Blocked / To Do / Reopen(停著沒動),黃 = In Progress(手上在做),灰 = 其他還沒結案的狀態(Need info、Ready for review)。灰色整根的那週表示那天的快照還沒記狀態,只知道總數。',
+    en: 'The week-end bar stacks those open tickets by the Jira status each was in at that moment: red = Blocked / To Do / Reopen (not moving), yellow = In Progress (in hand), grey = any other status that is still open (Need info, Ready for review). An all-grey bar is a week whose snapshot predates the breakdown, so only the total is known.',
+  },
   pt_trend_tip_start: { zh: '週初未解決', en: 'Open at start' },
   pt_trend_tip_now: { zh: '目前未解決', en: 'Open now' },
   pt_trend_tip_reopened: { zh: '重開多於關閉', en: 'Reopened, net' },
@@ -9318,6 +9326,39 @@ function ptAddDays(iso, n) {
 }
 function ptMondayOf(iso) { return ptDayIso(fcWeekStart(new Date(iso + 'T00:00:00Z'))); }
 
+// The week-end bar is stacked by how stuck each open ticket was at that moment, so forty
+// open bugs can be read as "thirty of them not moving" instead of just "forty". Red is
+// work that is sitting still, yellow is work in somebody's hands; every other open status
+// (Need info, Ready for review) is grey rather than folded into red, because calling it
+// blocked would overstate it. The status names live here and only here — update_history.py
+// records raw Jira statuses precisely so a status nobody has bucketed yet lands in grey
+// instead of disappearing.
+const PT_TREND_RED = ['blocked', 'to do', 'reopen'];
+const PT_TREND_YELLOW = ['in progress'];
+const PT_TREND_SEGS = [['red', 'var(--critical)'], ['yellow', 'var(--warning)'], ['other', 'var(--muted)']];
+
+function ptTrendBucket(status) {
+  const s = String(status || '').trim().toLowerCase();
+  if (PT_TREND_RED.includes(s)) return 'red';
+  if (PT_TREND_YELLOW.includes(s)) return 'yellow';
+  return 'other';
+}
+// A split whose parts do not add up to the figure the line is drawn from would make the
+// bar lie about its own height, so whatever is left over goes to grey rather than being
+// quietly dropped.
+function ptTrendBalance(split, total) {
+  if (!split) return null;
+  const out = { red: split.red || 0, yellow: split.yellow || 0, other: split.other || 0 };
+  if (total != null) out.other += total - (out.red + out.yellow + out.other);
+  return out.other < 0 ? null : out;
+}
+function ptTrendSplitOfStatuses(byStatus, total) {
+  if (!byStatus) return null;
+  const out = { red: 0, yellow: 0, other: 0 };
+  Object.keys(byStatus).forEach(st => { out[ptTrendBucket(st)] += byStatus[st] || 0; });
+  return ptTrendBalance(out, total);
+}
+
 function ptTrendRows() {
   const bugs = ptAllBugs();
   const newBy = {};
@@ -9337,16 +9378,28 @@ function ptTrendRows() {
   const firstNew = Object.keys(newBy).sort()[0];
   const first = [firstNew, ...Object.keys(back), ...snaps.map(ptMondayOf)].filter(Boolean).sort()[0];
   if (!first) return [];
-  const liveOpen = bugs.filter(b => b.known && !b.done).length;
+  const openNow = bugs.filter(b => b.known && !b.done);
+  const liveOpen = openNow.length;
+  const liveSplit = () => {
+    const out = { red: 0, yellow: 0, other: 0 };
+    openNow.forEach(b => { out[ptTrendBucket(b.status)] += 1; });
+    return out;
+  };
+  const backSplit = (PT_BACKFILL && PT_BACKFILL.open_by_bucket) || {};
 
   const endOf = wk => {
-    if (wk === thisWeek) return { v: liveOpen, src: 'live' };
+    if (wk === thisWeek) return { v: liveOpen, src: 'live', split: liveSplit() };
     const next = ptAddDays(wk, 7);
-    if (back[next] != null) return { v: back[next], src: 'backfill' };
+    if (back[next] != null) {
+      return { v: back[next], src: 'backfill', split: ptTrendBalance(backSplit[next], back[next]) };
+    }
     // A snapshot is taken at 09:00, so next Monday's is the nearest to "end of this
     // week"; failing that, the latest one inside the week.
     const inWeek = snaps.filter(d => d > wk && d <= next);
-    if (inWeek.length) return { v: HISTORY[inWeek[inWeek.length - 1]].pretest.all.open, src: 'snapshot' };
+    if (inWeek.length) {
+      const pt = HISTORY[inWeek[inWeek.length - 1]].pretest.all;
+      return { v: pt.open, src: 'snapshot', split: ptTrendSplitOfStatuses(pt.open_by_status, pt.open) };
+    }
     return null;
   };
 
@@ -9359,6 +9412,7 @@ function ptTrendRows() {
     rows.push({
       iso: wk, sunday: ptAddDays(wk, 6), wk: fcWeekMeta(new Date(wk + 'T00:00:00Z')),
       start, opened, open: end ? end.v : null, src: end ? end.src : null,
+      split: end ? end.split : null,
       closed: start != null && end ? start + opened - end.v : null,
       partial: wk === thisWeek,
     });
@@ -9385,7 +9439,14 @@ function ptTrendTip(e, r) {
       : r.closed < 0 ? line(t('pt_trend_tip_reopened'), '+' + (-r.closed), 'var(--flow-clo)')
       : line(t('pt_trend_closed'), '−' + r.closed, 'var(--flow-clo)')) +
     `<div class="r" style="margin-top:4px;border-top:1px solid var(--grid);padding-top:4px">` +
-    `<span>${esc(r.partial ? t('pt_trend_tip_now') : t('pt_trend_open'))}</span><b>${r.open == null ? '—' : r.open}</b></div>`;
+    `<span>${esc(r.partial ? t('pt_trend_tip_now') : t('pt_trend_open'))}</span><b>${r.open == null ? '—' : r.open}</b></div>` +
+    // The stack, indented under the total it adds up to. Grey is listed only when it has
+    // something in it, which is three weeks out of sixteen.
+    (r.split
+      ? line(t('pt_trend_seg_red'), r.split.red, 'var(--critical)') +
+        line(t('pt_trend_seg_yellow'), r.split.yellow, 'var(--warning)') +
+        (r.split.other ? line(t('pt_trend_seg_other'), r.split.other, 'var(--muted)') : '')
+      : '');
   tip.style.opacity = 1;
   const b = tip.getBoundingClientRect();
   tip.style.left = Math.min(window.innerWidth - b.width - 10, e.clientX + 14) + 'px';
@@ -9400,7 +9461,8 @@ function renderPtTrend() {
 
   // Opened, net closed and open are all counts of bugs, so they share one axis.
   const PAD = { t: 24, r: 30, b: 46, l: 36 };
-  const BAR = 14, IN = 2, GAP = 18, COL = BAR * 2 + IN + GAP;
+  // Three bars per week: opened, net closed, and the week-end stack.
+  const BAR = 12, IN = 2, GAP = 16, SEG_GAP = 2, COL = BAR * 3 + IN * 2 + GAP;
   const W = PAD.l + PAD.r + rows.length * COL, H = 300, plotH = H - PAD.t - PAD.b;
   const vals = rows.flatMap(r => [r.opened, r.closed, r.open]).filter(v => v != null);
   const hi = Math.max(10, ...vals), lo = Math.min(0, ...vals);
@@ -9410,7 +9472,11 @@ function renderPtTrend() {
   const bot = lo < 0 ? Math.min(lo, -2) * 1.4 : 0;
   const y = v => PAD.t + (top - v) / (top - bot) * plotH;
   const colX = i => PAD.l + i * COL + GAP / 2;
-  const mid = i => colX(i) + BAR + IN / 2;
+  const barX = (i, k) => colX(i) + k * (BAR + IN);
+  const mid = i => colX(i) + (BAR * 3 + IN * 2) / 2;
+  // The open figure belongs to the third bar, so its line, dots and labels sit over that
+  // bar rather than over the middle of the group.
+  const openMid = i => barX(i, 2) + BAR / 2;
 
   let g = '';
   for (let v = 0; v <= top; v += step) {
@@ -9424,9 +9490,29 @@ function renderPtTrend() {
     const y1 = y(Math.max(v, 0)), y2 = y(Math.min(v, 0));
     return `<rect x="${x}" y="${y1}" width="${BAR}" height="${Math.max(1, y2 - y1)}" rx="2.5" fill="${col}"${faded ? ' opacity=".45"' : ''}/>`;
   };
+  // Segments are parted by a 2px gap in the card colour so two fills never read as one
+  // block, and no segment is thinner than a hairline: one stuck ticket in a tall week
+  // still has to be visible. A week with no breakdown gets a single grey bar instead of
+  // an invented split.
+  const stack = (x, r, faded) => {
+    if (!r.open) return '';
+    const segs = (r.split ? PT_TREND_SEGS.map(([k, col]) => [r.split[k] || 0, col])
+                          : [[r.open, 'var(--muted)']]).filter(seg => seg[0] > 0);
+    let acc = 0, out = '';
+    segs.forEach(([v, col], k) => {
+      const top = y(acc + v), base = y(acc);
+      acc += v;
+      const h = Math.max(1.5, base - top - (k ? SEG_GAP : 0));
+      out += `<rect x="${x}" y="${top}" width="${BAR}" height="${h}" rx="2" fill="${col}"` +
+             `${faded ? ' opacity=".45"' : ''}/>`;
+    });
+    return out;
+  };
+
   rows.forEach((r, i) => {
-    const x = colX(i);
-    g += bar(x, r.opened, 'var(--flow-arr)', r.partial) + bar(x + BAR + IN, r.closed, 'var(--flow-clo)', r.partial);
+    g += bar(barX(i, 0), r.opened, 'var(--flow-arr)', r.partial) +
+         bar(barX(i, 1), r.closed, 'var(--flow-clo)', r.partial) +
+         stack(barX(i, 2), r, r.partial);
     g += `<text x="${mid(i)}" y="${H - PAD.b + 15}" text-anchor="middle" font-size="10"` +
          ` fill="${r.partial ? 'var(--text-secondary)' : 'var(--muted)'}"${r.partial ? ' font-weight="600"' : ''}>${esc(r.wk.short)}</text>`;
     if (i === 0 || r.wk.month !== rows[i - 1].wk.month) {
@@ -9438,29 +9524,34 @@ function renderPtTrend() {
     }
   });
 
-  // The open line, drawn twice — a casing in the card colour, then the line — so it
-  // stays readable where it crosses a bar. A gap in the data breaks the line.
+  // The open line rides the top of the stack whose height it traces. Nothing in this
+  // layer is painted in the card colour: no casing under the line, and the dots are rings
+  // rather than discs. That pair is what used to rub out the top of the bar underneath,
+  // and the segment sitting there can be a single ticket — four pixels — so a solid 6px
+  // dot would swallow it whole. Hollow, you read the marker and the segment through it.
+  // The casing was there in case the line crossed a bar, which needs a week whose
+  // "opened" count beats its own open figure — it has not happened yet, and if it ever
+  // does the line simply runs over a solid fill, which is still legible.
   const runs = [[]];
   rows.forEach((r, i) => {
     if (r.open == null) { if (runs[runs.length - 1].length) runs.push([]); return; }
-    runs[runs.length - 1].push([mid(i), y(r.open)]);
+    runs[runs.length - 1].push([openMid(i), y(r.open)]);
   });
   runs.filter(run => run.length > 1).forEach(run => {
-    const d = run.map(p => p.join(',')).join(' ');
-    g += `<polyline points="${d}" fill="none" stroke="var(--surface-1)" stroke-width="5.5" stroke-linejoin="round" stroke-linecap="round" opacity=".9"/>` +
-         `<polyline points="${d}" fill="none" stroke="var(--text-primary)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    g += `<polyline points="${run.map(pt => pt.join(',')).join(' ')}" fill="none"` +
+         ` stroke="var(--text-primary)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
   });
   rows.forEach((r, i) => {
     if (r.open == null) return;
-    g += `<circle cx="${mid(i)}" cy="${y(r.open)}" r="4" fill="${r.partial ? 'var(--surface-1)' : 'var(--text-primary)'}"` +
-         ` stroke="${r.partial ? 'var(--text-primary)' : 'var(--surface-1)'}" stroke-width="2"/>`;
+    g += `<circle cx="${openMid(i)}" cy="${y(r.open)}" r="3.5" fill="none"` +
+         ` stroke="var(--text-primary)" stroke-width="1.5"${r.partial ? ' opacity=".45"' : ''}/>`;
   });
-  // Direct labels on two points only: the peak and where it stands now.
+  // Direct labels on two weeks only: the peak and where it stands now.
   const withOpen = rows.map((r, i) => ({ r, i })).filter(o => o.r.open != null);
   const last = withOpen[withOpen.length - 1];
   const peak = withOpen.reduce((a, b) => (b.r.open > a.r.open ? b : a), withOpen[0]);
   [peak, last].filter((o, k, arr) => o && arr.indexOf(o) === k).forEach(o => {
-    g += `<text x="${mid(o.i)}" y="${y(o.r.open) - 9}" text-anchor="middle" font-size="11" font-weight="600"` +
+    g += `<text x="${openMid(o.i)}" y="${y(o.r.open) - 9}" text-anchor="middle" font-size="11" font-weight="600"` +
          ` fill="var(--text-primary)" paint-order="stroke" stroke="var(--surface-1)" stroke-width="3">${o.r.open}</text>`;
   });
   rows.forEach((r, i) => {
@@ -9469,7 +9560,7 @@ function renderPtTrend() {
 
   const sw = col => `<i class="fc-sw" style="background:${col}"></i>`;
   const lineSw = `<svg width="22" height="10" style="overflow:visible"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--text-primary)" stroke-width="2"/>` +
-                 `<circle cx="11" cy="5" r="3.5" fill="var(--text-primary)" stroke="var(--surface-1)" stroke-width="2"/></svg>`;
+                 `<circle cx="11" cy="5" r="3.5" fill="var(--surface-1)" stroke="var(--text-primary)" stroke-width="1.5"/></svg>`;
   const backDays = Object.keys((PT_BACKFILL && PT_BACKFILL.open_at) || {}).sort();
   const note = backDays.length
     ? ' ' + t('pt_trend_backfill_note', PT_BACKFILL.computed_at || '', ptAddDays(backDays[backDays.length - 1], -1))
@@ -9480,11 +9571,14 @@ function renderPtTrend() {
       <span>${sw('var(--flow-arr)')}${esc(t('pt_trend_opened'))}</span>
       <span>${sw('var(--flow-clo)')}${esc(t('pt_trend_closed'))}</span>
       <span>${lineSw}${esc(t('pt_trend_open'))}</span>
+      <span>${sw('var(--critical)')}${esc(t('pt_trend_seg_red'))}</span>
+      <span>${sw('var(--warning)')}${esc(t('pt_trend_seg_yellow'))}</span>
+      <span>${sw('var(--muted)')}${esc(t('pt_trend_seg_other'))}</span>
     </div>
     <div class="fc-chart-host">
       <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t('pt_trend_heading'))}">${g}</svg>
     </div>
-    <p class="caption" style="margin:10px 0 0">${esc(t('pt_trend_caption') + note)}</p>
+    <p class="caption" style="margin:10px 0 0">${esc(t('pt_trend_caption') + ' ' + t('pt_trend_split_note') + note)}</p>
     <details>
       <summary>${esc(t('pt_trend_table'))}</summary>
       <div class="table-wrap"><table>
@@ -9492,13 +9586,15 @@ function renderPtTrend() {
           <th>${esc(t('pt_trend_th_week'))}</th><th>${esc(t('pt_trend_th_range'))}</th>
           <th class="num">${esc(t('pt_trend_tip_start'))}</th><th class="num">${esc(t('pt_trend_opened'))}</th>
           <th class="num">${esc(t('pt_trend_closed'))}</th><th class="num">${esc(t('pt_trend_open'))}</th>
-          <th>${esc(t('pt_trend_th_src'))}</th>
+          <th class="num">${esc(t('pt_trend_th_split'))}</th><th>${esc(t('pt_trend_th_src'))}</th>
         </tr></thead>
         <tbody>${rows.slice().reverse().map(r => `<tr>
           <td>${esc(r.wk.tag)}</td><td>${ptMd(r.iso)}–${ptMd(r.sunday)}</td>
           <td class="num">${r.start == null ? '—' : r.start}</td><td class="num">+${r.opened}</td>
           <td class="num">${r.closed == null ? '—' : (r.closed < 0 ? esc(t('pt_trend_tip_reopened')) + ' +' + (-r.closed) : '−' + r.closed)}</td>
-          <td class="num">${r.open == null ? '—' : r.open}</td><td>${esc(ptTrendSrc(r.src))}</td>
+          <td class="num">${r.open == null ? '—' : r.open}</td>
+          <td class="num">${r.split ? `${r.split.red} / ${r.split.yellow} / ${r.split.other}` : '—'}</td>
+          <td>${esc(ptTrendSrc(r.src))}</td>
         </tr>`).join('')}</tbody>
       </table></div>
     </details>`;

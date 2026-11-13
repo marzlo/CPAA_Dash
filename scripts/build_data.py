@@ -148,6 +148,12 @@ TEAM_MAP = {
     # actually MDI_System. Listed here rather than up in the 10-01 block so the change
     # of team is visible as a change.
     'K M MOHAMMED HUSSAIN': 'MDI_System',
+
+    # Added per user confirmation (2026-11-13): both had been falling into Unknown.
+    # Jira writes the first in traditional characters, unlike the TS_CPAA names around
+    # it, which is why no earlier spelling matched.
+    '林嘉漳': 'TS_CPAA',
+    'Hemalatha': 'MDI_System',
 }
 
 # Per-assignee team corrections made from the dashboard itself and committed back to
