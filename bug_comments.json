@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T02:34:58.098Z",
+  "updated_at": "2026-11-16T02:39:58.980Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -418,6 +418,14 @@
         "text": "此票與https://mobiledrivetech.atlassian.net/browse/NR1LT-6874應相關",
         "by": "Leyo",
         "at": "2026-11-11T05:35:03.255Z"
+      }
+    ],
+    "NR1LT-7460": [
+      {
+        "id": "mwino8s6kvqnq",
+        "text": "某些情況下roleswitch斷線，沒有設成disconnect\nCC先入庫異常保護機制到 developer build, 再通知琦哥",
+        "by": "Leyo",
+        "at": "2026-11-16T02:39:58.326Z"
       }
     ]
   }
