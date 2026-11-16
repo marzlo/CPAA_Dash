@@ -6463,27 +6463,27 @@
  },
  "2026-11-16": {
   "bugs": {
-   "done": 363,
+   "done": 368,
    "total": 459
   },
   "bugs_by_rca": {
    "empty": {
-    "done": 179,
+    "done": 178,
     "total": 247
    },
    "filled": {
-    "done": 184,
+    "done": 190,
     "total": 212
    }
   },
   "bugs_by_status": {
    "Blocked": {
     "done": 0,
-    "total": 46
+    "total": 42
    },
    "Done": {
-    "done": 333,
-    "total": 333
+    "done": 338,
+    "total": 338
    },
    "Eng build": {
     "done": 3,
@@ -6491,11 +6491,11 @@
    },
    "In Progress": {
     "done": 0,
-    "total": 26
+    "total": 27
    },
    "Monitoring": {
-    "done": 2,
-    "total": 2
+    "done": 4,
+    "total": 4
    },
    "Non-issue": {
     "done": 14,
@@ -6506,8 +6506,8 @@
     "total": 3
    },
    "Ready for test": {
-    "done": 11,
-    "total": 11
+    "done": 9,
+    "total": 9
    },
    "Reopen": {
     "done": 0,
@@ -6515,33 +6515,33 @@
    },
    "To Do": {
     "done": 0,
-    "total": 13
+    "total": 11
    }
   },
   "bugs_by_team": {
    "MDI_System": {
     "done": 4,
-    "total": 36
+    "total": 37
    },
    "MDT_App": {
     "done": 11,
-    "total": 26
+    "total": 25
    },
    "MDT_PM": {
     "done": 21,
-    "total": 31
+    "total": 32
    },
    "MDT_Sys_QA": {
     "done": 1,
-    "total": 2
+    "total": 1
    },
    "MDT_System": {
     "done": 2,
-    "total": 12
+    "total": 10
    },
    "TS_CPAA": {
-    "done": 287,
-    "total": 313
+    "done": 292,
+    "total": 314
    },
    "TS_FW": {
     "done": 35,
@@ -6549,49 +6549,49 @@
    },
    "Unknown": {
     "done": 2,
-    "total": 2
+    "total": 3
    }
   },
   "date": "2026-11-16",
   "pretest": {
    "AA": {
-    "open": 20,
+    "open": 17,
     "open_by_status": {
-     "Blocked": 7,
-     "In Progress": 5,
+     "Blocked": 4,
+     "In Progress": 6,
      "Ready for integration": 1,
      "Reopen": 3,
-     "To Do": 4
+     "To Do": 3
     },
     "total": 78,
     "unknown": 0
    },
    "CP": {
-    "open": 32,
+    "open": 31,
     "open_by_status": {
      "Blocked": 20,
      "In Progress": 8,
      "Reopen": 2,
-     "To Do": 2
+     "To Do": 1
     },
     "total": 85,
     "unknown": 0
    },
    "all": {
-    "open": 46,
+    "open": 43,
     "open_by_status": {
-     "Blocked": 24,
-     "In Progress": 12,
+     "Blocked": 22,
+     "In Progress": 13,
      "Ready for integration": 1,
      "Reopen": 3,
-     "To Do": 6
+     "To Do": 4
     },
     "total": 150,
     "unknown": 0
    }
   },
   "swe2": {
-   "done": 713,
+   "done": 714,
    "total": 1147
   },
   "swe3": {
