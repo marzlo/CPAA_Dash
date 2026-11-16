@@ -1098,6 +1098,13 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .matrix-zero { color: var(--muted); }
   .matrix-pct { color: var(--muted); font-size: 11px; }
   .matrix-dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 7px; vertical-align: middle; }
+  .aging-ctl { align-items: center; }
+  .aging-ctl-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .03em; margin-right: 2px; }
+  .matrix-table td.aging-name { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .matrix-table tr.aging-rest-row td { color: var(--muted); cursor: pointer; }
+  .matrix-table tr.aging-rest-row:hover td { background: var(--page); }
+  .matrix-table tr.aging-share-row td { border-bottom: none; }
+  .aging-more { margin-top: 10px; }
   .trend-table-details { margin-top: 10px; }
   .trend-table-details summary { cursor: pointer; font-size: 13px; color: var(--text-secondary); }
   .trend-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; }
@@ -2097,9 +2104,19 @@ const STRINGS = {
     zh: d => `灰色的實際柱子代表那幾週的每日快照還沒記「${d}」這個維度,只能顯示總數;這部分無法回溯補資料,往後的快照才會有。`,
     en: d => `Grey actual bars are weeks whose daily snapshot predates the ${d} breakdown, so only the total is known. That cannot be backfilled — later snapshots will carry it.` },
 
-  ov_aging_heading: { zh: '未完成 Bug 的卡住天數 × Priority(點數字可跳到 Bug 清單)', en: 'Not-done Bugs by age × priority (click a number to jump to the Bug list)' },
+  ov_aging_heading: { zh: '未完成 Bug:Assignee × 卡住天數(點數字可跳到 Bug 清單)', en: 'Not-done Bugs by assignee × age (click a number to jump to the Bug list)' },
   aging_matrix_total: { zh: '合計', en: 'Total' },
-  aging_caption: { zh: (total, unknown) => `共 ${total} 張未完成 Bug,依建立日期至今的天數 × Priority 交叉統計${unknown ? `(其中 ${unknown} 張沒有建立日期資料,不列入天數各列,但仍計入合計列)` : ''}`, en: (total, unknown) => `${total} not-done Bugs, cross-tabulated by days since creation and priority${unknown ? ` (${unknown} without a creation date are left out of the age rows but still counted in the Total row)` : ''}` },
+  aging_caption: {
+    zh: (total, unknown, shown, all) => `共 ${total} 張未完成 Bug,列出${shown < all ? `票數最多的前 ${shown} 位` : `全部 ${all} 位`} assignee,依建立日期至今的天數分欄;上方可切換 Priority${unknown ? `(其中 ${unknown} 張沒有建立日期,不列入天數各欄,但仍計入合計)` : ''}`,
+    en: (total, unknown, shown, all) => `${total} not-done Bugs — ${shown < all ? `the ${shown} busiest` : `all ${all}`} assignees, split by days since creation; the chips above narrow it to one priority${unknown ? ` (${unknown} without a creation date are left out of the age columns but still counted in Total)` : ''}`,
+  },
+  aging_pri_all: { zh: n => `全部 (${n})`, en: n => `All (${n})` },
+  aging_th_assignee: { zh: 'Assignee', en: 'Assignee' },
+  aging_share: { zh: '占比', en: 'Share' },
+  aging_rest: { zh: n => `其他 ${n} 位`, en: n => `${n} others` },
+  aging_rest_hint: { zh: '點這列展開全部 assignee,每個數字就都能點', en: 'Click to list every assignee, so each number becomes clickable' },
+  aging_show_all: { zh: n => `顯示全部 ${n} 位 assignee`, en: n => `Show all ${n} assignees` },
+  aging_show_top: { zh: n => `只看前 ${n} 名`, en: n => `Top ${n} only` },
   aging_0_7: { zh: '0-7 天', en: '0-7 days' },
   aging_8_14: { zh: '8-14 天', en: '8-14 days' },
   aging_15_30: { zh: '15-30 天', en: '15-30 days' },
@@ -2162,8 +2179,6 @@ const STRINGS = {
   bug_list_heading: { zh: 'Bug 清單(依 Feature / Label 分類篩選)', en: 'Bug list (filter by feature / label category)' },
   bug_label_caption: { zh: t => `在 ${t} 張未完成的 Bug 票中,依標籤分類的票數(每張票只計入一類,依 ASW-R2 → ASW-R3(不含CPAA 0830) → CPAA0830 → 三者皆無 的優先順序判斷)`, en: t => `Ticket counts by label category, out of ${t} not-done Bugs (each ticket counted once, priority order: ASW-R2 → ASW-R3 (excl. CPAA 0830) → CPAA0830 → none of the above)` },
   bug_assignee_caption: { zh: t => `在 ${t} 張未完成 Bug 中,依 assignee 統計的票數`, en: t => `Ticket counts by assignee, out of ${t} not-done Bugs` },
-  top_assignee_heading: { zh: '目前 Bug 數最多的 Assignee(前 10 名)', en: 'Top 10 assignees by open bug count' },
-  top_assignee_caption: { zh: total => `在 ${total} 張未完成 Bug 中,票數最多的前 10 位 assignee,點擊可跳轉至 Bug 頁籤查看清單`, en: total => `Top 10 assignees by not-done bug count (out of ${total}) — click a row to jump to the Bug tab` },
   new_badge: { zh: 'New!', en: 'New!' },
   overview_notes_heading: { zh: '專案總覽(可編輯)', en: 'Project Overview (editable)' },
   notes_dev_heading: { zh: 'Development status', en: 'Development status' },
@@ -2647,20 +2662,20 @@ function isNewThisWeek(created) {
   return isoWeekLabel(d) === isoWeekLabel(new Date());
 }
 
-// Switches to the Bug tab and filters by age bucket and/or priority (plus "not done"),
+// Switches to the Bug tab and filters by age bucket, priority and/or assignee (plus "not done"),
 // by driving the Bug panel's own filter <select>s and firing 'change' — the Bug panel's
 // own listeners (already attached, since renderBugPanel() runs once at load) do the rest.
 // Every other Bug filter is cleared, so the list length matches the number that was
-// clicked in the Stats matrix; an empty ageBucketKey / priority means "don't filter on
-// that dimension" (the matrix's Total row and column).
-function jumpToBugFromStats(ageBucketKey, priority) {
+// clicked in the Stats matrix; an empty ageBucketKey / priority / assignee means "don't
+// filter on that dimension" (the matrix's Total row and column, or the "all" chip).
+function jumpToBugFromStats(ageBucketKey, priority, assignee) {
   const bugTabBtn = document.querySelector('nav.tabs button[data-tab="Bug"]');
   if (bugTabBtn) bugTabBtn.click();
   const set = (id, value) => { const el = document.getElementById(id); if (el) el.value = value; };
   set('bugFeatureFilter', '');
   set('bugSubFeatureFilter', '');
   set('bugTeamFilter', '');
-  set('bugAssigneeFilter', '');
+  set('bugAssigneeFilter', assignee || '');
   set('bugSeverityFilter', '');
   set('bugSearch', '');
   set('bugPriorityFilter', priority || '');
@@ -5922,11 +5937,6 @@ function renderStatsPanel() {
       <p class="caption" id="acCaption"></p>
       <div id="acMatrix"></div>
     </section>
-    <section class="card" data-card="topAssignees">
-      <h2>${esc(t('top_assignee_heading'))}</h2>
-      <p class="caption" id="topAssigneeCaption"></p>
-      <div id="topAssigneesWrap"></div>
-    </section>
   `;
 
   overviewNotesEditing = false;
@@ -5981,74 +5991,130 @@ function renderStatsPanel() {
     wrap.appendChild(details);
   })();
 
-  // --- Bug aging x priority matrix (not-done Bugs; every number jumps to the
-  // Bug tab with the matching filters applied). Rows are the same age buckets the
-  // Bug tab's own age filter uses, so the two always agree.
-  (function renderAgingMatrix() {
+  // --- Not-done Bugs: assignee x age (2026-11-16: merged the old age x priority matrix
+  // and the "top 10 assignees" card into this one table). Rows are the busiest
+  // assignees, columns the same age buckets the Bug tab's own age filter uses, and a
+  // priority chip row narrows the whole table. Every non-zero number jumps to the Bug
+  // tab with assignee + age + priority applied, so the list it lands on is exactly as
+  // long as the number that was clicked. The "others" row can't be expressed as one Bug
+  // filter, so clicking it lists every assignee instead.
+  const AGING_TOP_N = 10;
+  let agingPri = '';
+  let agingShowAll = false;
+  function renderAgingMatrix() {
     const el = document.getElementById('agingBars');
     const caption = document.getElementById('agingCaption');
-    const notDone = BUGS.filter(r => !r.done);
-    const rowsData = [];
+    const priOf = r => r.priority || '未標示';
+    const notDoneAll = BUGS.filter(r => !r.done);
+
+    // Chips follow PRIORITY_ORDER, keeping only priorities that actually occur;
+    // anything unexpected in the data is appended rather than silently dropped.
+    const present = new Set(notDoneAll.map(priOf));
+    const pris = PRIORITY_ORDER.filter(p => present.has(p))
+      .concat([...present].filter(p => !PRIORITY_ORDER.includes(p)).sort());
+    if (agingPri && !present.has(agingPri)) agingPri = '';
+
+    const notDone = notDoneAll.filter(r => !agingPri || priOf(r) === agingPri);
+    const total = notDone.length;
+    const byName = {};
     let unknown = 0;
     notDone.forEach(r => {
-      const bucket = ageBucketOf(r.created);
-      if (!bucket) { unknown++; return; }
-      rowsData.push({ bucket, priority: r.priority || '未標示' });
+      const a = byName[r.assignee] || (byName[r.assignee] = { name: r.assignee, total: 0, ages: {} });
+      a.total++;
+      const bk = ageBucketOf(r.created);
+      if (bk) a.ages[bk] = (a.ages[bk] || 0) + 1; else unknown++;
     });
-    const total = notDone.length;
-    caption.textContent = t('aging_caption', total, unknown);
+    const ranked = Object.values(byName)
+      .sort((x, y) => y.total - x.total || String(x.name).localeCompare(String(y.name)));
+    const shown = agingShowAll ? ranked : ranked.slice(0, AGING_TOP_N);
+    const rest = ranked.slice(shown.length);
+    caption.textContent = t('aging_caption', total, unknown, shown.length, ranked.length);
 
-    // Columns follow PRIORITY_ORDER, keeping only priorities that actually occur;
-    // anything unexpected in the data is appended rather than silently dropped.
-    const present = new Set(notDone.map(r => r.priority || '未標示'));
-    const cols = PRIORITY_ORDER.filter(p => present.has(p))
-      .concat([...present].filter(p => !PRIORITY_ORDER.includes(p)).sort());
+    const chips = [{ k: '', label: t('aging_pri_all', notDoneAll.length) }]
+      .concat(pris.map(p => ({ k: p, label: `${p} (${notDoneAll.filter(r => priOf(r) === p).length})` })));
+    const chipHtml = `<div class="chip-row aging-ctl"><span class="aging-ctl-label">Priority</span>` +
+      chips.map(c => `<button type="button" class="chip${c.k === agingPri ? ' active' : ''}" data-aging-pri="${esc(c.k)}">${esc(c.label)}</button>`).join('') +
+      `</div>`;
 
-    const countOf = (bucketKey, pri) => rowsData.filter(r =>
-      (!bucketKey || r.bucket === bucketKey) && (!pri || r.priority === pri)).length;
-    // The Total row drops the age dimension, so — like the Bug list it jumps to — it
-    // also counts the bugs that have no creation date; the age rows above can't.
-    const countAll = pri => notDone.filter(r => !pri || (r.priority || '未標示') === pri).length;
-
-    const cell = (n, ageKey, pri, isTotal) => {
-      const cls = isTotal ? 'matrix-total' : '';
+    const pct = n => total ? Math.round(n / total * 100) : 0;
+    // o: { age, assignee, isTotal, plain } — plain = show the number but don't link it.
+    const cell = (n, o) => {
+      const cls = o.isTotal ? 'matrix-total' : '';
       if (!n) return `<td class="${cls} matrix-zero">0</td>`;
-      const ageLabel = ageKey ? t(AGE_BUCKETS.find(b => b.key === ageKey).labelKey) : '';
-      const label = [ageLabel, pri].filter(Boolean).join(' · ') || t('status_not_done');
-      return `<td class="${cls} matrix-cell-clickable" data-age="${esc(ageKey || '')}" ` +
-             `data-pri="${esc(pri || '')}" title="${esc(t('jump_tooltip_plain', label))}">${n}</td>`;
+      if (o.plain) return `<td class="${cls}">${n}</td>`;
+      const ageLabel = o.age ? t(AGE_BUCKETS.find(b => b.key === o.age).labelKey) : '';
+      const label = [o.assignee, ageLabel, agingPri].filter(Boolean).join(' · ') || t('status_not_done');
+      return `<td class="${cls} matrix-cell-clickable" data-age="${esc(o.age || '')}" ` +
+             `data-assignee="${esc(o.assignee || '')}" title="${esc(t('jump_tooltip_plain', label))}">${n}</td>`;
     };
 
-    const bodyRows = AGE_BUCKETS.map(b => {
-      const rowTotal = countOf(b.key, null);
-      const pct = total ? Math.round(rowTotal / total * 100) : 0;
+    const bodyRows = shown.map((a, i) => {
+      const plain = !a.name;  // no name to filter on → a click would show everybody's
       return `<tr>
-        <td><span class="matrix-dot" style="background:${b.color}"></span>${esc(t(b.labelKey))}</td>
-        ${cols.map(p => cell(countOf(b.key, p), b.key, p, false)).join('')}
-        ${cell(rowTotal, b.key, null, true)}
-        <td class="matrix-pct">${pct}%</td>
+        <td class="aging-name" title="${esc(a.name)}">${i + 1}. ${esc(a.name)}</td>
+        ${AGE_BUCKETS.map(b => cell(a.ages[b.key] || 0, { age: b.key, assignee: a.name, plain })).join('')}
+        ${cell(a.total, { assignee: a.name, isTotal: true, plain })}
+        <td class="matrix-pct">${pct(a.total)}%</td>
       </tr>`;
     }).join('');
 
+    let restRow = '';
+    if (rest.length) {
+      const ages = {};
+      let n = 0;
+      rest.forEach(a => {
+        n += a.total;
+        AGE_BUCKETS.forEach(b => { ages[b.key] = (ages[b.key] || 0) + (a.ages[b.key] || 0); });
+      });
+      restRow = `<tr class="aging-rest-row" id="agingRestRow" title="${esc(t('aging_rest_hint'))}">
+        <td>${esc(t('aging_rest', rest.length))} ▾</td>
+        ${AGE_BUCKETS.map(b => cell(ages[b.key] || 0, { plain: true })).join('')}
+        ${cell(n, { isTotal: true, plain: true })}
+        <td class="matrix-pct">${pct(n)}%</td>
+      </tr>`;
+    }
+
+    // The Total row drops the assignee dimension; its own total also counts the bugs
+    // with no creation date, like the Bug list it jumps to.
+    const ageTot = {};
+    AGE_BUCKETS.forEach(b => { ageTot[b.key] = notDone.filter(r => ageBucketOf(r.created) === b.key).length; });
     const totalRow = `<tr class="matrix-total-row">
       <td>${esc(t('aging_matrix_total'))}</td>
-      ${cols.map(p => cell(countAll(p), null, p, true)).join('')}
-      ${cell(total, null, null, true)}
-      <td class="matrix-pct">100%</td>
+      ${AGE_BUCKETS.map(b => cell(ageTot[b.key], { age: b.key, isTotal: true })).join('')}
+      ${cell(total, { isTotal: true })}
+      <td class="matrix-pct">${total ? 100 : 0}%</td>
+    </tr>
+    <tr class="aging-share-row">
+      <td class="matrix-pct">${esc(t('aging_share'))}</td>
+      ${AGE_BUCKETS.map(b => `<td class="matrix-pct">${pct(ageTot[b.key])}%</td>`).join('')}
+      <td></td><td></td>
     </tr>`;
 
-    el.innerHTML = `<div class="matrix-wrap"><table class="matrix-table">
+    const toggle = ranked.length > AGING_TOP_N
+      ? `<button type="button" class="btn small aging-more" id="agingToggle">${esc(agingShowAll ? t('aging_show_top', AGING_TOP_N) : t('aging_show_all', ranked.length))}</button>`
+      : '';
+
+    el.innerHTML = chipHtml + (total ? `<div class="matrix-wrap"><table class="matrix-table">
       <thead><tr>
-        <th></th>${cols.map(p => `<th>${esc(p)}</th>`).join('')}
+        <th>${esc(t('aging_th_assignee'))}</th>
+        ${AGE_BUCKETS.map(b => `<th><span class="matrix-dot" style="background:${b.color}"></span>${esc(t(b.labelKey))}</th>`).join('')}
         <th>${esc(t('aging_matrix_total'))}</th><th></th>
       </tr></thead>
-      <tbody>${bodyRows}${totalRow}</tbody>
-    </table></div>`;
+      <tbody>${bodyRows}${restRow}${totalRow}</tbody>
+    </table></div>${toggle}` : `<div class="empty-state">${esc(t('empty_state'))}</div>`);
 
-    el.querySelectorAll('.matrix-cell-clickable').forEach(td => {
-      td.addEventListener('click', () => jumpToBugFromStats(td.dataset.age, td.dataset.pri));
+    el.querySelectorAll('[data-aging-pri]').forEach(btn => {
+      btn.addEventListener('click', () => { agingPri = btn.dataset.agingPri; renderAgingMatrix(); });
     });
-  })();
+    el.querySelectorAll('.matrix-cell-clickable').forEach(td => {
+      td.addEventListener('click', () => jumpToBugFromStats(td.dataset.age, agingPri, td.dataset.assignee));
+    });
+    const restEl = document.getElementById('agingRestRow');
+    if (restEl) restEl.addEventListener('click', () => { agingShowAll = true; renderAgingMatrix(); });
+    const tog = document.getElementById('agingToggle');
+    if (tog) tog.addEventListener('click', () => { agingShowAll = !agingShowAll; renderAgingMatrix(); });
+  }
+  renderAgingMatrix();
 
   // --- Weekly bug inflow: always the trailing 12 calendar weeks up to today,
   // zero-filled, so the chart doesn't start wherever the earliest bug happens
@@ -6089,38 +6155,6 @@ function renderStatsPanel() {
       </div>
     `;
   })();
-
-  // --- Top 10 assignees by open (not-done) bug count -------------------------
-  (function renderTopAssignees() {
-    const wrap = document.getElementById('topAssigneesWrap');
-    const caption = document.getElementById('topAssigneeCaption');
-    const notDoneBugs = BUGS.filter(r => !r.done);
-    const counts = {};
-    notDoneBugs.forEach(r => { counts[r.assignee] = (counts[r.assignee] || 0) + 1; });
-    const top = Object.keys(counts)
-      .map(name => ({ name, count: counts[name] }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-    caption.textContent = t('top_assignee_caption', notDoneBugs.length);
-    if (!top.length) {
-      wrap.innerHTML = `<div class="empty-state">${esc(t('empty_state'))}</div>`;
-      return;
-    }
-    wrap.innerHTML = top.map((row, i) => {
-      const pct = notDoneBugs.length ? Math.round(row.count / notDoneBugs.length * 100) : 0;
-      return `
-        <div class="bar-row bar-row-pct bar-row-clickable" title="${esc(t('jump_tooltip_plain', row.name))}" data-assignee="${esc(row.name)}">
-          <div class="name assignee" title="${esc(row.name)}">${i + 1}. ${esc(row.name)}</div>
-          <div class="pct-value" style="color:var(--critical)">${pct}%</div>
-          <div class="bar-count">${row.count}</div>
-        </div>
-      `;
-    }).join('');
-    wrap.querySelectorAll('.bar-row-clickable').forEach(el => {
-      el.addEventListener('click', () => jumpToBugAssigneeFromStats(el.dataset.assignee));
-    });
-  })();
-
 
   renderForecastCard();
   renderAudioCatMatrix();
@@ -9396,9 +9430,11 @@ function ptTrendRows() {
     if (back[next] != null) {
       return { v: back[next], src: 'backfill', split: ptTrendBalance(backSplit[next], back[next]) };
     }
-    // A snapshot is taken at 09:00, so next Monday's is the nearest to "end of this
-    // week"; failing that, the latest one inside the week.
-    const inWeek = snaps.filter(d => d > wk && d <= next);
+    // The latest snapshot dated inside the week (Mon-Sun). Next Monday's is NOT used:
+    // the workflow re-runs on every dispatch and overwrites the day's entry, so by
+    // Monday afternoon it already holds Monday's closes — counting it as "end of last
+    // week" moved those into the previous week and left the new week's bars at zero.
+    const inWeek = snaps.filter(d => d >= wk && d < next);
     if (inWeek.length) {
       const pt = HISTORY[inWeek[inWeek.length - 1]].pretest.all;
       return { v: pt.open, src: 'snapshot', split: ptTrendSplitOfStatuses(pt.open_by_status, pt.open) };
