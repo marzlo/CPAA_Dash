@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-16T02:34:31.253Z",
+  "updated_at": "2026-11-16T02:34:58.098Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -14,6 +14,12 @@
         "text": "Spec 4.5的可選功能(非must)",
         "by": "Leyo",
         "at": "2026-11-16T02:34:30.650Z"
+      },
+      {
+        "id": "mwinhsmup7hel",
+        "text": "本周修改",
+        "by": "Leyo",
+        "at": "2026-11-16T02:34:57.462Z"
       }
     ],
     "NR1LT-5651": [
