@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-12T02:34:08.854Z",
+  "updated_at": "2026-11-16T02:34:31.253Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -8,6 +8,12 @@
         "text": "NR1LT-6639\nNR1LT-5647\nNR1LT-5651\nNR1LT-6645  这四个都是同一個根音",
         "by": "Leyo",
         "at": "2026-09-24T02:14:40.722Z"
+      },
+      {
+        "id": "mwinh7y24wt5u",
+        "text": "Spec 4.5的可選功能(非must)",
+        "by": "Leyo",
+        "at": "2026-11-16T02:34:30.650Z"
       }
     ],
     "NR1LT-5651": [
