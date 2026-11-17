@@ -22,7 +22,9 @@ Optional:
   TRACE_OUT_JSON            defaults to traceability.json
 
 A SWE2 counts as "covered" when Jira links it to an issue whose summary carries the
-SWE3 tag (【SWE3】 or a bare SWE3 token). SWE1 is fetched too, purely so the tab can
+SWE3 tag (【SWE3】 or a bare SWE3 token). The dotted ASPICE spelling counts too —
+【SWE.3】 / [SWE.3] / SWE.3 (2026-11-17: e.g. NR1LT-5261 links CP【SWE.3】-SYS-RA-PROJ-071,
+-072 and -090, which the dot-less pattern missed, so it showed "no SWE3"). SWE1 is fetched too, purely so the tab can
 show its status; SWE3 tickets were never found hanging off SWE1 in the 2026-09-15
 sweep, but if that ever changes they are picked up from SWE1 links as well.
 """
@@ -42,8 +44,10 @@ SOURCE_CSV = os.environ.get("TRACE_SOURCE_CSV", "traceability_source.csv")
 OUT_JSON = os.environ.get("TRACE_OUT_JSON", "traceability.json")
 
 BATCH = 60           # keys per JQL request; keeps each response comfortably small
-SWE_TAG = re.compile(r"【(SWE\d)】")
-SWE_TAG_PLAIN = re.compile(r"\bSWE(\d)\b")
+# "SWE3", "SWE.3", "SWE 3", "SWE-3", "SWE_3" (and the full-width dot) all mean level 3.
+SWE_SEP = r"\s*[.．_\-]?\s*"
+SWE_TAG = re.compile(r"【\s*SWE" + SWE_SEP + r"(\d)\s*】")
+SWE_TAG_PLAIN = re.compile(r"\bSWE" + SWE_SEP + r"(\d)\b")
 STATUS_CATEGORY = {"done": "done", "indeterminate": "progress", "new": "todo"}
 
 
@@ -51,14 +55,15 @@ def swe_tag(summary):
     """SWE level a ticket's summary declares, e.g. 'SWE3', or None."""
     m = SWE_TAG.search(summary or "")
     if m:
-        return m.group(1)
+        return "SWE" + m.group(1)
     m = SWE_TAG_PLAIN.search(summary or "")
     return "SWE" + m.group(1) if m else None
 
 
 def short_title(summary):
-    """'CP【SWE2】-【WiFi】-【Foo】-【External】' -> '[WiFi]-[Foo]'."""
-    s = re.sub(r"^\s*[A-Za-z]*\s*【SWE\d】\s*-?\s*", "", summary or "")
+    """'CP【SWE2】-【WiFi】-【Foo】-【External】' -> '[WiFi]-[Foo]'.
+    Also strips the dotted form and a doubled lane prefix ('CP【SWE.3】-AA【SWE.3】-...')."""
+    s = re.sub(r"^\s*(?:[A-Za-z]*\s*【\s*SWE" + SWE_SEP + r"\d\s*】\s*-?\s*)+", "", summary or "")
     s = re.sub(r"-?\s*【External】\s*$", "", s)
     return s.replace("【", "[").replace("】", "]").strip(" -")
 
