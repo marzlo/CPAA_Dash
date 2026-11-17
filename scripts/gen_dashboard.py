@@ -317,6 +317,22 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   /* Pretest: one block per platform, because CP and AA are different denominators and
      a combined rate hides that CP fails three times as often. */
   .pt-platform { margin-bottom: 22px; }
+  .pt-upload-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 14px;
+    font-size: 12px; color: var(--text-secondary); }
+  .pt-upload-bar .lbl { font-weight: 600; }
+  .pt-up-box { border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin: 0 0 18px;
+    background: var(--card, var(--page)); font-size: 13px; }
+  .pt-up-box h4 { margin: 0 0 8px; font-size: 14px; }
+  .pt-up-box table { border-collapse: collapse; margin: 6px 0 10px; font-size: 12.5px; }
+  .pt-up-box td { padding: 3px 14px 3px 0; white-space: nowrap; }
+  .pt-up-box td:first-child { color: var(--muted); }
+  .pt-up-box .pt-up-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 6px 0; }
+  .pt-up-box input[type=number] { width: 64px; }
+  .pt-up-box code { font-size: 12px; }
+  .pt-up-note { color: var(--text-secondary); font-size: 12px; margin: 4px 0; }
+  .pt-up-warn { color: #8a6200; font-size: 12px; margin: 4px 0; }
+  .pt-up-err { color: var(--critical); margin: 0 0 8px; }
+  .pt-up-actions { display: flex; gap: 8px; margin-top: 10px; }
   .pt-head { display: flex; align-items: baseline; gap: 10px; margin: 0 0 10px; flex-wrap: wrap; }
   .pt-head h3 { font-size: 15px; margin: 0; }
   .pt-tag { font-size: 11px; font-weight: 700; letter-spacing: .04em; padding: 2px 9px;
@@ -2462,6 +2478,38 @@ const STRINGS = {
   pt_bug_done: { zh: '已解決', en: 'Closed' },
   pt_bug_unknown_n: { zh: n => `另有 ${n} 張不在匯出範圍,狀態不明`, en: n => `${n} more outside the export, status unknown` },
   pt_res_ne: { zh: '未執行', en: 'Not run' },
+  pt_up_label: { zh: '更新測試結果 Excel:', en: 'Upload new results:' },
+  pt_up_btn: { zh: n => `⬆ 上傳 ${n}`, en: n => `⬆ ${n}` },
+  pt_up_hint: { zh: '先在瀏覽器裡檢查格式，確認後才存到 GitHub 並重建頁面(需要 🔑 token)', en: 'Checked in your browser first; only saved to GitHub and rebuilt after you confirm (needs the 🔑 token)' },
+  pt_up_reading: { zh: n => `正在讀取 ${n}…`, en: n => `Reading ${n}…` },
+  pt_up_err_title: { zh: '沒有上傳', en: 'Not uploaded' },
+  pt_up_err_ext: { zh: '只接受 .xlsx 檔', en: 'Only .xlsx files are accepted' },
+  pt_up_err_size: { zh: mb => `檔案太大(${mb} MB),上限 25 MB`, en: mb => `File too large (${mb} MB); the limit is 25 MB` },
+  pt_up_err_browser: { zh: '這個瀏覽器無法在本機解析 xlsx,請改用新版 Chrome 或 Edge', en: 'This browser cannot read xlsx locally — use a current Chrome or Edge' },
+  pt_up_err_notxlsx: { zh: '讀不到 xlsx 的內容，檔案可能損壞或不是 Excel 檔', en: 'Could not read the workbook — it may be damaged or not an Excel file' },
+  pt_up_err_sheet: { zh: (want, have) => `找不到結果工作表(${want})。這個檔案的工作表是:${have}`, en: (want, have) => `No result sheet (${want}). This file's sheets: ${have}` },
+  pt_up_err_header: { zh: (sheet, cols) => `「${sheet}」前 12 列找不到標題列(要同時有 ${cols} 這幾欄)`, en: (sheet, cols) => `No header row in the first 12 rows of "${sheet}" (needs ${cols})` },
+  pt_up_err_other: { zh: (picked, other) => `這看起來是 ${other} 的檔案，不是 ${picked}。請改按「上傳 ${other}」`, en: (picked, other) => `This looks like the ${other} workbook, not ${picked} — use the ${other} button` },
+  pt_up_err_empty: { zh: sheet => `「${sheet}」標題列下面沒有任何測試項目`, en: sheet => `"${sheet}" has no test cases under its header row` },
+  pt_up_check_title: { zh: n => `${n} 新檔案檢查結果`, en: n => `${n}: new workbook check` },
+  pt_up_file: { zh: '檔案', en: 'File' },
+  pt_up_new: { zh: '新檔案', en: 'New file' },
+  pt_up_now: { zh: '頁面目前', en: 'Page now' },
+  pt_up_cases: { zh: '題', en: 'cases' },
+  pt_up_rate: { zh: '通過率', en: 'pass rate' },
+  pt_up_ne_short: { zh: '未執行', en: 'not run' },
+  pt_up_save_as: { zh: '存成', en: 'Save as' },
+  pt_up_round_same: { zh: n => `會覆蓋目前 Round ${n} 的檔案`, en: n => `Replaces the current Round ${n} file` },
+  pt_up_round_higher: { zh: (n, cur) => `頁面會從 Round ${cur} 切換到 Round ${n};Round ${cur} 的檔案會留在 repo`, en: (n, cur) => `The page switches from Round ${cur} to Round ${n}; the Round ${cur} file stays in the repo` },
+  pt_up_round_lower: { zh: (n, cur) => `Round ${n} 比目前的 Round ${cur} 小，上傳後頁面仍會顯示 Round ${cur}`, en: (n, cur) => `Round ${n} is below the current Round ${cur}, so the page would keep showing Round ${cur}` },
+  pt_up_suspect: { zh: n => `注意：檔名或檔案內容看起來不像 ${n} 的檔案，請再確認一次`, en: n => `Careful: the file name or content does not look like the ${n} workbook` },
+  pt_up_other_note: { zh: n => `${n} 的檔案不受影響`, en: n => `The ${n} workbook is untouched` },
+  pt_up_confirm: { zh: '確認上傳並更新頁面', en: 'Upload and rebuild' },
+  pt_up_cancel: { zh: '取消', en: 'Cancel' },
+  pt_up_close: { zh: '關閉', en: 'Close' },
+  pt_up_uploading: { zh: '上傳中…', en: 'Uploading…' },
+  pt_up_done: { zh: path => `已存到 GitHub(${path})。頁面正在重建，進度在最上方，完成後按「重新載入」`, en: path => `Saved to GitHub (${path}). The page is rebuilding — progress is at the top; reload when it finishes` },
+  pt_up_fail: { zh: m => `上傳失敗:${m}`, en: m => `Upload failed: ${m}` },
   pt_th_split: { zh: '分布', en: 'Split' },
   pt_th_pass: { zh: 'Pass', en: 'Pass' },
   pt_bug_caption: {
@@ -3801,7 +3849,12 @@ async function refreshLatestData() {
   const token = getGithubToken(false);
   if (!token) return;
   if (!confirm(t('refresh_data_confirm'))) return;
+  await runRefreshWorkflow(token);
+}
 
+// Dispatch the refresh workflow and follow it in the strip at the top of the page.
+// Shared by the header button and the Pretest workbook upload.
+async function runRefreshWorkflow(token) {
   const btn = document.getElementById('refreshDataBtn');
   if (btn) { btn.disabled = true; btn.textContent = t('refreshing_data_button'); }
   const startedAt = Date.now();
@@ -9656,6 +9709,278 @@ function renderPtTrend() {
   }
 }
 
+// --- Uploading a new Facets / PCTS result workbook from the page -------------------
+// Same token-and-commit route the notes use. The browser reads the workbook first with
+// the rules build_pretest.py applies (result sheet, header row in the first 12 rows,
+// result spelling), shows what it read next to what the page shows now, and only on
+// confirm commits it under the standard file name and dispatches the refresh workflow,
+// which re-runs build_pretest.py. Checking first matters: a wrong file would otherwise
+// only show up minutes later as an empty or broken Pretest tab. The xlsx is unzipped
+// with the browser's own DecompressionStream, so the page still loads nothing external.
+// The file names must keep matching PLATFORMS[*].globs in build_pretest.py.
+const PT_UP_SPECS = {
+  CP: { name: 'CarPlay', label: 'CarPlay Facets', file: n => `NR1L_CarPlay Facets Test Case-Round${n}.xlsx`,
+        sheets: ['Test Result-EN', 'Test Result'], idCol: 'ID', looks: /facets/i, notLooks: /android|pcts/i },
+  AA: { name: 'Android Auto', label: 'Android Auto PCTS', file: n => `NR1L_Android Auto PCTS Test Case-Round${n}.xlsx`,
+        sheets: ['Test Result-EN', 'Test Result'], idCol: 'Case ID', looks: /pcts/i, notLooks: /carplay|facets/i },
+};
+const PT_UP_MAX_BYTES = 25 * 1024 * 1024;
+const PT_UP_RESULTS = {
+  pass: 'Pass', fail: 'Fail', block: 'Block', blocked: 'Block',
+  not_executed: 'Not executed', 'not executed': 'Not executed', 'not start': 'Not executed',
+  not_applicable: 'N/A', 'not applicable': 'N/A', 'n/a': 'N/A', na: 'N/A',
+};
+
+function ptUpCell(v) { return v == null ? '' : String(v).replace(/\s+/g, ' ').trim(); }
+function ptUpNormResult(v) {
+  const s = ptUpCell(v).toLowerCase();
+  if (!s) return '';
+  const base = s.replace(/\s*[(（].*$/, '').trim();
+  return PT_UP_RESULTS[base] || PT_UP_RESULTS[s] || 'Other';
+}
+
+// Minimal zip reader: central directory -> entries; stored or deflated members only,
+// which is all Excel writes.
+function ptUpUnzip(buf) {
+  const dv = new DataView(buf);
+  const dec = new TextDecoder();
+  let eocd = -1;
+  for (let i = buf.byteLength - 22; i >= Math.max(0, buf.byteLength - 65557); i--) {
+    if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error(t('pt_up_err_notxlsx'));
+  const count = dv.getUint16(eocd + 10, true);
+  let p = dv.getUint32(eocd + 16, true);
+  const entries = {};
+  for (let i = 0; i < count; i++) {
+    if (dv.getUint32(p, true) !== 0x02014b50) throw new Error(t('pt_up_err_notxlsx'));
+    const nlen = dv.getUint16(p + 28, true), xlen = dv.getUint16(p + 30, true), clen = dv.getUint16(p + 32, true);
+    entries[dec.decode(new Uint8Array(buf, p + 46, nlen))] = {
+      method: dv.getUint16(p + 10, true), csize: dv.getUint32(p + 20, true), off: dv.getUint32(p + 42, true),
+    };
+    p += 46 + nlen + xlen + clen;
+  }
+  return async name => {
+    const e = entries[name];
+    if (!e) return null;
+    const start = e.off + 30 + dv.getUint16(e.off + 26, true) + dv.getUint16(e.off + 28, true);
+    const data = new Uint8Array(buf, start, e.csize);
+    if (e.method === 0) return dec.decode(data);
+    if (e.method !== 8) throw new Error(t('pt_up_err_notxlsx'));
+    return new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+  };
+}
+
+async function ptUpReadWorkbook(file) {
+  const read = ptUpUnzip(await file.arrayBuffer());
+  const xml = str => new DOMParser().parseFromString(str, 'application/xml');
+  const wbStr = await read('xl/workbook.xml');
+  if (!wbStr) throw new Error(t('pt_up_err_notxlsx'));
+  const target = {};
+  const relStr = await read('xl/_rels/workbook.xml.rels');
+  if (relStr) [...xml(relStr).getElementsByTagName('Relationship')].forEach(r => { target[r.getAttribute('Id')] = r.getAttribute('Target') || ''; });
+  const sheets = [...xml(wbStr).getElementsByTagName('sheet')].map(el => {
+    const tg = target[el.getAttribute('r:id')] || '';
+    return { name: el.getAttribute('name'), path: tg.startsWith('/') ? tg.slice(1) : 'xl/' + tg.replace(/^\.\//, '') };
+  });
+  const ssStr = await read('xl/sharedStrings.xml');
+  // Only <t> directly under <si> or a rich-text run <r>; phonetic guides (<rPh>) are not text.
+  const shared = ssStr ? [...xml(ssStr).getElementsByTagName('si')].map(si =>
+    [...si.getElementsByTagName('t')].filter(x => x.parentNode === si || x.parentNode.localName === 'r')
+      .map(x => x.textContent).join('')) : [];
+  const colIdx = ref => { let n = 0; for (const ch of ref) { const c = ch.charCodeAt(0); if (c < 65 || c > 90) break; n = n * 26 + (c - 64); } return n - 1; };
+  const readSheet = async name => {
+    const sh = sheets.find(x => x.name === name);
+    const str = sh && await read(sh.path);
+    if (!str) return [];
+    return [...xml(str).getElementsByTagName('row')].map((rw, ri) => {
+      const cells = [];
+      [...rw.getElementsByTagName('c')].forEach((c, i) => {
+        const ref = c.getAttribute('r');
+        const tp = c.getAttribute('t');
+        const v = c.getElementsByTagName('v')[0];
+        let val;
+        if (tp === 's') val = v ? (shared[+v.textContent] || '') : '';
+        else if (tp === 'inlineStr') val = [...c.getElementsByTagName('t')].map(x => x.textContent).join('');
+        else val = v ? v.textContent : '';
+        cells[ref ? colIdx(ref) : i] = val;
+      });
+      return { r: +rw.getAttribute('r') || ri + 1, cells };
+    });
+  };
+  return { sheetNames: sheets.map(x => x.name), readSheet };
+}
+
+// build_pretest.py's find_header + read_cases + read_suite, reduced to the counts.
+function ptUpParse(rows, spec) {
+  const want = [spec.idCol, 'Test Result', 'Test Section'].map(w => w.toLowerCase());
+  let hdr = null;
+  for (const row of rows) {
+    if (row.r > 12) break;
+    const labels = {};
+    row.cells.forEach((v, j) => {
+      const s = ptUpCell(v).toLowerCase().replace(/,+$/, '').replace(/:+$/, '');
+      if (s) labels[s] = j;
+    });
+    if (want.every(w => w in labels)) { hdr = { row, labels }; break; }
+  }
+  if (!hdr) return null;
+  const cId = hdr.labels[want[0]], cRes = hdr.labels['test result'];
+  const sig = ptUpCell(hdr.row.cells[cId]).toLowerCase();
+  const counts = { Pass: 0, Fail: 0, Block: 0, 'Not executed': 0, 'N/A': 0, Other: 0 };
+  let total = 0;
+  rows.forEach(row => {
+    if (row.r <= hdr.row.r) return;
+    const id = ptUpCell(row.cells[cId]);
+    if (!id || id.toLowerCase() === sig) return;
+    counts[ptUpNormResult(row.cells[cRes]) || 'Other']++;
+    total++;
+  });
+  let suite = '';
+  rows.some(row => row.r < hdr.row.r && row.cells.some(v => {
+    const m = ptUpCell(v).match(/((?:PCTS|Facets)[\s\-]*\d+(?:\.\d+)*)/i);
+    if (m) suite = m[1].replace(/\s+/g, ' ').replace(/-/g, ' ').trim();
+    return !!m;
+  }));
+  return { counts, total, executed: counts.Pass + counts.Fail + counts.Block, suite };
+}
+
+function ptUploadWire() {
+  const input = document.getElementById('ptUpFile');
+  if (!input) return;
+  document.querySelectorAll('[data-pt-up]').forEach(b => b.addEventListener('click', () => {
+    input.dataset.pid = b.dataset.ptUp;
+    input.value = '';
+    input.click();
+  }));
+  input.addEventListener('change', () => { if (input.files[0]) ptUpCheck(input.dataset.pid, input.files[0]); });
+}
+
+function ptUpBoxClose() {
+  const box = document.getElementById('ptUpBox');
+  if (box) { box.hidden = true; box.innerHTML = ''; }
+}
+
+async function ptUpCheck(pid, file) {
+  const box = document.getElementById('ptUpBox');
+  const spec = PT_UP_SPECS[pid];
+  box.hidden = false;
+  box.innerHTML = `<p class="pt-up-note">${esc(t('pt_up_reading', file.name))}</p>`;
+  try {
+    if (!/\.xlsx$/i.test(file.name)) throw new Error(t('pt_up_err_ext'));
+    if (file.size > PT_UP_MAX_BYTES) throw new Error(t('pt_up_err_size', (file.size / 1048576).toFixed(1)));
+    if (typeof DecompressionStream === 'undefined') throw new Error(t('pt_up_err_browser'));
+    const wb = await ptUpReadWorkbook(file);
+    const tryParse = async sp => {
+      const sheet = sp.sheets.find(x => wb.sheetNames.includes(x));
+      if (!sheet) return { err: 'sheet' };
+      const parsed = ptUpParse(await wb.readSheet(sheet), sp);
+      return parsed ? { sheet, parsed } : { err: 'header', sheet };
+    };
+    const res = await tryParse(spec);
+    if (res.err) {
+      const otherId = pid === 'CP' ? 'AA' : 'CP';
+      const alt = await tryParse(PT_UP_SPECS[otherId]);
+      if (!alt.err) throw new Error(t('pt_up_err_other', spec.label, PT_UP_SPECS[otherId].label));
+      if (res.err === 'sheet') throw new Error(t('pt_up_err_sheet', spec.sheets.join(' / '), wb.sheetNames.join(', ')));
+      throw new Error(t('pt_up_err_header', res.sheet, [spec.idCol, 'Test Result', 'Test Section'].join(', ')));
+    }
+    if (!res.parsed.total) throw new Error(t('pt_up_err_empty', res.sheet));
+    ptUpPreview(pid, file, res);
+  } catch (err) {
+    box.innerHTML = `<h4>${esc(t('pt_up_err_title'))}</h4>
+      <p class="pt-up-err">${esc(String((err && err.message) || err))}</p>
+      <div class="pt-up-actions"><button type="button" class="btn small" id="ptUpClose">${esc(t('pt_up_close'))}</button></div>`;
+    document.getElementById('ptUpClose').addEventListener('click', ptUpBoxClose);
+  }
+}
+
+function ptUpPreview(pid, file, res) {
+  const box = document.getElementById('ptUpBox');
+  const spec = PT_UP_SPECS[pid];
+  const cur = ((PRETEST_CASES && PRETEST_CASES.platforms) || {})[pid] || null;
+  const m = file.name.match(/round\s*[-_ ]?(\d+)/i);
+  const startRound = m ? +m[1] : ((cur && cur.round) || 1);
+  const line = (c, ex, total) => `${total} ${t('pt_up_cases')} · Pass ${c.Pass || 0} · Fail ${c.Fail || 0} · Block ${c.Block || 0}` +
+    ` · N/A ${c['N/A'] || 0} · ${t('pt_up_ne_short')} ${c['Not executed'] || 0}` +
+    ` — ${t('pt_up_rate')} ${ex ? ((c.Pass || 0) / ex * 100).toFixed(1) + '%' : '—'}`;
+  const p = res.parsed;
+  const suspect = (p.suite && !spec.looks.test(p.suite)) || spec.notLooks.test(file.name);
+  box.innerHTML = `
+    <h4>${esc(t('pt_up_check_title', spec.label))}</h4>
+    <table>
+      <tr><td>${esc(t('pt_up_file'))}</td><td>${esc(file.name)} · ${esc(res.sheet)}${p.suite ? ' · ' + esc(p.suite) : ''}</td></tr>
+      <tr><td>${esc(t('pt_up_new'))}</td><td><b>${esc(line(p.counts, p.executed, p.total))}</b></td></tr>
+      ${cur ? `<tr><td>${esc(t('pt_up_now'))}</td><td>${esc(line(cur.counts, cur.executed, cur.total))}${cur.round ? ' · Round ' + cur.round : ''}</td></tr>` : ''}
+    </table>
+    ${suspect ? `<p class="pt-up-warn">${esc(t('pt_up_suspect', spec.label))}</p>` : ''}
+    <div class="pt-up-row">
+      <span>${esc(t('pt_up_save_as'))}</span>
+      <label>Round <input type="number" min="1" max="99" step="1" id="ptUpRound" value="${startRound}"></label>
+      <code id="ptUpPath"></code>
+    </div>
+    <p class="pt-up-note" id="ptUpRoundNote"></p>
+    <p class="pt-up-note">${esc(t('pt_up_other_note', PT_UP_SPECS[pid === 'CP' ? 'AA' : 'CP'].label))}</p>
+    <div class="pt-up-actions">
+      <button type="button" class="btn primary" id="ptUpGo">${esc(t('pt_up_confirm'))}</button>
+      <button type="button" class="btn" id="ptUpCancel">${esc(t('pt_up_cancel'))}</button>
+    </div>`;
+  const roundEl = document.getElementById('ptUpRound');
+  const round = () => Math.max(1, Math.min(99, parseInt(roundEl.value, 10) || 1));
+  const sync = () => {
+    const n = round();
+    document.getElementById('ptUpPath').textContent = spec.file(n);
+    const note = document.getElementById('ptUpRoundNote');
+    const curR = cur && cur.round;
+    note.className = curR && n < curR ? 'pt-up-warn' : 'pt-up-note';
+    note.textContent = !curR ? '' : n === curR ? t('pt_up_round_same', n)
+      : n > curR ? t('pt_up_round_higher', n, curR) : t('pt_up_round_lower', n, curR);
+  };
+  roundEl.addEventListener('input', sync);
+  sync();
+  document.getElementById('ptUpCancel').addEventListener('click', ptUpBoxClose);
+  document.getElementById('ptUpGo').addEventListener('click', e => ptUpCommit(pid, file, round(), e.currentTarget));
+}
+
+async function ptUpCommit(pid, file, round, btn) {
+  const token = getGithubToken(false);
+  if (!token) return;
+  const spec = PT_UP_SPECS[pid];
+  const path = spec.file(round);
+  const box = document.getElementById('ptUpBox');
+  btn.disabled = true;
+  btn.textContent = t('pt_up_uploading');
+  try {
+    const b64 = await new Promise((ok, bad) => {
+      const fr = new FileReader();
+      fr.onload = () => ok(String(fr.result).split(',')[1] || '');
+      fr.onerror = () => bad(fr.error);
+      fr.readAsDataURL(file);
+    });
+    const api = `https://api.github.com/repos/${GITHUB_REPO}/contents/${encodeURIComponent(path)}`;
+    const getResp = await fetch(api + '?ref=main', { headers: ghHeaders(token), cache: 'no-store' });
+    let sha;
+    if (getResp.ok) sha = (await getResp.json()).sha;
+    else if (getResp.status !== 404) throw new Error(ghErr('GET', getResp.status));
+    const putResp = await fetch(api, {
+      method: 'PUT',
+      headers: { ...ghHeaders(token), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: `Upload ${spec.label} results (Round ${round}) via dashboard`, content: b64, sha, branch: 'main' }),
+    });
+    if (!putResp.ok) throw new Error(ghErr('PUT', putResp.status, (await putResp.text()).slice(0, 200)));
+    box.innerHTML = `<p class="pt-up-note">${esc(t('pt_up_done', path))}</p>
+      <div class="pt-up-actions"><button type="button" class="btn small" id="ptUpClose">${esc(t('pt_up_close'))}</button></div>`;
+    document.getElementById('ptUpClose').addEventListener('click', ptUpBoxClose);
+    const strip = document.getElementById('refreshStatus');
+    runRefreshWorkflow(token);
+    if (strip) strip.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = t('pt_up_confirm');
+    alert(t('pt_up_fail', String((err && err.message) || err)));
+  }
+}
+
 function renderPretestPanel() {
   const panel = document.getElementById('panel-Pretest');
   const plats = (PRETEST_CASES && PRETEST_CASES.platforms) || {};
@@ -9708,6 +10033,13 @@ function renderPretestPanel() {
   PT_BUGS = null;            // rebuilt per render, so a language switch picks up new text
   const bugs = ptAllBugs();
   panel.innerHTML = `
+    <div class="pt-upload-bar">
+      <span class="lbl">${esc(t('pt_up_label'))}</span>
+      ${Object.keys(PT_UP_SPECS).map(k => `<button type="button" class="btn small" data-pt-up="${k}">${esc(t('pt_up_btn', PT_UP_SPECS[k].label))}</button>`).join('')}
+      <span>${esc(t('pt_up_hint'))}</span>
+      <input type="file" id="ptUpFile" accept=".xlsx" hidden>
+    </div>
+    <div class="pt-up-box" id="ptUpBox" hidden></div>
     ${order.length ? order.map(k => platformBlock(plats[k])).join('') : ''}
     ${order.length ? `<p class="caption" style="margin:-6px 0 20px">${esc(t('pt_denominator'))}</p>` : ''}
     <section class="card pt-trend">
@@ -9757,6 +10089,7 @@ function renderPretestPanel() {
   `;
 
   renderPtTrend();
+  ptUploadWire();
 
   // ---- section table ----
   if (order.length) {
