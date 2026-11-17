@@ -6622,8 +6622,8 @@
     "total": 46
    },
    "Done": {
-    "done": 343,
-    "total": 343
+    "done": 344,
+    "total": 344
    },
    "Eng build": {
     "done": 4,
@@ -6646,8 +6646,8 @@
     "total": 15
    },
    "Ready for test": {
-    "done": 10,
-    "total": 10
+    "done": 9,
+    "total": 9
    },
    "Reopen": {
     "done": 0,
@@ -6661,7 +6661,7 @@
   "bugs_by_team": {
    "MDI_System": {
     "done": 5,
-    "total": 38
+    "total": 39
    },
    "MDT_App": {
     "done": 11,
@@ -6681,7 +6681,7 @@
    },
    "TS_CPAA": {
     "done": 299,
-    "total": 320
+    "total": 319
    },
    "TS_FW": {
     "done": 34,
@@ -6711,31 +6711,31 @@
     "unknown": 0
    },
    "CP": {
-    "open": 31,
+    "open": 32,
     "open_by_status": {
      "Blocked": 21,
-     "In Progress": 5,
+     "In Progress": 6,
      "Reopen": 2,
      "To Do": 3
     },
-    "total": 88,
+    "total": 89,
     "unknown": 0
    },
    "all": {
-    "open": 40,
+    "open": 41,
     "open_by_status": {
      "Blocked": 24,
-     "In Progress": 6,
+     "In Progress": 7,
      "Need info": 2,
      "Reopen": 2,
      "To Do": 6
     },
-    "total": 155,
+    "total": 156,
     "unknown": 0
    }
   },
   "swe2": {
-   "done": 767,
+   "done": 783,
    "total": 1149
   },
   "swe3": {
