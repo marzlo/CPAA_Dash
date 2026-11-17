@@ -31,6 +31,7 @@ sweep, but if that ever changes they are picked up from SWE1 links as well.
 import base64
 import csv
 import datetime
+import http.client
 import json
 import os
 import re
@@ -79,7 +80,7 @@ def jira_headers():
     }
 
 
-def post(url, body, headers, attempts=3):
+def post(url, body, headers, attempts=4):
     for attempt in range(1, attempts + 1):
         req = urllib.request.Request(url, data=json.dumps(body).encode(), headers=headers, method="POST")
         try:
@@ -97,6 +98,15 @@ def post(url, body, headers, attempts=3):
                 time.sleep(3 * attempt)
                 continue
             raise RuntimeError(f"Jira API unreachable: {e}") from e
+        # The connection dropping halfway through the body (2026-11-17: IncompleteRead
+        # after 31 KB on batch 17 of 31) is just as transient as a 503, so retry it too.
+        except (http.client.IncompleteRead, http.client.RemoteDisconnected,
+                ConnectionError, TimeoutError, json.JSONDecodeError) as e:
+            if attempt < attempts:
+                print(f"  retrying after {type(e).__name__} (attempt {attempt}/{attempts})")
+                time.sleep(3 * attempt)
+                continue
+            raise RuntimeError(f"Jira response cut off: {e!r}") from e
 
 
 def fetch_issues(keys, headers):
