@@ -2316,7 +2316,7 @@ const STRINGS = {
   trace_saving: { zh: '儲存中…', en: 'Saving…' },
   trace_saved: { zh: '已儲存', en: 'Saved' },
   trace_save_error: { zh: msg => `儲存失敗:${msg}`, en: msg => `Save failed: ${msg}` },
-  gh_err_401: { zh: 'GitHub token 無效或已過期,請按右上角 🔑 重新設定', en: 'the GitHub token is invalid or has expired — set it again with the 🔑 button' },
+  gh_err_401: { zh: 'GitHub token 無效或已過期,請按 🔑 按鈕重新設定', en: 'the GitHub token is invalid or has expired — set it again with the 🔑 button' },
   gh_err_403: { zh: 'token 沒有這個 repo 的寫入權限(需要 Contents: read and write)', en: 'the token has no write access to this repo (it needs Contents: read and write)' },
   trace_notes_meta: { zh: (at, who) => `確認與留言最後更新:${at} by ${who}`, en: (at, who) => `Confirmations and comments last updated ${at} by ${who}` },
   trace_notes_meta_never: { zh: '目前還沒有任何確認或留言', en: 'No confirmations or comments yet' },
@@ -9848,6 +9848,8 @@ function ptUpParse(rows, spec) {
 function ptUploadWire() {
   const input = document.getElementById('ptUpFile');
   if (!input) return;
+  const tokBtn = document.getElementById('ptUpTokenBtn');
+  if (tokBtn) tokBtn.addEventListener('click', () => getGithubToken(true));
   document.querySelectorAll('[data-pt-up]').forEach(b => b.addEventListener('click', () => {
     input.dataset.pid = b.dataset.ptUp;
     input.value = '';
@@ -9942,7 +9944,7 @@ function ptUpPreview(pid, file, res) {
   document.getElementById('ptUpGo').addEventListener('click', e => ptUpCommit(pid, file, round(), e.currentTarget));
 }
 
-async function ptUpCommit(pid, file, round, btn) {
+async function ptUpCommit(pid, file, round, btn, retried) {
   const token = getGithubToken(false);
   if (!token) return;
   const spec = PT_UP_SPECS[pid];
@@ -9959,6 +9961,12 @@ async function ptUpCommit(pid, file, round, btn) {
     });
     const api = `https://api.github.com/repos/${GITHUB_REPO}/contents/${encodeURIComponent(path)}`;
     const getResp = await fetch(api + '?ref=main', { headers: ghHeaders(token), cache: 'no-store' });
+    // A stored token that has expired is the usual first failure: ask for a new one
+    // right here and try once more, instead of sending people to find a 🔑 elsewhere.
+    if (getResp.status === 401 && !retried) {
+      if (!getGithubToken(true) || getGithubToken(false) === token) throw new Error(ghErr('GET', 401));
+      return ptUpCommit(pid, file, round, btn, true);
+    }
     let sha;
     if (getResp.ok) sha = (await getResp.json()).sha;
     else if (getResp.status !== 404) throw new Error(ghErr('GET', getResp.status));
@@ -10036,6 +10044,7 @@ function renderPretestPanel() {
     <div class="pt-upload-bar">
       <span class="lbl">${esc(t('pt_up_label'))}</span>
       ${Object.keys(PT_UP_SPECS).map(k => `<button type="button" class="btn small" data-pt-up="${k}">${esc(t('pt_up_btn', PT_UP_SPECS[k].label))}</button>`).join('')}
+      <button type="button" class="btn small" id="ptUpTokenBtn" title="${esc(t('notes_change_token'))}">🔑</button>
       <span>${esc(t('pt_up_hint'))}</span>
       <input type="file" id="ptUpFile" accept=".xlsx" hidden>
     </div>
