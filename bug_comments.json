@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-17T02:24:58.774Z",
+  "updated_at": "2026-11-18T10:37:44.234Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -410,6 +410,12 @@
         "text": "Cold boot is fine. Hot boot (IGN off -> STR) is an issue\nNow after IGN off, CAN will not sleep, we observe that TBM will keep sending NM to awake CAN.",
         "by": "Leyo",
         "at": "2026-11-10T08:38:30.999Z"
+      },
+      {
+        "id": "mwlzmccezalgg",
+        "text": "Now we have workaround to unplugg and plug for STR to happen, can continue with some test after",
+        "by": "Leyo",
+        "at": "2026-11-18T10:37:43.551Z"
       }
     ],
     "NR1LT-7691": [
