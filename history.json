@@ -6845,40 +6845,40 @@
   "date": "2026-11-18",
   "pretest": {
    "AA": {
-    "open": 15,
+    "open": 18,
     "open_by_status": {
-     "Blocked": 5,
+     "Blocked": 7,
      "In Progress": 3,
      "Need info": 2,
      "Ready for integration": 2,
-     "To Do": 3
+     "To Do": 4
     },
     "total": 80,
-    "unknown": 0
+    "unknown": 2
    },
    "CP": {
-    "open": 33,
+    "open": 36,
     "open_by_status": {
-     "Blocked": 21,
+     "Blocked": 23,
      "In Progress": 7,
      "Need info": 1,
      "Ready for integration": 1,
-     "To Do": 3
+     "To Do": 4
     },
     "total": 90,
-    "unknown": 0
+    "unknown": 2
    },
    "all": {
-    "open": 43,
+    "open": 46,
     "open_by_status": {
-     "Blocked": 24,
+     "Blocked": 26,
      "In Progress": 8,
      "Need info": 3,
      "Ready for integration": 2,
-     "To Do": 6
+     "To Do": 7
     },
     "total": 157,
-    "unknown": 0
+    "unknown": 2
    }
   },
   "swe2": {
