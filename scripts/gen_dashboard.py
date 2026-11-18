@@ -1443,6 +1443,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <p style="margin-top:4px; font-weight:600;" id="headerUpdatedAt"></p>
 </header>
 <div class="toggle-row">
+  <button class="refresh-toggle" id="headerTokenBtn" data-i18n="header_token_button"></button>
   <button class="refresh-toggle" id="refreshDataBtn" data-i18n="refresh_data_button"></button>
   <span class="share-wrap">
     <button class="share-toggle" id="shareTabBtn" data-i18n="share_button"></button>
@@ -2316,6 +2317,11 @@ const STRINGS = {
   trace_saving: { zh: '儲存中…', en: 'Saving…' },
   trace_saved: { zh: '已儲存', en: 'Saved' },
   trace_save_error: { zh: msg => `儲存失敗:${msg}`, en: msg => `Save failed: ${msg}` },
+  header_token_button: { zh: '🔑 Token', en: '🔑 Token' },
+  token_check_ok: { zh: n => `Token 可以用:已連上 ${n},有寫入權限。存筆記、上傳 Excel、更新最新資料都會用這把`, en: n => `Token works: connected to ${n} with write access. Notes, Excel uploads and data refresh all use it` },
+  token_check_readonly: { zh: n => `Token 有效，但對 ${n} 沒有寫入權限。請在 GitHub 把這把 token 的 Contents 和 Actions 設成 Read and write`, en: n => `The token is valid but cannot write to ${n} — give it Contents and Actions: Read and write on GitHub` },
+  token_check_401: { zh: 'GitHub 不接受這把 token(過期、被撤銷或貼錯了),請到 GitHub 重新產生一把', en: 'GitHub rejected this token (expired, revoked or mistyped) — generate a new one on GitHub' },
+  token_check_other: { zh: m => `已存下 token,但檢查時出錯:${m}`, en: m => `Token saved, but the check failed: ${m}` },
   gh_err_401: { zh: 'GitHub token 無效或已過期,請按 🔑 按鈕重新設定', en: 'the GitHub token is invalid or has expired — set it again with the 🔑 button' },
   gh_err_403: { zh: 'token 沒有這個 repo 的寫入權限(需要 Contents: read and write)', en: 'the token has no write access to this repo (it needs Contents: read and write)' },
   trace_notes_meta: { zh: (at, who) => `確認與留言最後更新:${at} by ${who}`, en: (at, who) => `Confirmations and comments last updated ${at} by ${who}` },
@@ -11853,6 +11859,26 @@ function initTabs() {
 }
 
 document.getElementById('refreshDataBtn').addEventListener('click', refreshLatestData);
+
+// Header 🔑: set (or re-paste) the token from anywhere, and say straight away whether
+// GitHub accepts it — a 401 otherwise only surfaces at the next save or upload.
+async function setAndCheckGithubToken() {
+  const entered = prompt(t('notes_token_prompt'), '');
+  if (entered === null || !entered.trim()) return;
+  const token = entered.trim();
+  try { localStorage.setItem('cpaaDashboardGhToken', token); } catch (e) { /* localStorage unavailable */ }
+  try {
+    const resp = await fetch(`https://api.github.com/repos/${GITHUB_REPO}`, { headers: ghHeaders(token), cache: 'no-store' });
+    if (resp.status === 401) { alert(t('token_check_401')); return; }
+    if (!resp.ok) { alert(t('token_check_other', ghErr('GET', resp.status))); return; }
+    const repo = await resp.json();
+    const canWrite = !repo.permissions || repo.permissions.push;
+    alert(canWrite ? t('token_check_ok', GITHUB_REPO) : t('token_check_readonly', GITHUB_REPO));
+  } catch (err) {
+    alert(t('token_check_other', String((err && err.message) || err)));
+  }
+}
+document.getElementById('headerTokenBtn').addEventListener('click', setAndCheckGithubToken);
 
 document.getElementById('themeToggle').addEventListener('click', () => {
   const root = document.documentElement;
