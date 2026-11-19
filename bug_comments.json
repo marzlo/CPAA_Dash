@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-18T10:38:03.559Z",
+  "updated_at": "2026-11-19T02:34:12.988Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -440,6 +440,14 @@
         "text": "要討論一下目前辛穎的回覆",
         "by": "Leyo",
         "at": "2026-11-17T02:24:57.714Z"
+      }
+    ],
+    "NR1LT-7620": [
+      {
+        "id": "mwmxsdvjl1aut",
+        "text": "Santosh: HU reset on long press $ICSPowerButton$ is not implemented.",
+        "by": "Leyo",
+        "at": "2026-11-19T02:34:12.415Z"
       }
     ]
   }
