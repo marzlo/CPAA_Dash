@@ -6893,12 +6893,12 @@
  "2026-11-19": {
   "bugs": {
    "done": 382,
-   "total": 474
+   "total": 475
   },
   "bugs_by_rca": {
    "empty": {
     "done": 180,
-    "total": 256
+    "total": 257
    },
    "filled": {
     "done": 202,
@@ -6948,7 +6948,7 @@
    },
    "To Do": {
     "done": 0,
-    "total": 16
+    "total": 17
    }
   },
   "bugs_by_team": {
@@ -6974,7 +6974,7 @@
    },
    "TS_CPAA": {
     "done": 304,
-    "total": 322
+    "total": 323
    },
    "TS_FW": {
     "done": 34,
@@ -7000,25 +7000,25 @@
     "unknown": 2
    },
    "CP": {
-    "open": 38,
+    "open": 39,
     "open_by_status": {
      "Blocked": 24,
      "In Progress": 8,
-     "To Do": 6
+     "To Do": 7
     },
-    "total": 93,
+    "total": 94,
     "unknown": 2
    },
    "all": {
-    "open": 47,
+    "open": 48,
     "open_by_status": {
      "Blocked": 27,
      "In Progress": 9,
      "Need info": 1,
      "Reopen": 1,
-     "To Do": 9
+     "To Do": 10
     },
-    "total": 160,
+    "total": 161,
     "unknown": 2
    }
   },
