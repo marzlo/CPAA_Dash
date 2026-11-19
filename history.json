@@ -6892,16 +6892,16 @@
  },
  "2026-11-19": {
   "bugs": {
-   "done": 383,
-   "total": 475
+   "done": 382,
+   "total": 476
   },
   "bugs_by_rca": {
    "empty": {
     "done": 181,
-    "total": 257
+    "total": 258
    },
    "filled": {
-    "done": 202,
+    "done": 201,
     "total": 218
    }
   },
@@ -6911,8 +6911,8 @@
     "total": 44
    },
    "Done": {
-    "done": 352,
-    "total": 352
+    "done": 356,
+    "total": 356
    },
    "Eng build": {
     "done": 2,
@@ -6920,7 +6920,7 @@
    },
    "In Progress": {
     "done": 0,
-    "total": 20
+    "total": 21
    },
    "Monitoring": {
     "done": 4,
@@ -6931,20 +6931,20 @@
     "total": 1
    },
    "Non-issue": {
-    "done": 17,
-    "total": 17
+    "done": 15,
+    "total": 15
    },
    "Ready for integration": {
     "done": 0,
     "total": 2
    },
    "Ready for test": {
-    "done": 8,
-    "total": 8
+    "done": 5,
+    "total": 5
    },
    "Reopen": {
     "done": 0,
-    "total": 8
+    "total": 9
    },
    "To Do": {
     "done": 0,
@@ -6954,7 +6954,7 @@
   "bugs_by_team": {
    "MDI_System": {
     "done": 3,
-    "total": 37
+    "total": 36
    },
    "MDT_App": {
     "done": 11,
@@ -6970,11 +6970,11 @@
    },
    "MDT_System": {
     "done": 3,
-    "total": 9
+    "total": 10
    },
    "TS_CPAA": {
-    "done": 305,
-    "total": 322
+    "done": 304,
+    "total": 323
    },
    "TS_FW": {
     "done": 34,
@@ -7000,30 +7000,30 @@
     "unknown": 2
    },
    "CP": {
-    "open": 39,
+    "open": 40,
     "open_by_status": {
      "Blocked": 24,
-     "In Progress": 8,
+     "In Progress": 9,
      "To Do": 7
     },
-    "total": 94,
+    "total": 95,
     "unknown": 2
    },
    "all": {
-    "open": 48,
+    "open": 49,
     "open_by_status": {
      "Blocked": 26,
-     "In Progress": 9,
+     "In Progress": 10,
      "Need info": 1,
      "Reopen": 2,
      "To Do": 10
     },
-    "total": 161,
+    "total": 162,
     "unknown": 2
    }
   },
   "swe2": {
-   "done": 826,
+   "done": 840,
    "total": 1149
   },
   "swe3": {
@@ -7031,7 +7031,7 @@
    "total": 305
   },
   "swe5": {
-   "done": 95,
+   "done": 97,
    "total": 118
   }
  }
