@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-19T02:44:52.937Z",
+  "updated_at": "2026-11-19T02:45:32.122Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -470,6 +470,12 @@
         "text": "Shane目前正在處理",
         "by": "Leyo",
         "at": "2026-11-19T02:44:52.352Z"
+      },
+      {
+        "id": "mwmy6xwhcdshd",
+        "text": "可以讓DMS的info可以直接顯示",
+        "by": "Leyo",
+        "at": "2026-11-19T02:45:31.553Z"
       }
     ]
   }
