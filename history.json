@@ -7039,12 +7039,12 @@
  "2026-11-20": {
   "bugs": {
    "done": 383,
-   "total": 484
+   "total": 485
   },
   "bugs_by_rca": {
    "empty": {
     "done": 181,
-    "total": 265
+    "total": 266
    },
    "filled": {
     "done": 202,
@@ -7057,8 +7057,8 @@
     "total": 45
    },
    "Done": {
-    "done": 358,
-    "total": 358
+    "done": 359,
+    "total": 359
    },
    "Eng build": {
     "done": 2,
@@ -7069,8 +7069,8 @@
     "total": 22
    },
    "Monitoring": {
-    "done": 4,
-    "total": 4
+    "done": 3,
+    "total": 3
    },
    "Need info": {
     "done": 0,
@@ -7094,7 +7094,7 @@
    },
    "To Do": {
     "done": 0,
-    "total": 22
+    "total": 23
    }
   },
   "bugs_by_team": {
@@ -7120,7 +7120,7 @@
    },
    "TS_CPAA": {
     "done": 305,
-    "total": 324
+    "total": 325
    },
    "TS_FW": {
     "done": 34,
@@ -7146,26 +7146,26 @@
     "unknown": 2
    },
    "CP": {
-    "open": 44,
+    "open": 45,
     "open_by_status": {
      "Blocked": 25,
      "In Progress": 10,
      "Need info": 1,
-     "To Do": 8
+     "To Do": 9
     },
-    "total": 99,
+    "total": 100,
     "unknown": 2
    },
    "all": {
-    "open": 52,
+    "open": 53,
     "open_by_status": {
      "Blocked": 27,
      "In Progress": 11,
      "Need info": 2,
      "Reopen": 1,
-     "To Do": 11
+     "To Do": 12
     },
-    "total": 166,
+    "total": 167,
     "unknown": 2
    }
   },
