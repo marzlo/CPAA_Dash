@@ -2452,14 +2452,14 @@ const STRINGS = {
   pt_th_platform: { zh: '平台', en: 'Platform' },
   pt_x_bugstatus: { zh: 'Bug 狀態', en: 'Bug status' },
   pt_mis_caption: {
-    zh: n => `${n} 題 test case 的結果和它掛的 Bug 狀態對不上:① Case 是 Fail/Block,但掛的 Bug 全都已是 Done 類狀態(可能該重測,或 Bug 被關錯);② Case 是 Pass,但掛的 Bug 還沒完成(可能 Bug 該關,或結果填錯)。Bug 狀態是 Jira 匯出資料的 status category;Ready for test 等「處理中」狀態不算完成。不在匯出範圍的 Bug 查不到狀態,不列入判斷。`,
-    en: n => `${n} test cases whose result disagrees with the bugs they point at: (1) the case is Fail/Block but every linked bug is already in a Done-category status (retest due, or the bug was closed wrongly); (2) the case is Pass but a linked bug is still open (close the bug, or the result is wrong). Bug status is the Jira status category from the export; in-progress statuses such as Ready for test do not count as done. Bugs outside the export have no status and are left out.`,
+    zh: n => `${n} 題 test case 的結果和它掛的 Bug 狀態對不上:① Case 是 Fail/Block,但掛的 Bug 全都已是 Done 類狀態(可能該重測,或 Bug 被關錯);② Case 是 Pass,但掛的 Bug 還沒完成(可能 Bug 該關,或結果填錯)。Bug 狀態是 Jira 匯出資料的 status category;Ready for test 等「處理中」狀態不算完成。不在匯出範圍的 Bug 查不到狀態,不列入判斷;備註寫到 CCR 的(fail 原因是 CCR 設定,不是程式問題)也不列入。`,
+    en: n => `${n} test cases whose result disagrees with the bugs they point at: (1) the case is Fail/Block but every linked bug is already in a Done-category status (retest due, or the bug was closed wrongly); (2) the case is Pass but a linked bug is still open (close the bug, or the result is wrong). Bug status is the Jira status category from the export; in-progress statuses such as Ready for test do not count as done. Bugs outside the export have no status and are left out, and so are cases whose remark puts the failure down to the CCR.`,
   },
   pt_all_results: { zh: '全部結果', en: 'All results' },
   pt_all_sections: { zh: '全部段落', en: 'All sections' },
   pt_all_conn: { zh: '全部連線方式', en: 'Wired and wireless' },
   pt_all_src: { zh: '全部平台', en: 'Both platforms' },
-  pt_search_case: { zh: '搜尋 case ID / 標題 / bug 單號', en: 'Search case ID, title or bug key' },
+  pt_search_case: { zh: '搜尋 case ID / 標題 / bug / 備註 / 測試者', en: 'Search case ID, title, bug, remark or tester' },
   pt_th_section: { zh: '段落', en: 'Section' },
   pt_th_case: { zh: 'Case ID', en: 'Case ID' },
   pt_th_title: { zh: '標題', en: 'Title' },
@@ -9398,9 +9398,13 @@ function ptBugStatusText(k) {
 
 // Test cases whose result and linked bugs disagree. Only bugs found in the export can be
 // judged; a Fail with any bug of unknown status is left alone, since that one may be open.
+// A failure the remark puts down to the CCR (Apple's certification config, not our code)
+// is expected to stay Fail while the bug is closed, so it is not a mismatch.
+const PT_MIS_SKIP_RE = /\bCCR\b/i;
 function ptMismatchKind(c) {
   const ks = c.bugs || [];
   if (!ks.length) return '';
+  if (PT_MIS_SKIP_RE.test(c.remark || '')) return '';
   const tks = ks.map(ptTicket);
   const known = tks.filter(Boolean);
   if (!known.length) return '';
@@ -10344,6 +10348,8 @@ function renderPretestPanel() {
     if (q) rows = rows.filter(c => c.id.toLowerCase().includes(q) ||
                                    (c.title || '').toLowerCase().includes(q) ||
                                    (c.sec || '').toLowerCase().includes(q) ||
+                                   (c.remark || '').toLowerCase().includes(q) ||
+                                   (c.tester || '').toLowerCase().includes(q) ||
                                    (c.bugs || []).some(k => k.toLowerCase().includes(q)));
     return rows;
   }
@@ -10359,6 +10365,8 @@ function renderPretestPanel() {
     if (q) rows = rows.filter(c => c.id.toLowerCase().includes(q) ||
                                    (c.title || '').toLowerCase().includes(q) ||
                                    (c.sec || '').toLowerCase().includes(q) ||
+                                   (c.remark || '').toLowerCase().includes(q) ||
+                                   (c.tester || '').toLowerCase().includes(q) ||
                                    (c.bugs || []).some(k => k.toLowerCase().includes(q)));
     return rows;
   }
