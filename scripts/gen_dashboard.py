@@ -367,6 +367,14 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .pt-pill.pass { background: color-mix(in srgb, var(--good) 15%, transparent); color: #0a7a0a; }
   .pt-pill.fail { background: color-mix(in srgb, var(--critical) 15%, transparent); color: var(--critical); }
   .pt-pill.block { background: color-mix(in srgb, var(--warning) 22%, transparent); color: #8a6200; }
+  /* A bug key on a test-case row carries its current Jira status, so a Fail pointing at a
+     Done ticket (or a Pass pointing at an open one) is visible without opening Jira. */
+  .pt-bugref { display: inline-block; white-space: nowrap; margin: 1px 8px 1px 0; }
+  .pt-bugref .badge { margin-left: 4px; font-size: 10.5px; padding: 1px 6px; font-weight: 600; }
+  .badge.unknown { background: var(--panel-2, #eee); color: var(--muted, #777); }
+  .pt-mis { font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .pt-mis.failDone { background: color-mix(in srgb, var(--critical) 15%, transparent); color: var(--critical); }
+  .pt-mis.passOpen { background: color-mix(in srgb, var(--warning) 25%, transparent); color: #8a6200; }
   .pt-src { font-size: 11px; padding: 1px 7px; border-radius: 4px; background: var(--page);
             color: var(--text-secondary); margin-right: 3px; }
   .pt-remark { color: var(--text-secondary); font-size: 12px; }
@@ -2435,6 +2443,18 @@ const STRINGS = {
   pt_list_cp: { zh: n => `CP test case(${n})`, en: n => `CP test cases (${n})` },
   pt_list_aa: { zh: n => `AA test case(${n})`, en: n => `AA test cases (${n})` },
   pt_list_bug: { zh: n => `Bug list(${n})`, en: n => `Bug list (${n})` },
+  pt_list_mis_name: { zh: '狀態不一致', en: 'Status mismatch' },
+  pt_list_mis: { zh: n => `狀態不一致(${n})`, en: n => `Status mismatch (${n})` },
+  pt_mis_failDone: { zh: 'Case Fail/Block,Bug 已完成', en: 'Case failed, bug done' },
+  pt_mis_passOpen: { zh: 'Case Pass,Bug 未完成', en: 'Case passed, bug open' },
+  pt_mis_all: { zh: '全部不一致類型', en: 'All mismatch types' },
+  pt_th_mis: { zh: '不一致', en: 'Mismatch' },
+  pt_th_platform: { zh: '平台', en: 'Platform' },
+  pt_x_bugstatus: { zh: 'Bug 狀態', en: 'Bug status' },
+  pt_mis_caption: {
+    zh: n => `${n} 題 test case 的結果和它掛的 Bug 狀態對不上:① Case 是 Fail/Block,但掛的 Bug 全都已是 Done 類狀態(可能該重測,或 Bug 被關錯);② Case 是 Pass,但掛的 Bug 還沒完成(可能 Bug 該關,或結果填錯)。Bug 狀態是 Jira 匯出資料的 status category;Ready for test 等「處理中」狀態不算完成。不在匯出範圍的 Bug 查不到狀態,不列入判斷。`,
+    en: n => `${n} test cases whose result disagrees with the bugs they point at: (1) the case is Fail/Block but every linked bug is already in a Done-category status (retest due, or the bug was closed wrongly); (2) the case is Pass but a linked bug is still open (close the bug, or the result is wrong). Bug status is the Jira status category from the export; in-progress statuses such as Ready for test do not count as done. Bugs outside the export have no status and are left out.`,
+  },
   pt_all_results: { zh: '全部結果', en: 'All results' },
   pt_all_sections: { zh: '全部段落', en: 'All sections' },
   pt_all_conn: { zh: '全部連線方式', en: 'Wired and wireless' },
@@ -9364,6 +9384,31 @@ function ptBugPlatforms(summary) {
   return ['CP', 'AA'];
 }
 
+// One bug key with its live Jira status beside it, for the test-case lists.
+function ptBugRef(k) {
+  const tk = ptTicket(k);
+  const st = tk ? bugStatusBadge(tk)
+                : `<span class="badge unknown" title="${esc(t('pt_bug_unknown'))}">?</span>`;
+  return `<span class="pt-bugref"><a href="${ticketUrl(k)}" target="_blank">${esc(k)}</a>${st}</span>`;
+}
+function ptBugStatusText(k) {
+  const tk = ptTicket(k);
+  return `${k} (${tk ? tk.status : t('pt_bug_unknown')})`;
+}
+
+// Test cases whose result and linked bugs disagree. Only bugs found in the export can be
+// judged; a Fail with any bug of unknown status is left alone, since that one may be open.
+function ptMismatchKind(c) {
+  const ks = c.bugs || [];
+  if (!ks.length) return '';
+  const tks = ks.map(ptTicket);
+  const known = tks.filter(Boolean);
+  if (!known.length) return '';
+  if ((c.res === 'Fail' || c.res === 'Block') && known.length === ks.length && known.every(x => x.done)) return 'failDone';
+  if (c.res === 'Pass' && known.some(x => !x.done)) return 'passOpen';
+  return '';
+}
+
 // The bug list is the union of three places a pretest bug can be recorded: either
 // workbook's BugList, and the pretest label in Jira. Taking only the workbooks would
 // drop the tickets raised after the sheet was last saved.
@@ -10017,6 +10062,11 @@ function renderPretestPanel() {
   const panel = document.getElementById('panel-Pretest');
   const plats = (PRETEST_CASES && PRETEST_CASES.platforms) || {};
   const order = ['CP', 'AA'].filter(k => plats[k]);
+  const misAll = [];
+  order.forEach(k => plats[k].cases.forEach(c => {
+    const kind = ptMismatchKind(c);
+    if (kind) misAll.push(Object.assign({}, c, { plat: k, kind }));
+  }));
   const tagColor = { CP: 'var(--series-cp)', AA: 'var(--series-aa)' };
 
   const platformBlock = p => {
@@ -10112,6 +10162,7 @@ function renderPretestPanel() {
         ${plats.CP ? `<button class="chip active" data-pt-list="CP" data-pt-total="${plats.CP.total}" data-pt-label="${esc(t('pt_list_cp_name'))}">${esc(t('pt_list_cp', plats.CP.total))}</button>` : ''}
         ${plats.AA ? `<button class="chip${plats.CP ? '' : ' active'}" data-pt-list="AA" data-pt-total="${plats.AA.total}" data-pt-label="${esc(t('pt_list_aa_name'))}">${esc(t('pt_list_aa', plats.AA.total))}</button>` : ''}
         <button class="chip${order.length ? '' : ' active'}" data-pt-list="BUG" data-pt-total="${bugs.length}" data-pt-label="${esc(t('pt_list_bug_name'))}">${esc(t('pt_list_bug', bugs.length))}</button>
+        ${order.length ? `<button class="chip" data-pt-list="MIS" data-pt-total="${misAll.length}" data-pt-label="${esc(t('pt_list_mis_name'))}">${esc(t('pt_list_mis', misAll.length))}</button>` : ''}
       </div>
       <div class="filters" id="ptFilters"></div>
       <div class="table-wrap"><table>
@@ -10165,7 +10216,7 @@ function renderPretestPanel() {
   const head = document.getElementById('ptListHead');
   const body = document.getElementById('ptListBody');
   const caption = document.getElementById('ptListCaption');
-  const state = { res: '', sec: '', conn: '', src: '', bug: '', cbug: '', q: '', cmt: false };
+  const state = { res: '', sec: '', conn: '', src: '', bug: '', cbug: '', kind: '', q: '', cmt: false };
 
   const sel = (id, label, values, cur) => `
     <select id="${id}"><option value="">${esc(label)}</option>
@@ -10173,7 +10224,14 @@ function renderPretestPanel() {
     </select>`;
 
   function drawFilters() {
-    if (listKey === 'BUG') {
+    if (listKey === 'MIS') {
+      filters.innerHTML = sel('ptSrc', t('pt_all_src'), order, state.src)
+        + `<select id="ptMisKind">
+             <option value="">${esc(t('pt_mis_all'))}</option>
+             ${['failDone', 'passOpen'].map(k => `<option value="${k}"${state.kind === k ? ' selected' : ''}>${esc(t('pt_mis_' + k))} (${misAll.filter(m => m.kind === k).length})</option>`).join('')}
+           </select>`
+        + `<input type="text" id="ptSearch" placeholder="${esc(t('pt_search_case'))}" value="${esc(state.q)}">`;
+    } else if (listKey === 'BUG') {
       filters.innerHTML = sel('ptSrc', t('pt_all_src'), ['CP', 'AA'], state.src)
         + `<select id="ptBugState">
              <option value="">${esc(t('all_status'))}</option>
@@ -10213,6 +10271,7 @@ function renderPretestPanel() {
       state.src = (document.getElementById('ptSrc') || {}).value || '';
       state.bug = (document.getElementById('ptBugState') || {}).value || '';
       state.cbug = (document.getElementById('ptBug') || {}).value || '';
+      state.kind = (document.getElementById('ptMisKind') || {}).value || '';
       drawList();
     }));
     const box = document.getElementById('ptSearch');
@@ -10260,8 +10319,7 @@ function renderPretestPanel() {
     const cls = { Pass: 'pass', Fail: 'fail', Block: 'block' }[r] || '';
     return `<span class="pt-pill ${cls}">${esc(r)}</span>`;
   };
-  const bugLinks = keys => (keys || []).map(k =>
-    `<a href="${ticketUrl(k)}" target="_blank">${esc(k)}</a>`).join(' ');
+  const bugLinks = keys => (keys || []).map(ptBugRef).join('');
 
   // The filters live here rather than inside drawList, so the download and the table on
   // screen can never disagree about what "this list" means.
@@ -10276,6 +10334,17 @@ function renderPretestPanel() {
     if (q) rows = rows.filter(b => b.key.toLowerCase().includes(q) ||
                                    (b.summary || '').toLowerCase().includes(q) ||
                                    bugComments(b.key).some(c => (c.text || '').toLowerCase().includes(q)));
+    return rows;
+  }
+  function filteredMis() {
+    const q = state.q.trim().toLowerCase();
+    let rows = misAll;
+    if (state.src) rows = rows.filter(c => c.plat === state.src);
+    if (state.kind) rows = rows.filter(c => c.kind === state.kind);
+    if (q) rows = rows.filter(c => c.id.toLowerCase().includes(q) ||
+                                   (c.title || '').toLowerCase().includes(q) ||
+                                   (c.sec || '').toLowerCase().includes(q) ||
+                                   (c.bugs || []).some(k => k.toLowerCase().includes(q)));
     return rows;
   }
   function filteredCases(p) {
@@ -10295,6 +10364,28 @@ function renderPretestPanel() {
   }
 
   function drawList() {
+    if (listKey === 'MIS') {
+      const rows = filteredMis();
+      head.innerHTML = `<tr>
+        <th>${esc(t('pt_th_platform'))}</th><th>${esc(t('pt_th_section'))}</th><th>${esc(t('pt_th_case'))}</th>
+        <th>${esc(t('pt_th_title'))}</th><th>${esc(t('pt_th_result'))}</th><th>${esc(t('pt_th_bug'))}</th>
+        <th>${esc(t('pt_th_mis'))}</th><th>${esc(t('pt_th_tester'))}</th><th>${esc(t('pt_th_remark'))}</th>
+      </tr>`;
+      body.innerHTML = rows.length ? rows.map(c => `<tr data-pt-case="${esc(c.id)}">
+        <td><span class="pt-src">${esc(c.plat)}</span></td>
+        <td>${esc(c.sec)}</td>
+        <td class="key">${esc(c.id)}</td>
+        <td>${esc(c.title || '')}</td>
+        <td>${resPill(c.res)}</td>
+        <td class="key">${bugLinks(c.bugs)}</td>
+        <td><span class="pt-mis ${c.kind}">${esc(t('pt_mis_' + c.kind))}</span></td>
+        <td>${esc(c.tester || '')}</td>
+        <td class="pt-remark">${esc(c.remark || '')}</td>
+      </tr>`).join('') : `<tr><td colspan="9" class="empty-state">${esc(t('empty_state'))}</td></tr>`;
+      caption.textContent = t('pt_mis_caption', rows.length);
+      labelChips(rows.length);
+      return;
+    }
     if (listKey === 'BUG') {
       const rows = filteredBugs();
       head.innerHTML = `<tr>
@@ -10349,7 +10440,7 @@ function renderPretestPanel() {
     const chip = document.querySelector(`#ptListChips [data-pt-list="${CSS.escape(which)}"]`);
     if (!chip) return;
     listKey = which;
-    state.res = state.sec = state.conn = state.src = state.bug = state.cbug = ''; state.q = '';
+    state.res = state.sec = state.conn = state.src = state.bug = state.cbug = state.kind = ''; state.q = '';
     Object.assign(state, filter || {});
     [...chip.parentElement.children].forEach(x => x.classList.toggle('active', x === chip));
     drawFilters();
@@ -10363,10 +10454,13 @@ function renderPretestPanel() {
   // looking at, filters and all; the workbook hands over everything, one sheet per
   // list, for someone who is going to pivot it rather than read it.
   const CASE_HEAD = [t('pt_th_section'), t('pt_th_case'), t('pt_th_title'), t('pt_th_conn'),
-                     t('pt_th_result'), t('pt_x_raw'), t('pt_th_bug'), t('pt_th_tester'), t('pt_th_remark')];
+                     t('pt_th_result'), t('pt_x_raw'), t('pt_th_bug'), t('pt_x_bugstatus'), t('pt_th_tester'), t('pt_th_remark')];
   const caseRow = c => [c.sec || '', c.id, c.title || '', c.conn || '',
                         c.res === 'Other' ? (c.raw || 'Other') : c.res,
-                        c.raw || '', (c.bugs || []).join(' '), c.tester || '', c.remark || ''];
+                        c.raw || '', (c.bugs || []).join(' '), (c.bugs || []).map(ptBugStatusText).join(' | '),
+                        c.tester || '', c.remark || ''];
+  const MIS_HEAD = [t('pt_th_platform'), t('pt_th_mis'), ...CASE_HEAD];
+  const misRow = c => [c.plat, t('pt_mis_' + c.kind), ...caseRow(c)];
   const BUG_HEAD = ['Key', t('pt_th_src'), t('pt_x_from'), t('pt_x_tagged'), t('pt_x_stated'),
                     t('pt_th_jira'), t('th_assignee'), t('th_summary'), t('pt_x_comments')];
   const bugRow = b => [b.key, b.src.join(' '), (b.from || []).join(' '),
@@ -10403,6 +10497,8 @@ function renderPretestPanel() {
     const btn = e.currentTarget;
     const rows = listKey === 'BUG'
       ? [BUG_HEAD, ...filteredBugs().map(bugRow)]
+      : listKey === 'MIS'
+      ? [MIS_HEAD, ...filteredMis().map(misRow)]
       : [CASE_HEAD, ...filteredCases(plats[listKey]).map(caseRow)];
     if (rows.length < 2) { ptFlash(btn, t('pt_dl_empty')); return; }
     dlBlob(new Blob([csvText(rows)], { type: 'text/csv;charset=utf-8' }),
@@ -10418,6 +10514,7 @@ function renderPretestPanel() {
       rows: [CASE_HEAD, ...plats[k].cases.map(caseRow)],
     }));
     sheets.push({ name: t('pt_list_bug_name'), rows: [BUG_HEAD, ...bugs.map(bugRow)] });
+    if (order.length) sheets.push({ name: t('pt_list_mis_name'), rows: [MIS_HEAD, ...misAll.map(misRow)] });
     try {
       dlBlob(xlsxBlob(sheets), `pretest_${roundTag()}_${stamp()}.xlsx`);
       ptFlash(btn, t('pt_dl_done', sheets.reduce((n, s) => n + s.rows.length - 1, 0)));
