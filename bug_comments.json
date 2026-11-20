@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-19T02:45:32.122Z",
+  "updated_at": "2026-11-20T02:49:19.915Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -476,6 +476,14 @@
         "text": "可以讓DMS的info可以直接顯示",
         "by": "Leyo",
         "at": "2026-11-19T02:45:31.553Z"
+      }
+    ],
+    "NR1LT-7723": [
+      {
+        "id": "mwodro7vn72cj",
+        "text": "查一下需求看Factory reset是否會自動重啟",
+        "by": "Leyo",
+        "at": "2026-11-20T02:49:19.195Z"
       }
     ]
   }
