@@ -71,6 +71,16 @@ except FileNotFoundError:
 
 DATA["bug_comments"] = BUG_COMMENTS
 
+# Hand-picked "look at these first" tickets for the Bug tab: a yellow Priority badge
+# beside the Jira key, with the investigation order and reason in its tooltip.
+try:
+    with open("bug_flags.json", encoding="utf-8") as f:
+        BUG_FLAGS = json.load(f)
+except FileNotFoundError:
+    BUG_FLAGS = {"updated_at": None, "updated_by": None, "flags": {}}
+
+DATA["bug_flags"] = BUG_FLAGS
+
 # The Q&A tab's own state: a handling status per question plus its comment thread.
 # Jira cannot carry the status (these tickets sit in "To Do" until a whole batch is
 # closed), so this file is the authority on where each question actually stands.
@@ -454,6 +464,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .badge.progress { background: color-mix(in srgb, var(--warning) 22%, transparent); color: #8a6200; }
   .badge.todo { background: color-mix(in srgb, var(--critical) 15%, transparent); color: var(--critical); }
   .badge.new { background: var(--critical); color: #fff; margin-left: 6px; }
+  .badge.prio-flag { background: #ffd43b; color: #4a3800; margin-left: 6px; white-space: nowrap; cursor: help; }
   :root[data-theme="dark"] .badge.progress, @media (prefers-color-scheme: dark) { }
   .filters { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
   .filters select, .filters input {
@@ -1597,6 +1608,13 @@ const TRACE_NOTES = Object.assign({ updated_at: null, updated_by: null, confirme
 const OVERVIEW_NOTES = RAW.overview_notes || { updated_at: null, updated_by: null, development_status: '', certification_status: '', risk: '' };
 const BUG_COMMENTS = Object.assign({ updated_at: null, updated_by: null, comments: {} },
                                    RAW.bug_comments || {});
+const BUG_FLAGS = (RAW.bug_flags && RAW.bug_flags.flags) || {};
+function bugFlagBadge(key) {
+  const f = BUG_FLAGS[key];
+  if (!f) return '';
+  const tip = (f.rank ? '#' + f.rank + ' ' : '') + (f.note || '');
+  return ` <span class="badge prio-flag" title="${esc(tip)}">${esc(f.label || 'Priority')}${f.rank ? ' #' + f.rank : ''}</span>`;
+}
 const WATCH = RAW.watch || [];
 // Clarification questions ThunderSoft raised against our requirement documents.
 // Their Jira status barely moves, so the real state of each one lives in
@@ -7715,7 +7733,7 @@ function renderBugPanel() {
     tbody.innerHTML = rows.length ? rows.map(r => `
       <tr data-bug-row="${esc(r.key)}">
         <td class="cmt-col">${bugCommentBtn(r.key)}</td>
-        <td class="key"><a href="${ticketUrl(r.key)}" target="_blank">${r.key}</a>${isNewThisWeek(r.created) ? ` <span class="badge new">${esc(t('new_badge'))}</span>` : ''}</td>
+        <td class="key"><a href="${ticketUrl(r.key)}" target="_blank">${r.key}</a>${isNewThisWeek(r.created) ? ` <span class="badge new">${esc(t('new_badge'))}</span>` : ''}${bugFlagBadge(r.key)}</td>
         <td>${esc(r.feature)}</td>
         <td>${esc(subFeatureDisplay(r.subFeature))}</td>
         <td>${esc(r.assignee)}</td>

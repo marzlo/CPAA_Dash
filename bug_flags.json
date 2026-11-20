@@ -1,0 +1,12 @@
+{
+  "updated_at": "2026-11-20T00:00:00.000Z",
+  "updated_by": "Leyo",
+  "note": "Bug 頁籤 Jira key 旁的黃色 Priority 標籤。rank = 建議調查順序(嚴重程度由高到低)。",
+  "flags": {
+    "NR1LT-7844": { "label": "Priority", "rank": 1, "note": "基本功能,建议高优先级 · 再现率 5/5" },
+    "NR1LT-7749": { "label": "Priority", "rank": 2, "note": "自动重连问题 · 再现率 5/5" },
+    "NR1LT-7485": { "label": "Priority", "rank": 3, "note": "UI跳转问题,基本功能 · 再现率 5/5" },
+    "NR1LT-7430": { "label": "Priority", "rank": 4, "note": "认证问题 · 再现率 5/5" },
+    "NR1LT-7809": { "label": "Priority", "rank": 5, "note": "认证问题 & 和旧案子需求一致 · 再现率 5/5" }
+  }
+}

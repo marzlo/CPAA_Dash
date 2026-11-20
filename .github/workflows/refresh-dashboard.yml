@@ -21,6 +21,8 @@ on:
       # dashboard carries on showing the old dates.
       - 'NR1L_CPAA_Certification.xlsx'
       - 'traceability_source.csv'
+      # Hand-picked Priority badges on the Bug tab are baked into the page at build time.
+      - 'bug_flags.json'
 
 permissions:
   contents: write
