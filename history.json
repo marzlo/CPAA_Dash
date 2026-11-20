@@ -7054,11 +7054,11 @@
   "bugs_by_status": {
    "Blocked": {
     "done": 0,
-    "total": 45
+    "total": 46
    },
    "Done": {
-    "done": 359,
-    "total": 359
+    "done": 361,
+    "total": 361
    },
    "Eng build": {
     "done": 2,
@@ -7066,19 +7066,19 @@
    },
    "In Progress": {
     "done": 0,
-    "total": 22
+    "total": 21
    },
    "Monitoring": {
-    "done": 3,
-    "total": 3
+    "done": 2,
+    "total": 2
    },
    "Need info": {
     "done": 0,
     "total": 2
    },
    "Non-issue": {
-    "done": 15,
-    "total": 15
+    "done": 14,
+    "total": 14
    },
    "Ready for integration": {
     "done": 0,
@@ -7100,7 +7100,7 @@
   "bugs_by_team": {
    "MDI_System": {
     "done": 3,
-    "total": 38
+    "total": 37
    },
    "MDT_App": {
     "done": 11,
@@ -7116,7 +7116,7 @@
    },
    "MDT_System": {
     "done": 3,
-    "total": 8
+    "total": 9
    },
    "TS_CPAA": {
     "done": 305,
@@ -7148,8 +7148,8 @@
    "CP": {
     "open": 45,
     "open_by_status": {
-     "Blocked": 25,
-     "In Progress": 10,
+     "Blocked": 26,
+     "In Progress": 9,
      "Need info": 1,
      "To Do": 9
     },
@@ -7159,8 +7159,8 @@
    "all": {
     "open": 53,
     "open_by_status": {
-     "Blocked": 27,
-     "In Progress": 11,
+     "Blocked": 28,
+     "In Progress": 10,
      "Need info": 2,
      "Reopen": 1,
      "To Do": 12
