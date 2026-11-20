@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-20T02:49:19.915Z",
+  "updated_at": "2026-11-20T06:04:22.844Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -484,6 +484,14 @@
         "text": "查一下需求看Factory reset是否會自動重啟",
         "by": "Leyo",
         "at": "2026-11-20T02:49:19.195Z"
+      }
+    ],
+    "NR1LT-5217": [
+      {
+        "id": "mwokqifgfxn0x",
+        "text": "5217这条case，是因为要后续还要修改CCR才能保留这条case，软件代码是不用改的",
+        "by": "Leyo",
+        "at": "2026-11-20T06:04:22.348Z"
       }
     ]
   }
