@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-23T02:28:59.656Z",
+  "updated_at": "2026-11-23T02:43:12.754Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -508,6 +508,14 @@
         "text": "目前Flextech確認Certification 上沒有TBM模組，那一條綠/白線連接的是SGW模組",
         "by": "Leyo",
         "at": "2026-11-23T02:28:59.036Z"
+      }
+    ],
+    "NR1LT-7576": [
+      {
+        "id": "mwsnvd0bcougg",
+        "text": "目前看到HDCC/DT的台架只有1個麥克風，但是原始配置是寫兩個",
+        "by": "Leyo",
+        "at": "2026-11-23T02:43:12.155Z"
       }
     ]
   }
