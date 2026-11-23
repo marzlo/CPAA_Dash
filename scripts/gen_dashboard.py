@@ -163,7 +163,7 @@ try:
         TRACEABILITY_NOTES = json.load(f)
 except FileNotFoundError:
     TRACEABILITY_NOTES = {"updated_at": None, "updated_by": None,
-                          "confirmed": {}, "comments": {}, "owners": {}}
+                          "confirmed": {}, "comments": {}, "owners": {}, "na": {}}
 
 DATA["traceability_notes"] = TRACEABILITY_NOTES
 
@@ -1041,6 +1041,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .trace-title { color: var(--text-secondary); font-size: 12px; overflow-wrap: anywhere; }
   .trace-arrow { color: var(--muted); }
   .trace-gap { color: var(--critical); font-size: 11.5px; font-weight: 600; }
+  .trace-na { color: var(--good); font-size: 11.5px; font-weight: 600; }
   .st { display: inline-block; font-size: 10.5px; font-weight: 600; border-radius: 9px; padding: 1px 7px; white-space: nowrap; }
   .st.done { background: color-mix(in srgb, var(--good) 18%, transparent); color: var(--good); }
   .st.progress { background: color-mix(in srgb, var(--warning) 22%, transparent); color: #8a6200; }
@@ -1611,7 +1612,7 @@ const PRETEST_CASES = RAW.pretest_cases || null;
 const PT_BACKFILL = RAW.pretest_backfill || null;
 const HISTORY = RAW.history || {};
 const TRACE = RAW.traceability || null;
-const TRACE_NOTES = Object.assign({ updated_at: null, updated_by: null, confirmed: {}, comments: {}, owners: {} },
+const TRACE_NOTES = Object.assign({ updated_at: null, updated_by: null, confirmed: {}, comments: {}, owners: {}, na: {} },
                                   RAW.traceability_notes || {});
 const OVERVIEW_NOTES = RAW.overview_notes || { updated_at: null, updated_by: null, development_status: '', certification_status: '', risk: '' };
 const BUG_COMMENTS = Object.assign({ updated_at: null, updated_by: null, comments: {} },
@@ -2370,6 +2371,7 @@ const STRINGS = {
   trace_filter_any: { zh: '全部 SWE2', en: 'All SWE2' },
   trace_search: { zh: '搜尋票號、需求 ID 或標題…', en: 'Search key, requirement ID or title…' },
   trace_no_swe3: { zh: '無 SWE3', en: 'no SWE3' },
+  trace_na_label: { zh: '不適用(視為完成)', en: 'N/A (counted as done)' },
   trace_sug_summary: { zh: n => `可能對應的 SWE3 (${n})`, en: n => `Possible SWE3 (${n})` },
   trace_sug_threshold: { zh: '建議門檻', en: 'Suggest at' },
   trace_sug_top: { zh: '最多', en: 'Max' },
@@ -8341,6 +8343,21 @@ function traceEffOwner(x, fallback) {
   return (set && set.name) || fallback;
 }
 
+// SWE2 tickets marked "not applicable to this project" (traceability_notes.json →
+// na: { ticketKey: { owner, reason, by, at } }). Such a ticket needs no SWE3, so it
+// counts as covered. The mark is scoped to the owner it was set under: a ticket that
+// also sits in another owner's requirement keeps its gap there (traceIsNA with an
+// owner). The unduplicated totals / assignee table count a ticket once, so there it
+// counts as covered when it is marked under any owner (traceIsNA without one).
+function traceNA(x) { return (TRACE_NOTES.na || {})[x.k] || null; }
+function traceIsNA(x, owner) {
+  const n = traceNA(x);
+  return !!n && (owner === undefined || !n.owner || n.owner === owner);
+}
+function traceCovered(x, owner) {
+  return !!(x.swe3 && x.swe3.length) || traceIsNA(x, owner);
+}
+
 // Once individual tickets are re-assigned by hand, one requirement can straddle two
 // owners, so everything below the stats works on slices instead of raw rows: one
 // slice per owner that holds at least one of the requirement's tickets, carrying only
@@ -8377,10 +8394,8 @@ function traceOwnerStats(slices) {
     s.swe1.forEach(x => o.s1.add(x.k));
     s.swe2.forEach(x => {
       o.s2.add(x.k);
-      if (x.swe3 && x.swe3.length) {
-        o.cov.add(x.k);
-        x.swe3.forEach(y => o.s3.set(y.k, y.c));
-      }
+      if (traceCovered(x, s.owner)) o.cov.add(x.k);
+      if (x.swe3 && x.swe3.length) x.swe3.forEach(y => o.s3.set(y.k, y.c));
     });
   });
   return [...map.values()].map(o => ({
@@ -8403,10 +8418,8 @@ function traceAssigneeStats(rows) {
     const a = map.get(name);
     a.s2++;
     if (x.c === 'done') a.done++;
-    if (x.swe3 && x.swe3.length) {
-      a.cov++;
-      x.swe3.forEach(y => a.s3.set(y.k, y.c));
-    }
+    if (traceCovered(x)) a.cov++;
+    if (x.swe3 && x.swe3.length) x.swe3.forEach(y => a.s3.set(y.k, y.c));
   });
   return [...map.values()].map(a => ({
     name: a.name, s2: a.s2, done: a.done, cov: a.cov,
@@ -8421,7 +8434,8 @@ function traceTotals(rows) {
     (r.swe1 || []).forEach(x => s1.add(x.k));
     (r.swe2 || []).forEach(x => {
       s2.add(x.k);
-      if (x.swe3 && x.swe3.length) { cov.add(x.k); x.swe3.forEach(y => s3.set(y.k, y.c)); }
+      if (traceCovered(x)) cov.add(x.k);
+      if (x.swe3 && x.swe3.length) x.swe3.forEach(y => s3.set(y.k, y.c));
     });
   });
   return { reqs: rows.length, s1: s1.size, s2: s2.size, cov: cov.size, s3: s3.size,
@@ -8516,6 +8530,7 @@ async function refreshTraceNotesFromGithub(onLoaded) {
       Object.keys(TRACE_NOTES.owners).forEach(k => {
         if (TRACE_NOTES.owners[k] === null) delete TRACE_NOTES.owners[k];
       });
+      TRACE_NOTES.na = fresh.na || {};
       TRACE_NOTES.updated_at = fresh.updated_at;
       TRACE_NOTES.updated_by = fresh.updated_by;
       if (onLoaded) onLoaded();
@@ -8526,6 +8541,8 @@ async function refreshTraceNotesFromGithub(onLoaded) {
 // Applies the pending edits onto the file as it currently stands on GitHub.
 function mergeTraceNotes(remote) {
   const out = {
+    // Keys this page doesn't edit (e.g. na) are carried over untouched.
+    ...remote,
     confirmed: Object.assign({}, remote.confirmed || {}),
     comments: Object.assign({}, remote.comments || {}),
     owners: Object.assign({}, remote.owners || {}),
@@ -8568,7 +8585,7 @@ async function saveTraceNotes(btn) {
       throw new Error(ghErr('GET', getResp.status));
     }
     const merged = mergeTraceNotes(remote);
-    const payload = Object.assign({ updated_at: new Date().toISOString(), updated_by: who }, merged);
+    const payload = Object.assign({}, merged, { updated_at: new Date().toISOString(), updated_by: who });
     const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
     const putResp = await fetch(apiBase, {
       method: 'PUT',
@@ -8585,6 +8602,7 @@ async function saveTraceNotes(btn) {
     TRACE_NOTES.confirmed = payload.confirmed;
     TRACE_NOTES.comments = payload.comments;
     TRACE_NOTES.owners = payload.owners;
+    TRACE_NOTES.na = payload.na || {};
     TRACE_NOTES.updated_at = payload.updated_at;
     TRACE_NOTES.updated_by = payload.updated_by;
     if (traceSaveStateHook) traceSaveStateHook();
@@ -8901,8 +8919,8 @@ function renderTraceabilityPanel() {
                    ...s.swe2.map(x => x.k + ' ' + x.t)].join(' ').toLowerCase();
       if (!hay.includes(q)) return false;
     }
-    if (gapSel.value === 'gap') return s.swe2.some(x => !x.swe3.length);
-    if (gapSel.value === 'has') return s.swe2.some(x => x.swe3.length);
+    if (gapSel.value === 'gap') return s.swe2.some(x => !traceCovered(x, s.owner));
+    if (gapSel.value === 'has') return s.swe2.some(x => traceCovered(x, s.owner));
     return true;
   }
 
@@ -8911,8 +8929,8 @@ function renderTraceabilityPanel() {
   function visibleSwe2(s) {
     let list = s.swe2;
     if (assigneeSel.value) list = list.filter(x => assigneeOf(x) === assigneeSel.value);
-    if (gapSel.value === 'gap') return list.filter(x => !x.swe3.length);
-    if (gapSel.value === 'has') return list.filter(x => x.swe3.length);
+    if (gapSel.value === 'gap') return list.filter(x => !traceCovered(x, s.owner));
+    if (gapSel.value === 'has') return list.filter(x => traceCovered(x, s.owner));
     return list;
   }
 
@@ -8990,9 +9008,11 @@ function renderTraceabilityPanel() {
                   <span class="trace-arrow">→</span>
                   ${x.swe3.length
                     ? x.swe3.map(y => `${traceTicket(y)}`).join('<span class="trace-arrow">,</span> ')
-                    : `<span class="trace-gap">${esc(t('trace_no_swe3'))}</span>`}
+                    : traceIsNA(x, s.owner)
+                      ? (n => `<span class="trace-na" title="${esc(t('trace_confirm_meta', n.by || '?', (n.at || '').slice(0, 10)))}">${esc(t('trace_na_label'))}${n.reason ? ' · ' + esc(n.reason) : ''}</span>`)(traceNA(x))
+                      : `<span class="trace-gap">${esc(t('trace_no_swe3'))}</span>`}
                 </div>
-                ${x.swe3.length ? '' : swe3SuggestHtml(x, sugThr, sugTop)}
+                ${traceCovered(x, s.owner) ? '' : swe3SuggestHtml(x, sugThr, sugTop)}
                 ${traceCommentPanel(x.k)}`).join('') ||
                 // "no SWE2" means the requirement has none at all — not that its SWE2
                 // tickets were moved to another owner's group.
