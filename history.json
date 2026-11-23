@@ -7505,7 +7505,7 @@
    },
    "In Progress": {
     "done": 0,
-    "total": 21
+    "total": 22
    },
    "Monitoring": {
     "done": 2,
@@ -7529,7 +7529,7 @@
    },
    "To Do": {
     "done": 0,
-    "total": 15
+    "total": 14
    }
   },
   "bugs_by_team": {
@@ -7572,9 +7572,9 @@
     "open": 14,
     "open_by_status": {
      "Blocked": 6,
-     "In Progress": 4,
+     "In Progress": 5,
      "Reopen": 1,
-     "To Do": 3
+     "To Do": 2
     },
     "total": 78,
     "unknown": 2
@@ -7595,10 +7595,10 @@
     "open": 49,
     "open_by_status": {
      "Blocked": 27,
-     "In Progress": 11,
+     "In Progress": 12,
      "Need info": 1,
      "Reopen": 3,
-     "To Do": 7
+     "To Do": 6
     },
     "total": 165,
     "unknown": 2
