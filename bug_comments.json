@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-20T06:04:22.844Z",
+  "updated_at": "2026-11-23T02:12:44.910Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -492,6 +492,14 @@
         "text": "5217这条case，是因为要后续还要修改CCR才能保留这条case，软件代码是不用改的",
         "by": "Leyo",
         "at": "2026-11-20T06:04:22.348Z"
+      }
+    ],
+    "NR1LT-7385": [
+      {
+        "id": "mwsms6lijwth9",
+        "text": "Blocked by Harman R7",
+        "by": "Leyo",
+        "at": "2026-11-23T02:12:44.262Z"
       }
     ]
   }
