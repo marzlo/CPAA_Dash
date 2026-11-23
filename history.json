@@ -7493,7 +7493,7 @@
   "bugs_by_status": {
    "Blocked": {
     "done": 0,
-    "total": 46
+    "total": 42
    },
    "Done": {
     "done": 364,
@@ -7529,7 +7529,7 @@
    },
    "Reopen": {
     "done": 0,
-    "total": 8
+    "total": 12
    },
    "To Do": {
     "done": 0,
@@ -7539,7 +7539,7 @@
   "bugs_by_team": {
    "MDI_System": {
     "done": 5,
-    "total": 35
+    "total": 32
    },
    "MDT_App": {
     "done": 11,
@@ -7559,7 +7559,7 @@
    },
    "TS_CPAA": {
     "done": 309,
-    "total": 328
+    "total": 331
    },
    "TS_FW": {
     "done": 35,
@@ -7586,10 +7586,10 @@
    "CP": {
     "open": 41,
     "open_by_status": {
-     "Blocked": 26,
+     "Blocked": 22,
      "In Progress": 9,
      "Need info": 1,
-     "Reopen": 1,
+     "Reopen": 5,
      "To Do": 4
     },
     "total": 97,
@@ -7598,10 +7598,10 @@
    "all": {
     "open": 49,
     "open_by_status": {
-     "Blocked": 28,
+     "Blocked": 24,
      "In Progress": 12,
      "Need info": 1,
-     "Reopen": 2,
+     "Reopen": 6,
      "To Do": 6
     },
     "total": 165,
