@@ -7477,17 +7477,17 @@
  },
  "2026-11-23": {
   "bugs": {
-   "done": 393,
+   "done": 394,
    "total": 486
   },
   "bugs_by_rca": {
    "empty": {
     "done": 181,
-    "total": 259
+    "total": 258
    },
    "filled": {
-    "done": 212,
-    "total": 227
+    "done": 213,
+    "total": 228
    }
   },
   "bugs_by_status": {
@@ -7500,8 +7500,8 @@
     "total": 362
    },
    "Eng build": {
-    "done": 7,
-    "total": 7
+    "done": 8,
+    "total": 8
    },
    "In Progress": {
     "done": 0,
@@ -7529,7 +7529,7 @@
    },
    "To Do": {
     "done": 0,
-    "total": 16
+    "total": 15
    }
   },
   "bugs_by_team": {
@@ -7538,7 +7538,7 @@
     "total": 34
    },
    "MDT_App": {
-    "done": 12,
+    "done": 13,
     "total": 33
    },
    "MDT_PM": {
