@@ -7620,5 +7620,149 @@
    "done": 97,
    "total": 118
   }
+ },
+ "2026-11-24": {
+  "bugs": {
+   "done": 395,
+   "total": 488
+  },
+  "bugs_by_rca": {
+   "empty": {
+    "done": 181,
+    "total": 255
+   },
+   "filled": {
+    "done": 214,
+    "total": 233
+   }
+  },
+  "bugs_by_status": {
+   "Blocked": {
+    "done": 0,
+    "total": 45
+   },
+   "Done": {
+    "done": 367,
+    "total": 367
+   },
+   "Eng build": {
+    "done": 7,
+    "total": 7
+   },
+   "In Progress": {
+    "done": 0,
+    "total": 23
+   },
+   "Monitoring": {
+    "done": 1,
+    "total": 1
+   },
+   "Need info": {
+    "done": 0,
+    "total": 1
+   },
+   "Non-issue": {
+    "done": 14,
+    "total": 14
+   },
+   "Ready for integration": {
+    "done": 0,
+    "total": 2
+   },
+   "Ready for test": {
+    "done": 6,
+    "total": 6
+   },
+   "Reopen": {
+    "done": 0,
+    "total": 8
+   },
+   "To Do": {
+    "done": 0,
+    "total": 14
+   }
+  },
+  "bugs_by_team": {
+   "MDI_System": {
+    "done": 5,
+    "total": 32
+   },
+   "MDT_App": {
+    "done": 12,
+    "total": 33
+   },
+   "MDT_PM": {
+    "done": 20,
+    "total": 31
+   },
+   "MDT_Sys_QA": {
+    "done": 4,
+    "total": 5
+   },
+   "MDT_System": {
+    "done": 3,
+    "total": 11
+   },
+   "TS_CPAA": {
+    "done": 314,
+    "total": 333
+   },
+   "TS_FW": {
+    "done": 35,
+    "total": 37
+   },
+   "Unknown": {
+    "done": 2,
+    "total": 6
+   }
+  },
+  "date": "2026-11-24",
+  "pretest": {
+   "AA": {
+    "open": 15,
+    "open_by_status": {
+     "Blocked": 6,
+     "In Progress": 5,
+     "Reopen": 1,
+     "To Do": 3
+    },
+    "total": 79,
+    "unknown": 2
+   },
+   "CP": {
+    "open": 38,
+    "open_by_status": {
+     "Blocked": 23,
+     "In Progress": 9,
+     "Reopen": 2,
+     "To Do": 4
+    },
+    "total": 97,
+    "unknown": 2
+   },
+   "all": {
+    "open": 47,
+    "open_by_status": {
+     "Blocked": 25,
+     "In Progress": 12,
+     "Reopen": 3,
+     "To Do": 7
+    },
+    "total": 166,
+    "unknown": 2
+   }
+  },
+  "swe2": {
+   "done": 866,
+   "total": 1149
+  },
+  "swe3": {
+   "done": 268,
+   "total": 305
+  },
+  "swe5": {
+   "done": 97,
+   "total": 118
+  }
  }
 }
