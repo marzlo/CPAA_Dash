@@ -7623,16 +7623,16 @@
  },
  "2026-11-24": {
   "bugs": {
-   "done": 397,
-   "total": 488
+   "done": 396,
+   "total": 492
   },
   "bugs_by_rca": {
    "empty": {
     "done": 181,
-    "total": 253
+    "total": 257
    },
    "filled": {
-    "done": 216,
+    "done": 215,
     "total": 235
    }
   },
@@ -7646,8 +7646,8 @@
     "total": 368
    },
    "Eng build": {
-    "done": 6,
-    "total": 6
+    "done": 5,
+    "total": 5
    },
    "In Progress": {
     "done": 0,
@@ -7667,7 +7667,7 @@
    },
    "Ready for integration": {
     "done": 0,
-    "total": 2
+    "total": 3
    },
    "Ready for test": {
     "done": 8,
@@ -7679,7 +7679,7 @@
    },
    "To Do": {
     "done": 0,
-    "total": 11
+    "total": 15
    }
   },
   "bugs_by_team": {
@@ -7705,15 +7705,15 @@
    },
    "TS_CPAA": {
     "done": 315,
-    "total": 332
+    "total": 337
    },
    "TS_FW": {
-    "done": 35,
+    "done": 34,
     "total": 37
    },
    "Unknown": {
     "done": 2,
-    "total": 6
+    "total": 5
    }
   },
   "date": "2026-11-24",
