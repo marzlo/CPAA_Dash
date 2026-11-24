@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-24T02:33:11.283Z",
+  "updated_at": "2026-11-24T02:47:07.600Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -348,6 +348,12 @@
         "text": "刷最新版本再試一下",
         "by": "Leyo",
         "at": "2026-10-22T02:55:58.760Z"
+      },
+      {
+        "id": "mwu3g8uc6xeea",
+        "text": "Jesse看一下Melco車機放到megasim是否可以打SOS call是否有作用，再來看新案子整條鏈斷在哪裡",
+        "by": "Leyo",
+        "at": "2026-11-24T02:47:06.948Z"
       }
     ],
     "NR1LT-7364": [
