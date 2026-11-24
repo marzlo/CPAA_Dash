@@ -728,6 +728,59 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     color: #fff; background: var(--critical); border-radius: 7px; padding: 2px 5px;
     white-space: nowrap; pointer-events: auto;
   }
+  /* --- what changed since the previous workbook --------------------------------
+     The old position is drawn as a dashed outline behind the bar, never as a second
+     filled bar: filled means "the plan", and there is only ever one plan. */
+  .gantt-ghost { position: absolute; top: 4px; height: 16px; border-radius: 3px; box-sizing: border-box;
+                 border: 1.5px dashed var(--muted); background: color-mix(in srgb, var(--muted) 10%, transparent);
+                 pointer-events: none; }
+  .gantt-name .gn-chg { display: inline-block; font-size: 9px; font-weight: 700; line-height: 13px;
+                        padding: 0 4px; margin-right: 4px; border-radius: 3px; vertical-align: 1px;
+                        color: var(--warning); box-shadow: inset 0 0 0 1px var(--warning); }
+  .sch-lead-chg { cursor: pointer; color: var(--gantt-ours); text-decoration: underline; text-underline-offset: 2px; }
+  .sch-chg-head { font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; line-height: 1.6; }
+  .sch-chg-head b { color: var(--text-primary); }
+  .sch-chg-sum { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .sch-chg-pill { font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border);
+                  background: var(--surface-1); white-space: nowrap; }
+  .sch-chg-pill b { font-variant-numeric: tabular-nums; margin-left: 4px; }
+  .sch-chg-pill.later b { color: var(--critical); }
+  .sch-chg-pill.earlier b { color: var(--good); }
+  .sch-chg-pill.reshaped b { color: var(--warning); }
+  .sch-chg-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .sch-chg-tbl th { text-align: left; font-weight: 600; font-size: 11px; color: var(--muted);
+                    padding: 6px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .sch-chg-tbl td { padding: 7px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .sch-chg-tbl tr.grp td { font-weight: 600; font-size: 12px; padding-top: 14px; border-bottom: none; }
+  .sch-chg-tbl tr.grp .gf.cp { color: var(--series-cp); }
+  .sch-chg-tbl tr.grp .gf.aa { color: var(--series-aa); }
+  .sch-chg-tbl .nm { font-weight: 500; cursor: pointer; }
+  .sch-chg-tbl .nm:hover { color: var(--gantt-ours); }
+  .sch-chg-tbl .rng { font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--text-secondary); }
+  .sch-chg-tbl .rng.old { color: var(--muted); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--muted) 60%, transparent); }
+  .sch-chg-tbl .rng div + div { margin-top: 2px; }
+  .sch-chg-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+  .sch-chg-tag { font-size: 11px; padding: 1px 7px; border-radius: 4px; white-space: nowrap;
+                 background: color-mix(in srgb, var(--muted) 14%, transparent); color: var(--text-secondary); }
+  .sch-chg-tag.later { background: color-mix(in srgb, var(--critical) 14%, transparent); color: var(--critical); }
+  .sch-chg-tag.earlier { background: color-mix(in srgb, var(--good) 16%, transparent); color: var(--good); }
+  .sch-chg-tag.reshaped { background: color-mix(in srgb, var(--warning) 16%, transparent); color: var(--warning); }
+  .sch-chg-marks { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.6; }
+  .sch-chg-marks b { color: var(--text-secondary); font-weight: 600; }
+  .sch-chg-tbl .bar { width: 340px; min-width: 340px; }
+  .sch-chg-tbl td:first-child { min-width: 230px; }
+  .sch-mini { position: relative; height: 26px; min-width: 240px; }
+  .sch-mini .mo { position: absolute; top: 2px; height: 9px; border-radius: 2px; box-sizing: border-box;
+                  border: 1.5px dashed var(--muted); }
+  .sch-mini .mn { position: absolute; top: 14px; height: 9px; border-radius: 2px; }
+  .sch-mini .mn.ours { background: var(--gantt-ours); }
+  .sch-mini .mn.supplier { background: var(--gantt-supplier); }
+  .sch-mini .mn.resubmit { background: var(--gantt-resubmit); }
+  .sch-mini .mn.final { background: var(--gantt-final); }
+  .sch-mini .mt { position: absolute; top: 0; bottom: 0; width: 1.5px; background: var(--critical); opacity: .7; }
+  .sch-mini-axis { position: relative; height: 14px; min-width: 240px; font-size: 9px; color: var(--muted); }
+  .sch-mini-axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .sch-chg-line { font-size: 11px; color: var(--warning); }
   .gantt-row.gantt-group { height: 22px; }
   .gantt-row.gantt-group .gantt-name {
     font-weight: 600; color: var(--text-primary); line-height: 22px;
@@ -1883,6 +1936,35 @@ const STRINGS = {
   sch_view_now: { zh: '本週焦點', en: 'This week' },
   sch_view_gantt: { zh: '甘特圖', en: 'Gantt' },
   sch_view_list: { zh: '全部清單', en: 'All tasks' },
+  sch_view_diff: { zh: n => `與上一版比較(${n})`, en: n => `Changes vs previous (${n})` },
+  sch_chg_lead: { zh: (n, d) => `這一版跟上一版 Excel(${d})相比有 ${n} 項任務的時程變了 —— 點這裡看差異。`,
+                  en: (n, d) => `${n} task(s) moved compared with the previous workbook (${d}) — click to see what changed.` },
+  sch_chg_head: { zh: (src, cur, prev, sha) => `比對 <b>${src}</b>:這一版(${cur})vs 上一版(${prev} · ${sha})。上一版就是 repo 裡前一次換進來的那份 Excel,以下只列時程有動的任務;任務 id 不變,所以勾過的完成、卡住、備註和留言都還在。`,
+                  en: (src, cur, prev, sha) => `Comparing <b>${src}</b>: this revision (${cur}) vs the previous one (${prev} · ${sha}) — the copy the repo held before this one. Only tasks whose timing moved are listed; ids are unchanged, so done/blocked ticks, notes and comments carry over.` },
+  sch_chg_cur_new: { zh: '本次更新', en: 'this update' },
+  sch_chg_later: { zh: '結束延後', en: 'Finish later' },
+  sch_chg_earlier: { zh: '結束提前', en: 'Finish earlier' },
+  sch_chg_reshaped: { zh: '結束不變、範圍調整', en: 'Same finish, reshaped' },
+  sch_chg_added: { zh: '新增', en: 'Added' },
+  sch_chg_removed: { zh: '移除', en: 'Removed' },
+  sch_chg_same: { zh: '未變', en: 'Unchanged' },
+  sch_chg_col_task: { zh: '任務', en: 'Task' },
+  sch_chg_col_old: { zh: '上一版', en: 'Previous' },
+  sch_chg_col_new: { zh: '這一版', en: 'Now' },
+  sch_chg_col_bar: { zh: '虛線框 = 上一版 · 實心 = 這一版', en: 'dashed = previous · solid = now' },
+  sch_chg_col_what: { zh: '變化', en: 'What changed' },
+  sch_chg_start: { zh: n => n > 0 ? `開始延後 ${n} 週` : `開始提前 ${-n} 週`, en: n => n > 0 ? `starts ${n}w later` : `starts ${-n}w earlier` },
+  sch_chg_end: { zh: n => n > 0 ? `結束延後 ${n} 週` : `結束提前 ${-n} 週`, en: n => n > 0 ? `ends ${n}w later` : `ends ${-n}w earlier` },
+  sch_chg_dur: { zh: n => n > 0 ? `工期 +${n} 週` : `工期 ${n} 週`, en: n => n > 0 ? `+${n}w long` : `${n}w long` },
+  sch_chg_shape: { zh: '分段/顏色改了', en: 'segments / colour changed' },
+  sch_chg_marks: { zh: '里程碑', en: 'Milestones' },
+  sch_chg_mark_new: { zh: '新增', en: 'new' },
+  sch_chg_mark_gone: { zh: '拿掉', en: 'removed' },
+  sch_chg_none: { zh: '跟上一版相比,沒有任何任務的時程改變。', en: 'No task moved compared with the previous workbook.' },
+  sch_chg_badge_title: { zh: '跟上一版 Excel 相比時程有變', en: 'Moved since the previous workbook' },
+  sch_chg_row: { zh: (o, d) => `與上一版相比:原 ${o}${d ? ' · ' + d : ''}`, en: (o, d) => `vs previous: was ${o}${d ? ' · ' + d : ''}` },
+  sch_ghost: { zh: '顯示上一版位置', en: 'Show previous position' },
+  sch_only_chg: { zh: n => `只看有變更(${n})`, en: n => `Changed only (${n})` },
   sch_now_week: { zh: (w, d) => `本週 ${w}(${d} 起)`, en: (w, d) => `This week: ${w} (from ${d})` },
   sch_grp_late: { zh: '逾期', en: 'Overdue' },
   sch_mark_blocked: { zh: '標記卡住', en: 'Mark blocked' },
@@ -11334,8 +11416,110 @@ async function commitSchedNotes(apply, statusEl) {
   }
 }
 
+// The comparison with the previous revision of the workbook, built by
+// build_schedule.py from git history. Absent when there is no earlier revision.
+const SCH_CHG = (SCHEDULE && SCHEDULE.changes && SCHEDULE.changes.items) ? SCHEDULE.changes : null;
+const SCH_CHG_BY_ID = {};
+if (SCH_CHG) SCH_CHG.items.forEach(c => { SCH_CHG_BY_ID[c.id] = c; });
+const SCH_GHOST_KEY = 'cpaaScheduleGhost';
+function schShowGhost() {
+  try { return localStorage.getItem(SCH_GHOST_KEY) !== '0'; } catch (e) { return true; }
+}
+const SCH_ONLY_CHG_KEY = 'cpaaScheduleOnlyChanged';
+function schOnlyChanged() {
+  if (!SCH_CHG) return false;
+  try { return localStorage.getItem(SCH_ONLY_CHG_KEY) === '1'; } catch (e) { return false; }
+}
+function schChgClass(c) {
+  if (c.type !== 'changed') return c.type;
+  return c.de > 0 ? 'later' : c.de < 0 ? 'earlier' : 'reshaped';
+}
+// One line per drawn segment, so a task the workbook splits in two reads as two spans.
+function schSegsRangeHtml(shape) {
+  if (!shape) return '—';
+  return shape.segs.map(g =>
+    `<div>${esc(t('sch_range', schWeekLabelDated(g.s, false), schWeekLabelDated(g.e, true)))}</div>`).join('');
+}
+function schChgTags(c) {
+  if (c.type !== 'changed') return [`<span class="sch-chg-tag ${c.type}">${esc(t('sch_chg_' + c.type))}</span>`];
+  const tags = [];
+  if (c.de) tags.push(`<span class="sch-chg-tag ${c.de > 0 ? 'later' : 'earlier'}">${esc(t('sch_chg_end', c.de))}</span>`);
+  if (c.ds) tags.push(`<span class="sch-chg-tag">${esc(t('sch_chg_start', c.ds))}</span>`);
+  if (c.dd) tags.push(`<span class="sch-chg-tag">${esc(t('sch_chg_dur', c.dd))}</span>`);
+  if (c.reshaped || (c.old.segs.length !== c.new.segs.length))
+    tags.push(`<span class="sch-chg-tag reshaped">${esc(t('sch_chg_shape'))}</span>`);
+  return tags;
+}
+function schChgMarksHtml(c) {
+  const ms = (c.marks || []);
+  if (!ms.length) return '';
+  return `<div class="sch-chg-marks">${esc(t('sch_chg_marks'))}:` + ms.map(m => {
+    if (m.from === null) return `<b>${esc(m.text)}</b> ${esc(t('sch_chg_mark_new'))} ${esc(schWeekLabel(m.to))}`;
+    if (m.to === null) return `<b>${esc(m.text)}</b> ${esc(t('sch_chg_mark_gone'))}(${esc(t('sch_chg_col_old'))} ${esc(schWeekLabel(m.from))})`;
+    return `<b>${esc(m.text)}</b> ${esc(schWeekLabel(m.from))} → ${esc(schWeekLabel(m.to))}`;
+  }).join(' · ') + `</div>`;
+}
+
+function schDiffHtml() {
+  const items = SCH_CHG.items;
+  const prev = SCH_CHG.prev || {}, curV = SCH_CHG.cur || {};
+  const head = `<div class="sch-chg-head">${t('sch_chg_head', esc(SCHEDULE.source),
+      esc(curV.date ? `${curV.date} · ${curV.commit}` : t('sch_chg_cur_new')), esc(prev.date || '?'), esc(prev.commit || '?'))}</div>`;
+  if (!items.length) return head + `<div class="sch-pick-hint">${esc(t('sch_chg_none'))}</div>`;
+
+  const cnt = { later: 0, earlier: 0, reshaped: 0, added: 0, removed: 0 };
+  items.forEach(c => { cnt[schChgClass(c)]++; });
+  const same = SCHEDULE.tasks.length - items.filter(c => c.type !== 'removed').length;
+  const pills = ['later', 'earlier', 'reshaped', 'added', 'removed'].filter(k => cnt[k])
+    .map(k => `<span class="sch-chg-pill ${k}">${esc(t('sch_chg_' + k))}<b>${cnt[k]}</b></span>`).join('') +
+    `<span class="sch-chg-pill">${esc(t('sch_chg_same'))}<b>${same}</b></span>`;
+
+  // One shared axis for every mini bar, so a longer shift looks longer across rows.
+  let lo = Infinity, hi = -Infinity;
+  items.forEach(c => [c.old, c.new].forEach(sh => { if (sh) { lo = Math.min(lo, sh.s); hi = Math.max(hi, sh.e); } }));
+  const cur = schCurWeek();
+  lo = Math.min(lo, cur) - 1; hi = Math.max(hi, cur) + 1;
+  const span = hi - lo + 1;
+  const pct = i => ((i - lo) / span * 100).toFixed(2) + '%';
+  const wpct = (s, e) => ((e - s + 1) / span * 100).toFixed(2) + '%';
+  const nowL = ((schNowFrac() - lo) / span * 100).toFixed(2) + '%';
+  const ticks = [];
+  for (let i = lo + 1; i <= hi; i++) if (i % 8 === 0) ticks.push(`<span style="left:${pct(i)}">${esc(schWeekLabel(i).replace(/^20(\d\d)-/, '$1-'))}</span>`);
+
+  let last = null;
+  const rows = items.map(c => {
+    const grp = `${c.feature} · ${c.phase}`;
+    const gh = grp === last ? '' :
+      `<tr class="grp"><td colspan="5"><span class="gf ${c.feature === 'CarPlay' ? 'cp' : 'aa'}">${esc(c.feature)}</span> · ${esc(c.phase)}</td></tr>`;
+    last = grp;
+    const mini = `<div class="sch-mini">` +
+      (c.old ? c.old.segs.map(g => `<div class="mo" style="left:${pct(g.s)};width:${wpct(g.s, g.e)}"></div>`).join('') : '') +
+      (c.new ? c.new.segs.map(g => `<div class="mn ${g.kind}" style="left:${pct(g.s)};width:${wpct(g.s, g.e)}"></div>`).join('') : '') +
+      `<div class="mt" style="left:${nowL}"></div></div>`;
+    return `${gh}<tr>
+      <td><span class="nm" data-sch-goto="${esc(c.id)}" role="button" tabindex="0">${esc(c.name)}</span>${schChgMarksHtml(c)}</td>
+      <td class="rng old">${schSegsRangeHtml(c.old)}</td>
+      <td class="rng">${schSegsRangeHtml(c.new)}</td>
+      <td class="bar">${mini}</td>
+      <td><div class="sch-chg-tags">${schChgTags(c).join('')}</div></td>
+    </tr>`;
+  }).join('');
+
+  return `${head}<div class="sch-chg-sum">${pills}</div>
+    <div style="overflow-x:auto"><table class="sch-chg-tbl">
+      <thead><tr><th>${esc(t('sch_chg_col_task'))}</th><th>${esc(t('sch_chg_col_old'))}</th>
+        <th>${esc(t('sch_chg_col_new'))}</th>
+        <th class="bar"><div>${esc(t('sch_chg_col_bar'))}</div><div class="sch-mini-axis">${ticks.join('')}</div></th>
+        <th>${esc(t('sch_chg_col_what'))}</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+}
+
 function schLoadView() {
-  try { const v = localStorage.getItem(SCH_VIEW_KEY); if (['now', 'gantt', 'list'].includes(v)) return v; }
+  try {
+    const v = localStorage.getItem(SCH_VIEW_KEY);
+    if (['now', 'gantt', 'list'].includes(v) || (v === 'diff' && SCH_CHG)) return v;
+  }
   catch (e) { /* private mode */ }
   return 'now';
 }
@@ -11385,6 +11569,13 @@ function schRowHtml(task) {
       <span class="cmt-status" data-sch-cmt-status="${esc(task.id)}"></span>
     </div>
     ${marks ? `<div class="sch-meta"><span class="sch-marks">${marks}</span></div>` : ''}
+    ${(() => {
+      const c = SCH_CHG_BY_ID[task.id];
+      if (!c || !c.old) return '';
+      const was = c.old.segs.map(g => t('sch_range', schWeekLabel(g.s), schWeekLabel(g.e))).join('、');
+      const d = [c.de ? t('sch_chg_end', c.de) : '', c.ds ? t('sch_chg_start', c.ds) : ''].filter(Boolean).join(' · ');
+      return `<div class="sch-meta"><span class="sch-chg-line">Δ ${esc(t('sch_chg_row', was, d))}</span></div>`;
+    })()}
     ${schNoteHtml(task.id)}
   </div>`;
 }
@@ -11472,13 +11663,18 @@ function schGanttHtml(tasks) {
     const blocked = st.blocked
       ? `<div class="gantt-blocked" style="left:${task.s * SCH_WEEK_PX}px; ` +
         `width:${(task.e - task.s + 1) * SCH_WEEK_PX}px"></div>` : '';
+    const chg = SCH_CHG_BY_ID[task.id];
+    const ghost = (chg && chg.old && schShowGhost())
+      ? chg.old.segs.map(g => `<div class="gantt-ghost" style="left:${g.s * SCH_WEEK_PX}px; width:${(g.e - g.s + 1) * SCH_WEEK_PX}px"></div>`).join('') : '';
     const title = `${task.feature} · ${task.phase} · ${task.name}\n` +
-      `${t('sch_range', schWeekLabelDated(task.s, false), schWeekLabelDated(task.e, true))}\n${schStatusText(st)}`;
+      `${t('sch_range', schWeekLabelDated(task.s, false), schWeekLabelDated(task.e, true))}\n${schStatusText(st)}` +
+      (chg && chg.old ? `\nΔ ${t('sch_chg_row', chg.old.segs.map(g => t('sch_range', schWeekLabel(g.s), schWeekLabel(g.e))).join('、'), '')}` : '');
     return `${header}<div class="gantt-row${task.id === schGanttSel ? ' sel' : ''}" title="${esc(title)}">
       <div class="gantt-name${st.k === 'done' ? ' done' : ''}" data-sch-pick="${esc(task.id)}"
            role="button" tabindex="0">${st.blocked
-             ? `<span class="gn-block" title="${esc(t('sch_blocked'))}" aria-label="${esc(t('sch_blocked'))}">⛔</span>` : ''}${esc(task.name)}</div>
-      <div class="gantt-track" style="width:${trackW}px">${grid.join('')}${bars}${blocked}${over}${tick}</div>
+             ? `<span class="gn-block" title="${esc(t('sch_blocked'))}" aria-label="${esc(t('sch_blocked'))}">⛔</span>` : ''}${chg
+             ? `<span class="gn-chg" title="${esc(t('sch_chg_badge_title'))}">Δ</span>` : ''}${esc(task.name)}</div>
+      <div class="gantt-track" style="width:${trackW}px">${grid.join('')}${ghost}${bars}${blocked}${over}${tick}</div>
     </div>`;
   }).join('');
 
@@ -11619,7 +11815,8 @@ function renderSchedulePanel() {
   const phases = [];
   tasks.forEach(x => { if (!phases.includes(x.phase)) phases.push(x.phase); });
   const phaseSel = phases.includes(schPhaseFilter()) ? schPhaseFilter() : '';
-  const inPhase = x => !phaseSel || x.phase === phaseSel;
+  const onlyChg = schOnlyChanged();
+  const inPhase = x => (!phaseSel || x.phase === phaseSel) && (!onlyChg || !!SCH_CHG_BY_ID[x.id]);
 
   function schFilterRowHtml(doneInScope, shown, total) {
     return `<div class="sch-filters">
@@ -11628,12 +11825,18 @@ function renderSchedulePanel() {
         `${esc(t('sch_phase_n', ph, tasks.filter(x => x.phase === ph).length))}</button>`).join('')}
       <span style="width:10px"></span>
       <button type="button" class="chip${schHideDone() ? ' active' : ''}" id="schHideDone">${esc(t('sch_hide_done_n', doneInScope))}</button>
+      ${SCH_CHG && SCH_CHG.items.length ? `<button type="button" class="chip${onlyChg ? ' active' : ''}" id="schOnlyChg">` +
+        `${esc(t('sch_only_chg', SCH_CHG.items.filter(c => c.type !== 'removed').length))}</button>` : ''}
+      ${SCH_CHG && SCH_CHG.items.length && view === 'gantt' ? `<button type="button" class="chip${schShowGhost() ? ' active' : ''}" id="schGhost">` +
+        `${esc(t('sch_ghost'))}</button>` : ''}
       <span class="sch-pick-hint">${esc(t('sch_filtered_note', shown, total))}</span>
     </div>`;
   }
 
   let body;
-  if (view === 'gantt') {
+  if (view === 'diff') {
+    body = `<section class="card">${schDiffHtml()}</section>`;
+  } else if (view === 'gantt') {
     const hide = schHideDone();
     const scoped = tasks.filter(inPhase);
     const shown = hide ? scoped.filter(x => schStatus(x).k !== 'done') : scoped;
@@ -11673,6 +11876,8 @@ function renderSchedulePanel() {
       <h2>${esc(t('sch_heading'))}</h2>
       <p>${esc(t('sch_caption', SCHEDULE.source, tasks.length, SCHEDULE.weeks.length))}</p>
       <p>${esc(t('sch_assumed_note', schWeekLabel(SCHEDULE.assume_done_before || 0)))}</p>
+      ${SCH_CHG && SCH_CHG.items.length && view !== 'diff'
+        ? `<p><span class="sch-lead-chg" data-sch-view="diff">Δ ${esc(t('sch_chg_lead', SCH_CHG.items.length, (SCH_CHG.prev || {}).date || '?'))}</span></p>` : ''}
     </div>
     <div class="stat-row">
       <div class="stat-tile"><div class="label">${esc(t('sch_now_week', schWeekLabel(cur), (SCHEDULE.weeks[cur] || {}).date || '—'))}</div>
@@ -11689,6 +11894,8 @@ function renderSchedulePanel() {
     <div class="sch-views">
       ${[['now', 'sch_view_now'], ['gantt', 'sch_view_gantt'], ['list', 'sch_view_list']].map(([v, k]) =>
         `<button type="button" class="chip${v === view ? ' active' : ''}" data-sch-view="${v}">${esc(t(k))}</button>`).join('')}
+      ${SCH_CHG ? `<button type="button" class="chip${view === 'diff' ? ' active' : ''}" data-sch-view="diff">` +
+        `Δ ${esc(t('sch_view_diff', SCH_CHG.items.length))}</button>` : ''}
     </div>
     ${body}`;
 
@@ -11718,6 +11925,24 @@ function renderSchedulePanel() {
       const ph = e.target.closest('[data-sch-phase]');
       if (ph) {
         try { localStorage.setItem(SCH_PHASE_KEY, ph.dataset.schPhase); } catch (err) { /* private mode */ }
+        renderSchedulePanel();
+        return;
+      }
+      if (e.target.closest('#schOnlyChg')) {
+        try { localStorage.setItem(SCH_ONLY_CHG_KEY, schOnlyChanged() ? '0' : '1'); } catch (err) { /* private mode */ }
+        renderSchedulePanel();
+        return;
+      }
+      if (e.target.closest('#schGhost')) {
+        try { localStorage.setItem(SCH_GHOST_KEY, schShowGhost() ? '0' : '1'); } catch (err) { /* private mode */ }
+        renderSchedulePanel();
+        return;
+      }
+      // A task name on the comparison table opens it on the Gantt with its card below.
+      const go = e.target.closest('[data-sch-goto]');
+      if (go) {
+        try { localStorage.setItem(SCH_VIEW_KEY, 'gantt'); } catch (err) { /* private mode */ }
+        schGanttSel = go.dataset.schGoto;
         renderSchedulePanel();
         return;
       }

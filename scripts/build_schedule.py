@@ -9,7 +9,13 @@ Input
                                  those cells. Override with SCHEDULE_XLSX.
 
 Output
-  schedule.json                  read by gen_dashboard.py to render the Schedule tab
+  schedule.json                  read by gen_dashboard.py to render the Schedule tab.
+                                 Its "changes" block compares this workbook with the
+                                 previous revision of it in git history (the last
+                                 commit whose copy of the file differs from the one
+                                 being built), so the page can show what moved.
+                                 Needs the git history: the workflow checks out with
+                                 fetch-depth 0. Without git it is simply left out.
 
 The workbook's own date row (row 3) is NOT trusted: the file carries year typos —
 week 1 of the first block is written 2026-12-29 when it means 2025-12-29, and the
@@ -23,7 +29,9 @@ import datetime as dt
 import json
 import os
 import re
+import subprocess
 import sys
+import tempfile
 
 import openpyxl
 
@@ -121,33 +129,141 @@ def parse_sheet(ws, feature):
     return tasks
 
 
-def main():
-    try:
-        wb = openpyxl.load_workbook(SRC, data_only=True)
-    except FileNotFoundError:
-        print(f"No {SRC} — skipping the Schedule tab")
-        return
+# --- what changed since the previous workbook -------------------------------------
 
+def _git(*args, binary=False):
+    r = subprocess.run(["git", *args], capture_output=True, check=True)
+    return r.stdout if binary else r.stdout.decode("utf-8", "replace").strip()
+
+
+def previous_revision(path):
+    """(info about the version being built, info about the one before it, its bytes).
+
+    "Before it" is the newest commit whose copy of the file differs from the file on
+    disk — so this works both locally before the new workbook is committed (HEAD's
+    copy is then the previous one) and in CI after it has been (HEAD's copy is the
+    same file, and the walk carries on back). None when git or the history is not
+    there, or the file has only ever had one revision."""
+    try:
+        cur_blob = _git("hash-object", path)
+        log = _git("log", "--format=%H %cI %s", "--", path).splitlines()
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    cur = {"commit": None, "date": None}
+    for line in log:
+        sha, date, subject = (line.split(" ", 2) + [""])[:3]
+        try:
+            blob = _git("rev-parse", f"{sha}:{path}")
+        except subprocess.CalledProcessError:
+            continue    # the file did not exist under this name in that commit
+        if blob == cur_blob:
+            # Keep walking back: the version being built is dated by the commit that
+            # brought it in, not by a later one that merely carried it along.
+            cur = {"commit": sha[:7], "date": date[:10]}
+            continue
+        data = _git("show", f"{sha}:{path}", binary=True)
+        return cur, {"commit": sha[:7], "date": date[:10], "subject": subject}, data
+    return None
+
+
+def _mark_moves(old, new):
+    """Pair milestone words by text, in order, so "Round 2" moving is one move."""
+    pool = {}
+    for m in old:
+        pool.setdefault(m["text"], []).append(m["i"])
+    moves = []
+    for m in new:
+        lst = pool.get(m["text"])
+        if lst:
+            i = lst.pop(0)
+            if i != m["i"]:
+                moves.append({"text": m["text"], "from": i, "to": m["i"]})
+        else:
+            moves.append({"text": m["text"], "from": None, "to": m["i"]})
+    for text, lst in pool.items():
+        for i in lst:
+            moves.append({"text": text, "from": i, "to": None})
+    return moves
+
+
+def _shape(t):
+    return {"s": t["s"], "e": t["e"], "segs": t["segs"], "marks": t["marks"]}
+
+
+def diff_tasks(old_tasks, new_tasks):
+    old = {t["id"]: t for t in old_tasks}
+    new = {t["id"]: t for t in new_tasks}
+    items = []
+    for t in new_tasks:
+        o = old.get(t["id"])
+        head = {"id": t["id"], "feature": t["feature"], "phase": t["phase"], "name": t["name"]}
+        if o is None:
+            items.append({**head, "type": "added", "old": None, "new": _shape(t)})
+            continue
+        if _shape(o) == _shape(t):
+            continue
+        items.append({**head, "type": "changed", "old": _shape(o), "new": _shape(t),
+                      "ds": t["s"] - o["s"], "de": t["e"] - o["e"],
+                      "dd": (t["e"] - t["s"]) - (o["e"] - o["s"]),
+                      "reshaped": [g["kind"] for g in o["segs"]]
+                                      != [g["kind"] for g in t["segs"]],
+                      "marks": _mark_moves(o["marks"], t["marks"])})
+    for t in old_tasks:
+        if t["id"] not in new:
+            items.append({"id": t["id"], "feature": t["feature"], "phase": t["phase"],
+                          "name": t["name"], "type": "removed", "old": _shape(t), "new": None})
+    return items
+
+
+def build_changes(tasks):
+    rev = previous_revision(SRC)
+    if not rev:
+        print("  changes: no earlier revision of the workbook in git history — skipped")
+        return None
+    cur, prev, data = rev
+    with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as f:
+        f.write(data)
+        tmp = f.name
+    try:
+        prev_tasks = load_tasks(tmp)
+    finally:
+        os.unlink(tmp)
+    items = diff_tasks(prev_tasks, tasks)
+    print(f"  changes vs {prev['commit']} ({prev['date']}): {len(items)} task(s) differ")
+    return {"cur": cur, "prev": prev, "items": items}
+
+
+def load_tasks(path):
+    wb = openpyxl.load_workbook(path, data_only=True)
+    return assign_ids(dedupe(collect(wb)))
+
+
+def collect(wb, warn=False):
     tasks = []
     for sheet, feature in SHEETS:
         if sheet not in wb.sheetnames:
-            print(f"  WARNING: sheet {sheet!r} is not in the workbook, skipping it")
+            if warn:
+                print(f"  WARNING: sheet {sheet!r} is not in the workbook, skipping it")
             continue
         tasks.extend(parse_sheet(wb[sheet], feature))
+    return tasks
 
+
+def dedupe(tasks):
     # The workbook repeats a couple of rows verbatim (CarPlay lists
     # "USB IF & USB Signal Integrity" twice under Hardware Certification with the same
     # span). Identical rows in the same phase are one task, not two.
-    seen, deduped, dropped = set(), [], 0
+    seen, deduped = set(), []
     for t in tasks:
         sig = (t["feature"], t["phase"], t["name"], t["s"], t["e"])
         if sig in seen:
-            dropped += 1
             continue
         seen.add(sig)
         deduped.append(t)
-    tasks = deduped
+    return deduped
 
+
+def assign_ids(tasks):
     # Stable ids: what the done flags and comments are keyed by, so a rebuild from a new
     # workbook keeps everything anybody has ticked. Only a renamed task loses its note,
     # and that is reported below rather than passing silently.
@@ -156,6 +272,19 @@ def main():
         base = f"{slug(t['feature'])}|{slug(t['phase'])}|{slug(t['name'])}"
         used[base] = used.get(base, 0) + 1
         t["id"] = base if used[base] == 1 else f"{base}~{used[base]}"
+    return tasks
+
+
+def main():
+    try:
+        wb = openpyxl.load_workbook(SRC, data_only=True)
+    except FileNotFoundError:
+        print(f"No {SRC} — skipping the Schedule tab")
+        return
+
+    raw = collect(wb, warn=True)
+    tasks = assign_ids(dedupe(raw))
+    dropped = len(raw) - len(tasks)
 
     n_weeks = max((t["e"] for t in tasks), default=0) + 1
     weeks = []
@@ -187,6 +316,9 @@ def main():
         "weeks": weeks,
         "tasks": tasks,
     }
+    changes = build_changes(tasks)
+    if changes:
+        out["changes"] = changes
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=1)
 

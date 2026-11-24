@@ -1,6 +1,6 @@
 {
  "source": "NR1L_CPAA_Certification.xlsx",
- "built_at": "2026-11-12T14:02:01+00:00",
+ "built_at": "2026-11-24T18:45:50+08:00",
  "anchor": "2025-12-29",
  "assume_done_before": 42,
  "weeks": [
@@ -762,11 +762,11 @@
    "phase": "Certification(1st)",
    "name": "AuditTest",
    "s": 53,
-   "e": 60,
+   "e": 62,
    "segs": [
     {
      "s": 53,
-     "e": 60,
+     "e": 62,
      "kind": "ours"
     }
    ],
@@ -780,7 +780,7 @@
      "text": "Issue Fix"
     },
     {
-     "i": 58,
+     "i": 60,
      "text": "Round 2"
     }
    ],
@@ -790,27 +790,22 @@
    "feature": "CarPlay",
    "phase": "Certification(1st)",
    "name": "ITUT & siri&esiri",
-   "s": 44,
-   "e": 55,
+   "s": 53,
+   "e": 62,
    "segs": [
     {
-     "s": 44,
-     "e": 51,
-     "kind": "supplier"
-    },
-    {
-     "s": 52,
-     "e": 55,
+     "s": 53,
+     "e": 62,
      "kind": "ours"
     }
    ],
    "marks": [
     {
-     "i": 52,
+     "i": 60,
      "text": "Submit report"
     },
     {
-     "i": 55,
+     "i": 62,
      "text": "Approval"
     }
    ],
@@ -820,12 +815,17 @@
    "feature": "CarPlay",
    "phase": "Certification(1st)",
    "name": "Location Test & Wireless Performance",
-   "s": 53,
-   "e": 59,
+   "s": 49,
+   "e": 57,
    "segs": [
     {
+     "s": 49,
+     "e": 50,
+     "kind": "ours"
+    },
+    {
      "s": 53,
-     "e": 59,
+     "e": 57,
      "kind": "ours"
     }
    ],
@@ -835,7 +835,7 @@
      "text": "pre test + Issue Fix"
     },
     {
-     "i": 55,
+     "i": 56,
      "text": "Audit"
     }
    ],
@@ -845,26 +845,30 @@
    "feature": "CarPlay",
    "phase": "Certification(1st)",
    "name": "Vehicle Assessment",
-   "s": 61,
-   "e": 67,
+   "s": 63,
+   "e": 72,
    "segs": [
     {
-     "s": 61,
-     "e": 67,
+     "s": 63,
+     "e": 72,
      "kind": "ours"
     }
    ],
    "marks": [
     {
-     "i": 61,
-     "text": "Round 1"
-    },
-    {
      "i": 63,
-     "text": "Issue Fix"
+     "text": "pre test + Issue Fix"
     },
     {
      "i": 66,
+     "text": "Round 1"
+    },
+    {
+     "i": 68,
+     "text": "Issue Fix"
+    },
+    {
+     "i": 71,
      "text": "Round 2"
     }
    ],
@@ -874,12 +878,12 @@
    "feature": "CarPlay",
    "phase": "Certification(1st)",
    "name": "Exception Request",
-   "s": 68,
-   "e": 69,
+   "s": 73,
+   "e": 74,
    "segs": [
     {
-     "s": 68,
-     "e": 69,
+     "s": 73,
+     "e": 74,
      "kind": "ours"
     }
    ],
@@ -890,18 +894,18 @@
    "feature": "CarPlay",
    "phase": "Certification(1st)",
    "name": "Apple Final Review",
-   "s": 70,
-   "e": 70,
+   "s": 75,
+   "e": 75,
    "segs": [
     {
-     "s": 70,
-     "e": 70,
+     "s": 75,
+     "e": 75,
      "kind": "final"
     }
    ],
    "marks": [
     {
-     "i": 70,
+     "i": 75,
      "text": "Approval"
     }
    ],
@@ -1514,11 +1518,11 @@
    "phase": "Certification(1st)",
    "name": "Bench Pretest",
    "s": 36,
-   "e": 53,
+   "e": 59,
    "segs": [
     {
      "s": 36,
-     "e": 53,
+     "e": 59,
      "kind": "ours"
     }
    ],
@@ -1529,12 +1533,12 @@
    "feature": "Android Auto",
    "phase": "Certification(1st)",
    "name": "Bench shipment to AA Lab",
-   "s": 49,
-   "e": 51,
+   "s": 56,
+   "e": 58,
    "segs": [
     {
-     "s": 49,
-     "e": 51,
+     "s": 56,
+     "e": 58,
      "kind": "ours"
     }
    ],
@@ -1545,26 +1549,26 @@
    "feature": "Android Auto",
    "phase": "Certification(1st)",
    "name": "3PL Bench Test",
-   "s": 54,
-   "e": 66,
+   "s": 60,
+   "e": 72,
    "segs": [
     {
-     "s": 54,
-     "e": 66,
+     "s": 60,
+     "e": 72,
      "kind": "ours"
     }
    ],
    "marks": [
     {
-     "i": 54,
+     "i": 60,
      "text": "Round1"
     },
     {
-     "i": 57,
+     "i": 63,
      "text": "Issue Fix"
     },
     {
-     "i": 64,
+     "i": 70,
      "text": "Round 2"
     }
    ],
@@ -1574,31 +1578,22 @@
    "feature": "Android Auto",
    "phase": "Certification(1st)",
    "name": "InVehicleTest",
-   "s": 53,
-   "e": 66,
+   "s": 63,
+   "e": 72,
    "segs": [
     {
-     "s": 53,
-     "e": 61,
-     "kind": "ours"
-    },
-    {
-     "s": 64,
-     "e": 66,
+     "s": 63,
+     "e": 72,
      "kind": "ours"
     }
    ],
    "marks": [
     {
-     "i": 53,
+     "i": 63,
      "text": "pre test"
     },
     {
-     "i": 64,
-     "text": "pre test"
-    },
-    {
-     "i": 66,
+     "i": 72,
      "text": "Vehicle Audit"
     }
    ],
@@ -1608,12 +1603,12 @@
    "feature": "Android Auto",
    "phase": "Certification(1st)",
    "name": "Bench shipment to Google",
-   "s": 61,
-   "e": 64,
+   "s": 67,
+   "e": 70,
    "segs": [
     {
-     "s": 61,
-     "e": 64,
+     "s": 67,
+     "e": 70,
      "kind": "ours"
     }
    ],
@@ -1624,18 +1619,18 @@
    "feature": "Android Auto",
    "phase": "Certification(1st)",
    "name": "Google Final Review",
-   "s": 67,
-   "e": 70,
+   "s": 73,
+   "e": 76,
    "segs": [
     {
-     "s": 67,
-     "e": 70,
+     "s": 73,
+     "e": 76,
      "kind": "final"
     }
    ],
    "marks": [
     {
-     "i": 70,
+     "i": 76,
      "text": "Approval"
     }
    ],
@@ -1912,12 +1907,12 @@
    "feature": "Android Auto",
    "phase": "Certification(2nd)",
    "name": "InVehicleTest",
-   "s": 50,
+   "s": 53,
    "e": 84,
    "segs": [
     {
-     "s": 50,
-     "e": 58,
+     "s": 53,
+     "e": 61,
      "kind": "ours"
     },
     {
@@ -1928,7 +1923,7 @@
    ],
    "marks": [
     {
-     "i": 50,
+     "i": 53,
      "text": "pretest"
     },
     {
@@ -1979,5 +1974,791 @@
    ],
    "id": "android-auto|certification-2nd|google-final-review"
   }
- ]
+ ],
+ "changes": {
+  "cur": {
+   "commit": null,
+   "date": null
+  },
+  "prev": {
+   "commit": "a16fc6c",
+   "date": "2026-11-12",
+   "subject": "Schedule: new certification workbook (edited 2026-11-12)"
+  },
+  "items": [
+   {
+    "id": "carplay|certification-1st|audittest",
+    "feature": "CarPlay",
+    "phase": "Certification(1st)",
+    "name": "AuditTest",
+    "type": "changed",
+    "old": {
+     "s": 53,
+     "e": 60,
+     "segs": [
+      {
+       "s": 53,
+       "e": 60,
+       "kind": "ours"
+      }
+     ],
+     "marks": [
+      {
+       "i": 53,
+       "text": "Round 1"
+      },
+      {
+       "i": 55,
+       "text": "Issue Fix"
+      },
+      {
+       "i": 58,
+       "text": "Round 2"
+      }
+     ]
+    },
+    "new": {
+     "s": 53,
+     "e": 62,
+     "segs": [
+      {
+       "s": 53,
+       "e": 62,
+       "kind": "ours"
+      }
+     ],
+     "marks": [
+      {
+       "i": 53,
+       "text": "Round 1"
+      },
+      {
+       "i": 55,
+       "text": "Issue Fix"
+      },
+      {
+       "i": 60,
+       "text": "Round 2"
+      }
+     ]
+    },
+    "ds": 0,
+    "de": 2,
+    "dd": 2,
+    "reshaped": false,
+    "marks": [
+     {
+      "text": "Round 2",
+      "from": 58,
+      "to": 60
+     }
+    ]
+   },
+   {
+    "id": "carplay|certification-1st|itut-siri-esiri",
+    "feature": "CarPlay",
+    "phase": "Certification(1st)",
+    "name": "ITUT & siri&esiri",
+    "type": "changed",
+    "old": {
+     "s": 44,
+     "e": 55,
+     "segs": [
+      {
+       "s": 44,
+       "e": 51,
+       "kind": "supplier"
+      },
+      {
+       "s": 52,
+       "e": 55,
+       "kind": "ours"
+      }
+     ],
+     "marks": [
+      {
+       "i": 52,
+       "text": "Submit report"
+      },
+      {
+       "i": 55,
+       "text": "Approval"
+      }
+     ]
+    },
+    "new": {
+     "s": 53,
+     "e": 62,
+     "segs": [
+      {
+       "s": 53,
+       "e": 62,
+       "kind": "ours"
+      }
+     ],
+     "marks": [
+      {
+       "i": 60,
+       "text": "Submit report"
+      },
+      {
+       "i": 62,
+       "text": "Approval"
+      }
+     ]
+    },
+    "ds": 9,
+    "de": 7,
+    "dd": -2,
+    "reshaped": true,
+    "marks": [
+     {
+      "text": "Submit report",
+      "from": 52,
+      "to": 60
+     },
+     {
+      "text": "Approval",
+      "from": 55,
+      "to": 62
+     }
+    ]
+   },
+   {
+    "id": "carplay|certification-1st|location-test-wireless-performance",
+    "feature": "CarPlay",
+    "phase": "Certification(1st)",
+    "name": "Location Test & Wireless Performance",
+    "type": "changed",
+    "old": {
+     "s": 53,
+     "e": 59,
+     "segs": [
+      {
+       "s": 53,
+       "e": 59,
+       "kind": "ours"
+      }
+     ],
+     "marks": [
+      {
+       "i": 53,
+       "text": "pre test + Issue Fix"
+      },
+      {
+       "i": 55,
+       "text": "Audit"
+      }
+     ]
+    },
+    "new": {
+     "s": 49,
+     "e": 57,
+     "segs": [
+      {
+       "s": 49,
+       "e": 50,
+       "kind": "ours"
+      },
+      {
+       "s": 53,
+       "e": 57,
+       "kind": "ours"
+      }
+     ],
+     "marks": [
+      {
+       "i": 53,
+       "text": "pre test + Issue Fix"
+      },
+      {
+       "i": 56,
+       "text": "Audit"
+      }
+     ]
+    },
+    "ds": -4,
+    "de": -2,
+    "dd": 2,
+    "reshaped": true,
+    "marks": [
+     {
+      "text": "Audit",
+      "from": 55,
+      "to": 56
+     }
+    ]
+   },
+   {
+    "id": "carplay|certification-1st|vehicle-assessment",
+    "feature": "CarPlay",
+    "phase": "Certification(1st)",
+    "name": "Vehicle Assessment",
+    "type": "changed",
+    "old": {
+     "s": 61,
+     "e": 67,
+     "segs": [
+      {
+       "s": 61,
+       "e": 67,
+       "kind": "ours"
+      }
+     ],
+     "marks": [
+      {
+       "i": 61,
+       "text": "Round 1"
+      },
+      {
+       "i": 63,
+       "text": "Issue Fix"
+      },
+      {
+       "i": 66,
+       "text": "Round 2"
+      }
+     ]
+    },
+    "new": {
+     "s": 63,
+     "e": 72,
+     "segs": [
+      {
+       "s": 63,
+       "e": 72,
+       "kind": "ours"
+      }
+     ],
+     "marks": [
+      {
+       "i": 63,
+       "text": "pre test + Issue Fix"
+      },
+      {
+       "i": 66,
+       "text": "Round 1"
+      },
+      {
+       "i": 68,
+       "text": "Issue Fix"
+      },
+      {
+       "i": 71,
+       "text": "Round 2"
+      }
+     ]
+    },
+    "ds": 2,
+    "de": 5,
+    "dd": 3,
+    "reshaped": false,
+    "marks": [
+     {
+      "text": "pre test + Issue Fix",
+      "from": null,
+      "to": 63
+     },
+     {
+      "text": "Round 1",
+      "from": 61,
+      "to": 66
+     },
+     {
+      "text": "Issue Fix",
+      "from": 63,
+      "to": 68
+     },
+     {
+      "text": "Round 2",
+      "from": 66,
+      "to": 71
+     }
+    ]
+   },
+   {
+    "id": "carplay|certification-1st|exception-request",
+    "feature": "CarPlay",
+    "phase": "Certification(1st)",
+    "name": "Exception Request",
+    "type": "changed",
+    "old": {
+     "s": 68,
+     "e": 69,
+     "segs": [
+      {
+       "s": 68,
+       "e": 69,
+       "kind": "ours"
+      }
+     ],
+     "marks": []
+    },
+    "new": {
+     "s": 73,
+     "e": 74,
+     "segs": [
+      {
+       "s": 73,
+       "e": 74,
+       "kind": "ours"
+      }
+     ],
+     "marks": []
+    },
+    "ds": 5,
+    "de": 5,
+    "dd": 0,
+    "reshaped": false,
+    "marks": []
+   },
+   {
+    "id": "carplay|certification-1st|apple-final-review",
+    "feature": "CarPlay",
+    "phase": "Certification(1st)",
+    "name": "Apple Final Review",
+    "type": "changed",
+    "old": {
+     "s": 70,
+     "e": 70,
+     "segs": [
+      {
+       "s": 70,
+       "e": 70,
+       "kind": "final"
+      }
+     ],
+     "marks": [
+      {
+       "i": 70,
+       "text": "Approval"
+      }
+     ]
+    },
+    "new": {
+     "s": 75,
+     "e": 75,
+     "segs": [
+      {
+       "s": 75,
+       "e": 75,
+       "kind": "final"
+      }
+     ],
+     "marks": [
+      {
+       "i": 75,
+       "text": "Approval"
+      }
+     ]
+    },
+    "ds": 5,
+    "de": 5,
+    "dd": 0,
+    "reshaped": false,
+    "marks": [
+     {
+      "text": "Approval",
+      "from": 70,
+      "to": 75
+     }
+    ]
+   },
+   {
+    "id": "android-auto|certification-1st|bench-pretest",
+    "feature": "Android Auto",
+    "phase": "Certification(1st)",
+    "name": "Bench Pretest",
+    "type": "changed",
+    "old": {
+     "s": 36,
+     "e": 53,
+     "segs": [
+      {
+       "s": 36,
+       "e": 53,
+       "kind": "ours"
+      }
+     ],
+     "marks": []
+    },
+    "new": {
+     "s": 36,
+     "e": 59,
+     "segs": [
+      {
+       "s": 36,
+       "e": 59,
+       "kind": "ours"
+      }
+     ],
+     "marks": []
+    },
+    "ds": 0,
+    "de": 6,
+    "dd": 6,
+    "reshaped": false,
+    "marks": []
+   },
+   {
+    "id": "android-auto|certification-1st|bench-shipment-to-aa-lab",
+    "feature": "Android Auto",
+    "phase": "Certification(1st)",
+    "name": "Bench shipment to AA Lab",
+    "type": "changed",
+    "old": {
+     "s": 49,
+     "e": 51,
+     "segs": [
+      {
+       "s": 49,
+       "e": 51,
+       "kind": "ours"
+      }
+     ],
+     "marks": []
+    },
+    "new": {
+     "s": 56,
+     "e": 58,
+     "segs": [
+      {
+       "s": 56,
+       "e": 58,
+       "kind": "ours"
+      }
+     ],
+     "marks": []
+    },
+    "ds": 7,
+    "de": 7,
+    "dd": 0,
+    "reshaped": false,
+    "marks": []
+   },
+   {
+    "id": "android-auto|certification-1st|3pl-bench-test",
+    "feature": "Android Auto",
+    "phase": "Certification(1st)",
+    "name": "3PL Bench Test",
+    "type": "changed",
+    "old": {
+     "s": 54,
+     "e": 66,
+     "segs": [
+      {
+       "s": 54,
+       "e": 66,
+       "kind": "ours"
+      }
+     ],
+     "marks": [
+      {
+       "i": 54,
+       "text": "Round1"
+      },
+      {
+       "i": 57,
+       "text": "Issue Fix"
+      },
+      {
+       "i": 64,
+       "text": "Round 2"
+      }
+     ]
+    },
+    "new": {
+     "s": 60,
+     "e": 72,
+     "segs": [
+      {
+       "s": 60,
+       "e": 72,
+       "kind": "ours"
+      }
+     ],
+     "marks": [
+      {
+       "i": 60,
+       "text": "Round1"
+      },
+      {
+       "i": 63,
+       "text": "Issue Fix"
+      },
+      {
+       "i": 70,
+       "text": "Round 2"
+      }
+     ]
+    },
+    "ds": 6,
+    "de": 6,
+    "dd": 0,
+    "reshaped": false,
+    "marks": [
+     {
+      "text": "Round1",
+      "from": 54,
+      "to": 60
+     },
+     {
+      "text": "Issue Fix",
+      "from": 57,
+      "to": 63
+     },
+     {
+      "text": "Round 2",
+      "from": 64,
+      "to": 70
+     }
+    ]
+   },
+   {
+    "id": "android-auto|certification-1st|invehicletest",
+    "feature": "Android Auto",
+    "phase": "Certification(1st)",
+    "name": "InVehicleTest",
+    "type": "changed",
+    "old": {
+     "s": 53,
+     "e": 66,
+     "segs": [
+      {
+       "s": 53,
+       "e": 61,
+       "kind": "ours"
+      },
+      {
+       "s": 64,
+       "e": 66,
+       "kind": "ours"
+      }
+     ],
+     "marks": [
+      {
+       "i": 53,
+       "text": "pre test"
+      },
+      {
+       "i": 64,
+       "text": "pre test"
+      },
+      {
+       "i": 66,
+       "text": "Vehicle Audit"
+      }
+     ]
+    },
+    "new": {
+     "s": 63,
+     "e": 72,
+     "segs": [
+      {
+       "s": 63,
+       "e": 72,
+       "kind": "ours"
+      }
+     ],
+     "marks": [
+      {
+       "i": 63,
+       "text": "pre test"
+      },
+      {
+       "i": 72,
+       "text": "Vehicle Audit"
+      }
+     ]
+    },
+    "ds": 10,
+    "de": 6,
+    "dd": -4,
+    "reshaped": true,
+    "marks": [
+     {
+      "text": "pre test",
+      "from": 53,
+      "to": 63
+     },
+     {
+      "text": "Vehicle Audit",
+      "from": 66,
+      "to": 72
+     },
+     {
+      "text": "pre test",
+      "from": 64,
+      "to": null
+     }
+    ]
+   },
+   {
+    "id": "android-auto|certification-1st|bench-shipment-to-google",
+    "feature": "Android Auto",
+    "phase": "Certification(1st)",
+    "name": "Bench shipment to Google",
+    "type": "changed",
+    "old": {
+     "s": 61,
+     "e": 64,
+     "segs": [
+      {
+       "s": 61,
+       "e": 64,
+       "kind": "ours"
+      }
+     ],
+     "marks": []
+    },
+    "new": {
+     "s": 67,
+     "e": 70,
+     "segs": [
+      {
+       "s": 67,
+       "e": 70,
+       "kind": "ours"
+      }
+     ],
+     "marks": []
+    },
+    "ds": 6,
+    "de": 6,
+    "dd": 0,
+    "reshaped": false,
+    "marks": []
+   },
+   {
+    "id": "android-auto|certification-1st|google-final-review",
+    "feature": "Android Auto",
+    "phase": "Certification(1st)",
+    "name": "Google Final Review",
+    "type": "changed",
+    "old": {
+     "s": 67,
+     "e": 70,
+     "segs": [
+      {
+       "s": 67,
+       "e": 70,
+       "kind": "final"
+      }
+     ],
+     "marks": [
+      {
+       "i": 70,
+       "text": "Approval"
+      }
+     ]
+    },
+    "new": {
+     "s": 73,
+     "e": 76,
+     "segs": [
+      {
+       "s": 73,
+       "e": 76,
+       "kind": "final"
+      }
+     ],
+     "marks": [
+      {
+       "i": 76,
+       "text": "Approval"
+      }
+     ]
+    },
+    "ds": 6,
+    "de": 6,
+    "dd": 0,
+    "reshaped": false,
+    "marks": [
+     {
+      "text": "Approval",
+      "from": 70,
+      "to": 76
+     }
+    ]
+   },
+   {
+    "id": "android-auto|certification-2nd|invehicletest",
+    "feature": "Android Auto",
+    "phase": "Certification(2nd)",
+    "name": "InVehicleTest",
+    "type": "changed",
+    "old": {
+     "s": 50,
+     "e": 84,
+     "segs": [
+      {
+       "s": 50,
+       "e": 58,
+       "kind": "ours"
+      },
+      {
+       "s": 82,
+       "e": 84,
+       "kind": "ours"
+      }
+     ],
+     "marks": [
+      {
+       "i": 50,
+       "text": "pretest"
+      },
+      {
+       "i": 82,
+       "text": "pre test"
+      },
+      {
+       "i": 84,
+       "text": "Vehicle Audit"
+      }
+     ]
+    },
+    "new": {
+     "s": 53,
+     "e": 84,
+     "segs": [
+      {
+       "s": 53,
+       "e": 61,
+       "kind": "ours"
+      },
+      {
+       "s": 82,
+       "e": 84,
+       "kind": "ours"
+      }
+     ],
+     "marks": [
+      {
+       "i": 53,
+       "text": "pretest"
+      },
+      {
+       "i": 82,
+       "text": "pre test"
+      },
+      {
+       "i": 84,
+       "text": "Vehicle Audit"
+      }
+     ]
+    },
+    "ds": 3,
+    "de": 0,
+    "dd": -3,
+    "reshaped": false,
+    "marks": [
+     {
+      "text": "pretest",
+      "from": 50,
+      "to": 53
+     }
+    ]
+   }
+  ]
+ }
 }
