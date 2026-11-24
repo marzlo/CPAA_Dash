@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-24T02:47:07.600Z",
+  "updated_at": "2026-11-24T02:50:59.171Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -520,6 +520,12 @@
         "text": "目前Flextech確認Certification 上沒有TBM模組，那一條綠/白線連接的是SGW模組",
         "by": "Leyo",
         "at": "2026-11-23T02:28:59.036Z"
+      },
+      {
+        "id": "mwu3l7jdunt1v",
+        "text": "早上有請TS抓IOC Log，來進行分析",
+        "by": "Leyo",
+        "at": "2026-11-24T02:50:58.537Z"
       }
     ],
     "NR1LT-7576": [
