@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-25T10:12:27.466Z",
+  "updated_at": "2026-11-25T10:16:42.789Z",
   "updated_by": "Leyo",
   "state": {
     "carplay|certification-1st|usb-performance": {
@@ -18,8 +18,8 @@
   },
   "notes": {
     "carplay|certification-1st|vehicle-assessment": {
-      "text": "Milestone: Full Function Ready by October 31.​\n\nRisk: If Full Function Ready is delayed beyond October 31, the Pretest completion schedule will slip day by day (Day-for-Day Slip).​\n\nKey Blockers: Audio, Premium Audio, Enhanced Siri, Cold Boot,knob and ecall etc.​\\",
-      "at": "2026-10-21T10:33:09.915Z",
+      "text": "<div><div><div style=\"width: 768px\"><div style=\"width: 768px\"><div style=\"max-width: 70%; background-color: rgb(232, 243, 254); color: rgb(12, 39, 74)\"><div style=\"width: 331.612px\"><br></div></div><div><div></div></div></div></div></div><div style=\"color: rgb(13, 13, 13); background-color: rgb(252, 252, 252)\"><div><div><div><div><div><div><div><div><ul><li><div><div><p><span style=\"color: inherit; font-weight: 600\"><span style=\"font-weight: inherit; font-style: inherit\">Pre-test:</span></span> 3 weeks (to minimize potential issues in the subsequent stages).</p></div></div></li><li><div><div><p><span style=\"color: inherit; font-weight: 600\"><span style=\"font-weight: inherit; font-style: inherit\">Round 1 to Round 2:</span></span> 6 weeks.</p></div></div></li><li><div><div><p><span style=\"color: inherit; font-weight: 600\"><span style=\"font-weight: inherit; font-style: inherit\">Exception Handling:</span></span> 1 week.</p></div></div></li><li><div><div><p><span style=\"color: inherit; font-weight: 600\"><span style=\"font-weight: inherit; font-style: inherit\">Apple Final Review:</span></span> 1 week.</p></div></div></li></ul><p><span style=\"color: inherit; font-weight: 600\"><span style=\"font-weight: inherit; font-style: inherit\">Total estimated duration: approximately 2.75 months.</span></span></p></div></div></div></div></div></div></div></div></div><br>Pretest: 三周 (為了讓後續問題比較少)</div><div>Round 1~ Round 2: 6 周</div><div>Exception: 1周</div><div>Apple final review: 1周&nbsp;</div><div>總共約: 2.75個月<br><br>Apple final review的結束時間可以提前至 5/24</div>",
+      "at": "2026-11-25T10:16:42.788Z",
       "by": "Leyo"
     },
     "carplay|certification-1st|itut-siri-esiri": {
