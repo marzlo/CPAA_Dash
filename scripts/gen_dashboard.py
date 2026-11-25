@@ -49,6 +49,16 @@ except FileNotFoundError:
 
 DATA["bug_notes"] = BUG_NOTES
 
+# Free-text overview of the pretest bug situation, shown on the Pretest tab between
+# the section breakdown and the lists. Same shape and editor as bug_notes.json.
+try:
+    with open("pretest_notes.json", encoding="utf-8") as f:
+        PRETEST_NOTES = json.load(f)
+except FileNotFoundError:
+    PRETEST_NOTES = {"updated_at": None, "updated_by": None, "body": ""}
+
+DATA["pretest_notes"] = PRETEST_NOTES
+
 # Per-ticket comment threads for the Bug list, keyed by Jira key. Kept in their own
 # file so the nightly rebuild can replace dashboard_data.json without touching
 # anything a human wrote. Saved from the browser via the GitHub Contents API.
@@ -2335,6 +2345,8 @@ const STRINGS = {
   notes_risk_internal_heading: { zh: 'Risk (Internal)', en: 'Risk (Internal)' },
   audio_notes_heading: { zh: 'Audio 備註(可編輯)', en: 'Audio notes (editable)' },
   audio_notes_caption: { zh: '這一頁的自由筆記:進度、卡點、跟 Harman／MDI 的待辦。與統計數據頁的專案總覽用同一組編輯工具與同一把 token', en: 'Free-text notes for this tab — progress, blockers, open items with Harman/MDI. Same editor and same token as the project overview on the Stats tab' },
+  pt_notes_heading: { zh: 'Bug 整體現狀(可編輯)', en: 'Overall bug status (editable)' },
+  pt_notes_caption: { zh: '描述這一輪 pretest 的 bug 整體現狀:主要 blocker、狀態分布、卡在誰身上、下一步。與統計數據頁的專案總覽用同一組編輯工具與同一把 token', en: 'The overall pretest bug picture — main blockers, status spread, who things wait on, next steps. Same editor and same token as the project overview on the Stats tab' },
   bug_notes_heading: { zh: 'Bug 備註(可編輯)', en: 'Bug notes (editable)' },
   bug_notes_caption: { zh: '這一頁的自由筆記:本週重點票、卡在誰身上、與 RD／QA 約定的事項。與統計數據頁的專案總覽用同一組編輯工具與同一把 token', en: 'Free-text notes for this tab — key tickets this week, who things are blocked on, agreements with RD/QA. Same editor and same token as the project overview on the Stats tab' },
   notes_empty: { zh: '尚未填寫,點擊「編輯」開始撰寫', en: 'Not filled in yet — click Edit to add notes' },
@@ -3769,6 +3781,12 @@ const AUDIO_TAB_NOTES = makeTabNotes({
   id: 'audioNotes', path: 'audio_notes.json', initial: RAW.audio_notes,
   headingKey: 'audio_notes_heading', captionKey: 'audio_notes_caption',
   commitMessage: 'Update audio notes via dashboard',
+});
+
+const PRETEST_TAB_NOTES = makeTabNotes({
+  id: 'ptNotes', path: 'pretest_notes.json', initial: RAW.pretest_notes,
+  headingKey: 'pt_notes_heading', captionKey: 'pt_notes_caption',
+  commitMessage: 'Update pretest bug notes via dashboard',
 });
 
 const BUG_TAB_NOTES = makeTabNotes({
@@ -10278,6 +10296,8 @@ function renderPretestPanel() {
       </table></div>
     </section>` : `<section class="card"><p class="caption">${esc(t('pt_no_cases'))}</p></section>`}
 
+    ${PRETEST_TAB_NOTES.cardHtml()}
+
     <section class="card">
       <div class="pt-head-row">
         <div>
@@ -10788,6 +10808,7 @@ function renderPretestPanel() {
   // The Stats tab jumps here with a platform in mind; land on that list rather than
   // on whichever one happens to be first.
   panel.dataset.ptWired = '1';
+  PRETEST_TAB_NOTES.mount();
 }
 
 // Open the Pretest tab on one of its lists — used by the Stats tab's jumps.
