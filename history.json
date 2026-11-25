@@ -7767,47 +7767,47 @@
  },
  "2026-11-25": {
   "bugs": {
-   "done": 397,
-   "total": 495
+   "done": 399,
+   "total": 499
   },
   "bugs_by_rca": {
    "empty": {
-    "done": 181,
-    "total": 260
+    "done": 183,
+    "total": 263
    },
    "filled": {
     "done": 216,
-    "total": 235
+    "total": 236
    }
   },
   "bugs_by_status": {
    "Blocked": {
     "done": 0,
-    "total": 44
+    "total": 43
    },
    "Done": {
-    "done": 368,
-    "total": 368
+    "done": 370,
+    "total": 370
    },
    "Eng build": {
-    "done": 6,
-    "total": 6
+    "done": 4,
+    "total": 4
    },
    "In Progress": {
     "done": 0,
     "total": 26
    },
    "Monitoring": {
-    "done": 1,
-    "total": 1
+    "done": 2,
+    "total": 2
    },
    "Non-issue": {
-    "done": 14,
-    "total": 14
+    "done": 15,
+    "total": 15
    },
    "Ready for integration": {
     "done": 0,
-    "total": 3
+    "total": 5
    },
    "Ready for test": {
     "done": 8,
@@ -7819,7 +7819,7 @@
    },
    "To Do": {
     "done": 0,
-    "total": 17
+    "total": 18
    }
   },
   "bugs_by_team": {
@@ -7828,72 +7828,78 @@
     "total": 33
    },
    "MDT_App": {
-    "done": 13,
-    "total": 39
+    "done": 11,
+    "total": 34
    },
    "MDT_PM": {
     "done": 21,
-    "total": 32
+    "total": 35
    },
    "MDT_Sys_QA": {
-    "done": 4,
-    "total": 5
+    "done": 5,
+    "total": 6
    },
    "MDT_System": {
     "done": 3,
-    "total": 10
+    "total": 12
    },
    "TS_CPAA": {
-    "done": 315,
-    "total": 334
+    "done": 318,
+    "total": 335
    },
    "TS_FW": {
     "done": 34,
-    "total": 37
+    "total": 36
+   },
+   "Unassigned": {
+    "done": 0,
+    "total": 1
    },
    "Unknown": {
     "done": 2,
-    "total": 5
+    "total": 7
    }
   },
   "date": "2026-11-25",
   "pretest": {
    "AA": {
-    "open": 16,
+    "open": 15,
     "open_by_status": {
      "Blocked": 6,
-     "In Progress": 6,
+     "In Progress": 7,
      "Reopen": 1,
-     "To Do": 3
+     "To Do": 1
     },
-    "total": 80,
+    "total": 79,
     "unknown": 2
    },
    "CP": {
-    "open": 36,
+    "open": 37,
     "open_by_status": {
      "Blocked": 22,
      "In Progress": 10,
+     "Ready for integration": 1,
      "Reopen": 2,
      "To Do": 2
     },
-    "total": 97,
+    "total": 96,
     "unknown": 2
    },
    "all": {
     "open": 46,
     "open_by_status": {
      "Blocked": 24,
-     "In Progress": 14,
+     "In Progress": 15,
+     "Ready for integration": 1,
      "Reopen": 3,
-     "To Do": 5
+     "To Do": 3
     },
-    "total": 167,
+    "total": 166,
     "unknown": 2
    }
   },
   "swe2": {
-   "done": 866,
+   "done": 876,
    "total": 1149
   },
   "swe3": {
@@ -7901,7 +7907,7 @@
    "total": 305
   },
   "swe5": {
-   "done": 97,
+   "done": 99,
    "total": 118
   }
  }
