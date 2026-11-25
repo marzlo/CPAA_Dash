@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-25T08:34:37.609Z",
+  "updated_at": "2026-11-25T08:36:02.602Z",
   "updated_by": "Leyo",
   "state": {
     "carplay|certification-1st|usb-performance": {
@@ -48,8 +48,8 @@
       "by": "Leyo"
     },
     "android-auto|certification-1st|invehicletest": {
-      "text": "<div>目前在3月15日開始，可以協調提前至2月22日 (農曆新年後)</div><ul><li>12月初的Pretest是針對Location test，美國TS可以協助跟連結相關協助</li><li>針對AA的In vehicle test因為Audio功能還沒有好，所以無法進行</li><li>美國Thundersoft 12月初可以協調在地居民</li><li>ITU-T目前是抓3/14完成，其用車時間如下:</li><ul><li>Internal Amplifier 4 周 (1月初~1月底)</li><ul><li>可與Cerence溝通用車時間</li></ul><li>External Amplifier 4 周 (2月初~2月底)</li><ul><li>此時(1月份)External的車子可以先給Carplay做location測試</li></ul></ul></ul>",
-      "at": "2026-11-25T08:34:37.609Z",
+      "text": "<div>目前在3月15日開始，可以協調提前至2月22日 (農曆新年後)</div><ul><li>12月初的Pretest是針對Location test，美國TS可以協助跟連結相關協助</li><li>針對AA的In vehicle test因為Audio功能還沒有好，所以無法進行</li><li>美國Thundersoft 12月初可以協調在地居民</li><li>ITU-T目前是抓3/14完成，其用車時間如下:</li><ul><li>Internal Amplifier 4 周 (1月初~1月底)</li><ul><li>可與Cerence溝通用車時間</li></ul><li>External Amplifier 4 周 (2月初~2月底)</li><ul><li>此時(1月份)External的車子可以先給Carplay做location測試</li></ul></ul><li>由於把In vehicle test提前，所以可以在3PL audit前完成</li></ul>",
+      "at": "2026-11-25T08:36:02.602Z",
       "by": "Leyo"
     }
   },
