@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-25T10:21:45.944Z",
+  "updated_at": "2026-11-25T10:39:23.874Z",
   "updated_by": "Leyo",
   "state": {
     "carplay|certification-1st|usb-performance": {
@@ -23,8 +23,8 @@
       "by": "Leyo"
     },
     "carplay|certification-1st|itut-siri-esiri": {
-      "text": "<ul><li><span style=\"font-style: inherit; font-weight: inherit\">.​​</span>Key Blockers: Vehicle audio issue, Premium Audio</li><li>Risk: Unresolved Audio issues may delay ITU-T testing. Vehicle availability is currently assumed only through mid-December.​​</li></ul>",
-      "at": "2026-11-25T10:12:27.466Z",
+      "text": "<ul style=\"color: rgb(0, 0, 0); background-color: rgb(245, 245, 245)\"><li><span style=\"background-color: transparent; color: windowtext; font-style: inherit; font-weight: inherit\">Internal amplifier on vehicle: Harman in analysis​</span></li><ul><li><span style=\"background-color: transparent; color: windowtext; font-style: inherit; font-weight: inherit\">ANC module </span><span style=\"background-color: transparent; color: windowtext; font-style: inherit; font-weight: inherit\">issue- RTC</span><span style=\"background-color: transparent; color: windowtext; font-style: inherit; font-weight: inherit\"> RAR: </span><a href=\"https://prsse.extra.chrysler.com/ccm/web/projects/EECI%20Supplier%20Area#action=com.ibm.team.workitem.viewWorkItem&amp;id=64540\" style=\"background-color: transparent; font-style: inherit; font-weight: inherit; text-decoration: none\" target=\"_blank\" rel=\"noopener noreferrer\"><span style=\"color: rgb(5, 99, 193)\"><span style=\"text-decoration: underline\">64540</span></span></a><span style=\"background-color: transparent; color: windowtext; font-style: inherit; font-weight: inherit\">​</span></li></ul><li><span style=\"font-style: inherit; font-weight: inherit\">External </span><span style=\"background-color: transparent; color: windowtext; font-style: inherit; font-weight: inherit\">amplifier</span><span style=\"background-color: transparent; color: windowtext; font-style: inherit; font-weight: inherit\">:</span><span style=\"background-color: transparent; color: windowtext; font-style: inherit; font-weight: inherit\">​</span></li><ul><li>ANC module issue- RTC RAR: <a href=\"https://prsse.extra.chrysler.com/ccm/web/projects/EECI%20Supplier%20Area#action=com.ibm.team.workitem.viewWorkItem&amp;id=64540\" style=\"background-color: transparent; font-style: inherit; font-weight: inherit; text-decoration: none\" target=\"_blank\" rel=\"noopener noreferrer\"><span style=\"color: rgb(5, 99, 193)\"><span style=\"text-decoration: underline\">64540</span></span></a><span style=\"background-color: transparent; color: windowtext; font-style: inherit; font-weight: inherit\">​</span></li><li>CR: CR0004<span style=\"background-color: transparent; color: windowtext; font-style: inherit; font-weight: inherit\">​</span></li><ul><li>Estimated: Dec 9 will be clear about the effort<span style=\"background-color: transparent; color: windowtext; font-style: inherit; font-weight: inherit\">​</span></li><li>Current blocker: STLA need to update <span style=\"background-color: transparent; color: windowtext; font-style: inherit; font-weight: inherit\">dbc</span><span style=\"background-color: transparent; color: windowtext; font-style: inherit; font-weight: inherit\">​</span></li></ul></ul></ul>",
+      "at": "2026-11-25T10:39:23.874Z",
       "by": "Leyo"
     },
     "carplay|certification-1st|location-test-wireless-performance": {
