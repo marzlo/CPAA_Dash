@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-25T10:18:41.525Z",
+  "updated_at": "2026-11-25T10:20:49.720Z",
   "updated_by": "Leyo",
   "state": {
     "carplay|certification-1st|usb-performance": {
@@ -58,8 +58,8 @@
       "by": "Leyo"
     },
     "carplay|certification-1st|pre-test": {
-      "text": "See overall bug status<div>https://marzlo.github.io/CPAA_Dash/?only=Pretest#Pretest</div><div><br></div>",
-      "at": "2026-11-25T10:18:41.525Z",
+      "text": "<p><strong>1. CarPlay (CP)</strong></p><ul><li><div><div><p><strong>Total open issues: 30</strong></p></div></div></li><li><div><div><p><strong>TS-owned issues: 6</strong></p><ul><li><div><div><p>2 issues are being addressed without blockers and are expected to be resolved by Dec. 7.</p></div></div></li><li><div><div><p>4 issues are related to SCD. The technical solution needs to be finalized this week, while the joint debugging schedule is pending Subbu's confirmation.</p></div></div></li></ul></div></div></li><li><div><div><p><strong>Non-TS-owned issues: 24</strong></p><ul><li><div><div><p>KVVD Subrahmanyam: 6 issues</p></div></div></li><li><div><div><p>Weili Chou: 3 issues</p></div></div></li><li><div><div><p>Other assignees: fewer than 2 issues each.</p></div></div></li></ul></div></div></li></ul><div><br></div>",
+      "at": "2026-11-25T10:20:49.720Z",
       "by": "Leyo"
     },
     "shared|vehicle-plan": {
