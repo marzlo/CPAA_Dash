@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-25T08:42:32.920Z",
+  "updated_at": "2026-11-25T08:53:59.016Z",
   "updated_by": "Leyo",
   "state": {
     "carplay|certification-1st|usb-performance": {
@@ -53,8 +53,8 @@
       "by": "Leyo"
     },
     "android-auto|certification-1st|bench-pretest": {
-      "text": "依照目前測試的現況,必須在12/7的時間解除所有blocker，根據評估是達不到",
-      "at": "2026-11-25T08:42:32.920Z",
+      "text": "<ul><li>依照目前測試的現況,必須在12/7的時間解除所有blocker</li><li>要詳細評估目前有的票預計要完成的時間</li><ul><li>重點項目: Audio (SCD)</li><li>Harman blocker&nbsp;</li><li>目前標記blocked的什麼時候可以開發</li></ul></ul>",
+      "at": "2026-11-25T08:53:59.016Z",
       "by": "Leyo"
     }
   },
