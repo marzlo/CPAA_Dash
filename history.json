@@ -7768,12 +7768,12 @@
  "2026-11-25": {
   "bugs": {
    "done": 399,
-   "total": 499
+   "total": 501
   },
   "bugs_by_rca": {
    "empty": {
     "done": 183,
-    "total": 263
+    "total": 265
    },
    "filled": {
     "done": 216,
@@ -7819,7 +7819,7 @@
    },
    "To Do": {
     "done": 0,
-    "total": 18
+    "total": 20
    }
   },
   "bugs_by_team": {
@@ -7841,11 +7841,11 @@
    },
    "MDT_System": {
     "done": 3,
-    "total": 12
+    "total": 11
    },
    "TS_CPAA": {
     "done": 318,
-    "total": 335
+    "total": 338
    },
    "TS_FW": {
     "done": 34,
@@ -7899,7 +7899,7 @@
    }
   },
   "swe2": {
-   "done": 876,
+   "done": 878,
    "total": 1149
   },
   "swe3": {
