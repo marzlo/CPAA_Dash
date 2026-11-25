@@ -140,13 +140,34 @@ jobs:
       - name: Record today's snapshot into history.json
         run: python scripts/update_history.py
 
+      # The page itself commits to main while this job runs (schedule ticks, notes,
+      # comments, push-update.bat), so a plain `git push` here was regularly rejected
+      # as non-fast-forward — and the failed step skipped the deploy. The snapshot
+      # commit is now built directly on top of whatever main is at that moment (only
+      # history.json changes; the working tree is left alone), retried, and a final
+      # failure only warns: losing one day's snapshot beats not deploying at all.
       - name: Commit history snapshot
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add history.json
-          git diff --cached --quiet || git commit -m "Update dashboard history snapshot ($(TZ=Asia/Taipei date +%F))"
-          git push
+          msg="Update dashboard history snapshot ($(TZ=Asia/Taipei date +%F))"
+          blob=$(git hash-object -w history.json)
+          for i in 1 2 3 4 5; do
+            git fetch --quiet origin main
+            if [ "$(git rev-parse origin/main:history.json 2>/dev/null)" = "$blob" ]; then
+              echo "history.json already up to date"; exit 0
+            fi
+            export GIT_INDEX_FILE="$RUNNER_TEMP/snapshot.index"
+            git read-tree origin/main
+            git update-index --add --cacheinfo 100644,"$blob",history.json
+            tree=$(git write-tree)
+            unset GIT_INDEX_FILE
+            commit=$(git commit-tree "$tree" -p origin/main -m "$msg")
+            if git push origin "$commit:refs/heads/main"; then exit 0; fi
+            echo "Push attempt $i rejected; retrying"
+            sleep $((i * 3))
+          done
+          echo "::warning::Could not push history snapshot; deploying anyway"
 
       - name: Generate dashboard.html
         run: python scripts/gen_dashboard.py
