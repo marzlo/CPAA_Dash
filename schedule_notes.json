@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-25T10:20:49.720Z",
+  "updated_at": "2026-11-25T10:21:19.151Z",
   "updated_by": "Leyo",
   "state": {
     "carplay|certification-1st|usb-performance": {
@@ -53,8 +53,8 @@
       "by": "Leyo"
     },
     "android-auto|certification-1st|bench-pretest": {
-      "text": "<div>有兩個原因:</div><div>1. 目前In vehicle test計畫往後移，讓bench pretest有充裕的時間</div><div>2. 目前Bench Pretest碰到的問題</div><ul><li>依照目前測試的現況,必須在12/7的時間解除所有blocker</li><li>要詳細評估目前有的票預計要完成的時間</li><ul><li>重點項目: Audio (SCD)</li><li>Harman blocker&nbsp;</li><li>目前標記blocked的什麼時候可以開發</li></ul></ul>",
-      "at": "2026-11-25T09:15:34.491Z",
+      "text": "<p><strong>Android Auto (AA)</strong></p><ul><li><div><div><p><strong>Total open issues: 9</strong></p></div></div></li><li><div><div><p><strong>TS-owned issues: 0</strong></p></div></div></li><li><div><div><p><strong>Non-TS-owned issues: 13 (pending confirmation)</strong></p></div></div></li></ul><p><br></p>",
+      "at": "2026-11-25T10:21:19.151Z",
       "by": "Leyo"
     },
     "carplay|certification-1st|pre-test": {
