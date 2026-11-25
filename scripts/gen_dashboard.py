@@ -705,6 +705,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
             padding: 0 4px; margin-right: 4px; border-radius: 3px; vertical-align: 1px;
             color: #0f766e; background: color-mix(in srgb, #14b8a6 14%, transparent);
             box-shadow: inset 0 0 0 1px #14b8a6; }
+  .sch-legend-veh { cursor: pointer; border-radius: 4px; padding: 1px 4px; }
+  .sch-legend-veh:hover { background: color-mix(in srgb, #14b8a6 12%, transparent); }
+  .sch-legend-veh.on { box-shadow: inset 0 0 0 1px #14b8a6; background: color-mix(in srgb, #14b8a6 14%, transparent); }
   .gantt-row.is-veh .gantt-name { box-shadow: inset 3px 0 0 #14b8a6; }
   .sch-note.veh-plan { border: 1px solid #14b8a6; border-radius: 8px; padding: 6px 8px 4px;
                        background: color-mix(in srgb, #14b8a6 6%, transparent); }
@@ -1987,6 +1990,8 @@ const STRINGS = {
   sch_chg_badge_title: { zh: '跟上一版 Excel 相比時程有變', en: 'Moved since the previous workbook' },
   sch_chg_row: { zh: (o, d) => `與上一版相比:原 ${o}${d ? ' · ' + d : ''}`, en: (o, d) => `vs previous: was ${o}${d ? ' · ' + d : ''}` },
   sch_ghost: { zh: '顯示上一版位置', en: 'Show previous position' },
+  sch_only_veh: { zh: n => `🚗 只看用車(${n})`, en: n => `🚗 Vehicle only (${n})` },
+  sch_only_veh_title: { zh: '點一下只看用車相關的項目,再點一次恢復', en: 'Click to show vehicle-dependent tasks only; click again to show all' },
   sch_only_chg: { zh: n => `只看有變更(${n})`, en: n => `Changed only (${n})` },
   sch_now_week: { zh: (w, d) => `本週 ${w}(${d} 起)`, en: (w, d) => `This week: ${w} (from ${d})` },
   sch_grp_late: { zh: '逾期', en: 'Overdue' },
@@ -11487,6 +11492,10 @@ const SCH_GHOST_KEY = 'cpaaScheduleGhost';
 function schShowGhost() {
   try { return localStorage.getItem(SCH_GHOST_KEY) !== '0'; } catch (e) { return true; }
 }
+const SCH_ONLY_VEH_KEY = 'cpaaScheduleOnlyVehicle';
+function schOnlyVehicle() {
+  try { return localStorage.getItem(SCH_ONLY_VEH_KEY) === '1'; } catch (e) { return false; }
+}
 const SCH_ONLY_CHG_KEY = 'cpaaScheduleOnlyChanged';
 function schOnlyChanged() {
   if (!SCH_CHG) return false;
@@ -11875,7 +11884,8 @@ function renderSchedulePanel() {
       `<span><i style="background:var(--gantt-${k})"></i>${esc(t('sch_kind_' + k))}</span>`).join('')}
     <span><i style="background:repeating-linear-gradient(45deg,var(--critical) 0 3px,transparent 3px 6px)"></i>${esc(t('sch_grp_late'))}</span>
     <span><i style="background:repeating-linear-gradient(135deg,var(--warning) 0 2px,transparent 2px 5px); box-shadow:inset 0 0 0 1px var(--warning)"></i>${esc(t('sch_blocked'))}</span>
-    <span><span class="gn-veh">🚗</span>${esc(t('sch_veh_badge'))}</span>
+    <span class="sch-legend-veh${schOnlyVehicle() ? ' on' : ''}" id="schOnlyVehLegend" role="button" tabindex="0"
+          title="${esc(t('sch_only_veh_title'))}"><span class="gn-veh">🚗</span>${esc(t('sch_veh_badge'))}</span>
     <span style="color:var(--muted)">✋ ${esc(t('sch_drag_hint'))}</span>
   </div>`;
 
@@ -11885,7 +11895,9 @@ function renderSchedulePanel() {
   tasks.forEach(x => { if (!phases.includes(x.phase)) phases.push(x.phase); });
   const phaseSel = phases.includes(schPhaseFilter()) ? schPhaseFilter() : '';
   const onlyChg = schOnlyChanged();
-  const inPhase = x => (!phaseSel || x.phase === phaseSel) && (!onlyChg || !!SCH_CHG_BY_ID[x.id]);
+  const onlyVeh = schOnlyVehicle();
+  const inPhase = x => (!phaseSel || x.phase === phaseSel) && (!onlyChg || !!SCH_CHG_BY_ID[x.id]) &&
+                       (!onlyVeh || schIsVehicle(x));
 
   function schFilterRowHtml(doneInScope, shown, total) {
     return `<div class="sch-filters">
@@ -11894,6 +11906,8 @@ function renderSchedulePanel() {
         `${esc(t('sch_phase_n', ph, tasks.filter(x => x.phase === ph).length))}</button>`).join('')}
       <span style="width:10px"></span>
       <button type="button" class="chip${schHideDone() ? ' active' : ''}" id="schHideDone">${esc(t('sch_hide_done_n', doneInScope))}</button>
+      <button type="button" class="chip${onlyVeh ? ' active' : ''}" id="schOnlyVeh" title="${esc(t('sch_only_veh_title'))}">` +
+        `${esc(t('sch_only_veh', tasks.filter(x => (!phaseSel || x.phase === phaseSel) && schIsVehicle(x)).length))}</button>
       ${SCH_CHG && SCH_CHG.items.length ? `<button type="button" class="chip${onlyChg ? ' active' : ''}" id="schOnlyChg">` +
         `${esc(t('sch_only_chg', SCH_CHG.items.filter(c => c.type !== 'removed').length))}</button>` : ''}
       ${SCH_CHG && SCH_CHG.items.length && view === 'gantt' ? `<button type="button" class="chip${schShowGhost() ? ' active' : ''}" id="schGhost">` +
@@ -11994,6 +12008,11 @@ function renderSchedulePanel() {
       const ph = e.target.closest('[data-sch-phase]');
       if (ph) {
         try { localStorage.setItem(SCH_PHASE_KEY, ph.dataset.schPhase); } catch (err) { /* private mode */ }
+        renderSchedulePanel();
+        return;
+      }
+      if (e.target.closest('#schOnlyVeh, #schOnlyVehLegend')) {
+        try { localStorage.setItem(SCH_ONLY_VEH_KEY, schOnlyVehicle() ? '0' : '1'); } catch (err) { /* private mode */ }
         renderSchedulePanel();
         return;
       }
