@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-25T10:21:19.151Z",
+  "updated_at": "2026-11-25T10:21:45.944Z",
   "updated_by": "Leyo",
   "state": {
     "carplay|certification-1st|usb-performance": {
@@ -53,8 +53,8 @@
       "by": "Leyo"
     },
     "android-auto|certification-1st|bench-pretest": {
-      "text": "<p><strong>Android Auto (AA)</strong></p><ul><li><div><div><p><strong>Total open issues: 9</strong></p></div></div></li><li><div><div><p><strong>TS-owned issues: 0</strong></p></div></div></li><li><div><div><p><strong>Non-TS-owned issues: 13 (pending confirmation)</strong></p></div></div></li></ul><p><br></p>",
-      "at": "2026-11-25T10:21:19.151Z",
+      "text": "<p><strong>Android Auto (AA)</strong></p><ul><li><div><div><p><strong>Total open issues: 9</strong></p></div></div></li><li><div><div><p><strong>TS-owned issues: 0</strong></p></div></div></li><li><div><div><p><strong>Non-TS-owned issues: 13 (pending confirmation)</strong></p></div></div></li></ul><div><span style=\"font-weight: 700\">Major on STR issue</span></div><p><br></p>",
+      "at": "2026-11-25T10:21:45.944Z",
       "by": "Leyo"
     },
     "carplay|certification-1st|pre-test": {
