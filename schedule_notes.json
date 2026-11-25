@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-25T09:50:55.625Z",
+  "updated_at": "2026-11-25T09:55:25.727Z",
   "updated_by": "Leyo",
   "state": {
     "carplay|certification-1st|usb-performance": {
@@ -48,8 +48,8 @@
       "by": "Leyo"
     },
     "android-auto|certification-1st|invehicletest": {
-      "text": "<div>目前在3月15日開始，可以協調提前至2月22日 (農曆新年後)</div><ul><li>12月初的Pretest是針對Location test，美國TS可以協助跟連結相關協助</li><li>針對AA的In vehicle test因為Audio功能還沒有好，所以無法進行</li><li>美國Thundersoft 12月初可以協調在地居民</li><li>ITU-T目前是抓3/14完成，其用車時間如下:</li><ul><li>Internal Amplifier 4 周 (1月初~1月底)</li><ul><li>可與Cerence溝通用車時間</li></ul><li>External Amplifier 4 周 (2月初~2月底)</li><ul><li>此時(1月份)External的車子可以先給Carplay做location測試</li></ul></ul><li>由於把In vehicle test提前，所以可以在3PL audit前完成</li></ul>",
-      "at": "2026-11-25T08:36:02.602Z",
+      "text": "<div><p>The in-vehicle pre-test is currently scheduled to start on March 15, but we can coordinate to bring it forward to February 22 (after the Lunar New Year holiday).</p><ul><li><div><div><p><strong>Early December Pre-test:</strong> The primary focus will be on Location testing. The US-based TS team can provide support and assist with connectivity-related activities.</p></div></div></li><li><div><div><p><strong>Android Auto In-Vehicle Pre-test:</strong> Since the audio functionality is not yet ready and some bugs remain unresolved, full pre-test coverage cannot be achieved at this stage.</p></div></div></li><li><div><div><p><strong>ITU-T Testing:</strong> The current target completion date is March 14, with vehicle allocation planned as follows:</p><ul><li><div><div><p><strong>Internal Amplifier Vehicle:</strong> 4 weeks (early January to the end of January).</p><ul><li><div><div><p>Vehicle availability and usage can be further coordinated with Cerence.</p></div></div></li></ul></div></div></li><li><div><div><p><strong>External Amplifier Vehicle:</strong> 4 weeks (early February to the end of February).</p><ul><li><div><div><p>During January, the external amplifier vehicle can be allocated to CarPlay Location testing.</p></div></div></li></ul></div></div></li></ul></div></div></li><li><div><div><p><strong>3PL Audit:</strong> By bringing forward the in-vehicle pre-test, we can complete it before the 3PL audit begins.</p></div></div></li></ul>目前在3月15日開始，可以協調提前至2月22日 (農曆新年後)</div><ul><li>12月初的Pretest是針對Location test，美國TS可以協助跟連結相關協助</li><li>針對AA的In vehicle test因為Audio功能還沒有好，所以Pretest項目無法全覆蓋，而且bug還沒有全部解除</li><li>ITU-T目前是抓3/14完成，其用車時間如下:</li><ul><li>Internal Amplifier 4 周 (1月初~1月底)</li><ul><li>可與Cerence溝通用車時間</li></ul><li>External Amplifier 4 周 (2月初~2月底)</li><ul><li>此時(1月份)External的車子可以先給Carplay做location測試</li></ul></ul><li>由於把In vehicle test提前，所以可以在3PL audit前完成</li></ul>",
+      "at": "2026-11-25T09:55:25.727Z",
       "by": "Leyo"
     },
     "android-auto|certification-1st|bench-pretest": {
