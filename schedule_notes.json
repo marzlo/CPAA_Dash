@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-25T09:15:34.491Z",
+  "updated_at": "2026-11-25T09:16:36.281Z",
   "updated_by": "Leyo",
   "state": {
     "carplay|certification-1st|usb-performance": {
@@ -58,8 +58,8 @@
       "by": "Leyo"
     },
     "carplay|certification-1st|pre-test": {
-      "text": "<div>Carplay也會移</div><ul><li>依照目前測試的現況,必須在12/7的時間解除所有blocker</li><li>要詳細評估目前有的票預計要完成的時間</li><ul><li>重點項目: Audio (SCD)</li><li>Harman blocker&nbsp;</li><li>目前標記blocked的什麼時候可以開發</li></ul></ul>",
-      "at": "2026-11-25T08:55:31.977Z",
+      "text": "<div>Carplay也會移</div><ul><li>依照目前測試的現況,必須在12/7的時間解除所有blocker</li><li>要詳細評估目前有的票預計要完成的時間</li><ul><li>重點項目: Audio (SCD)</li><li>Harman blocker&nbsp;</li><li>目前標記blocked的什麼時候可以開發</li></ul></ul><div><br></div><div><br></div><div><ul><li>Milestone: Full Function Ready by October 31.​</li><li>Risk: If Full Function Ready is delayed beyond October 31, the Pretest completion schedule will slip day by day (Day-for-Day Slip).​</li><li>Key Blockers: Audio, Premium Audio, Enhanced Siri, Cold Boot,knob and ecall etc.​\\</li></ul></div>",
+      "at": "2026-11-25T09:16:36.281Z",
       "by": "Leyo"
     }
   },
