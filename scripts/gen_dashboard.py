@@ -689,6 +689,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
      readable as blocked from the name column, which never scrolls. */
   .gantt-name .gn-block { margin-right: 3px; font-size: 10px; line-height: 1; }
   /* Vehicle-dependent tasks share one 用車計畫 note; the badge says which ones. */
+  .pt-replaces { font-size: 11px; color: var(--muted); margin-top: 2px; white-space: nowrap; }
+  .pt-replaces a { color: var(--muted); text-decoration: line-through; }
   .gn-veh { display: inline-block; font-size: 9px; font-weight: 700; line-height: 13px;
             padding: 0 4px; margin-right: 4px; border-radius: 3px; vertical-align: 1px;
             color: #0f766e; background: color-mix(in srgb, #14b8a6 14%, transparent);
@@ -2025,6 +2027,9 @@ const STRINGS = {
   sch_note_ph: { zh: '備註 —— 這一項的進度、卡在哪、誰在追。打完按儲存,會存回 GitHub,換台電腦也看得到。',
                  en: 'Notes — where this one stands, what it is waiting on, who is chasing it. Save commits it to GitHub, so it follows you to another machine.' },
   sch_note_save: { zh: '儲存備註', en: 'Save note' },
+  pt_replaces: { zh: '取代', en: 'replaces' },
+  pt_replaces_title: { zh: 'Excel 上原本打的是這張票;現在擋住這些測項的是左邊這張(pretest_bug_remap.json)',
+                       en: 'The workbook still names this ticket; the one on the left is what blocks those cases now (pretest_bug_remap.json)' },
   sch_veh_badge: { zh: '用車', en: 'Vehicle' },
   sch_veh_title: { zh: '用車相關:這一項需要實車', en: 'Vehicle-dependent: needs the test vehicle' },
   sch_veh_plan: { zh: '🚗 用車計畫', en: '🚗 Vehicle plan' },
@@ -9498,8 +9503,10 @@ const PT_RE_AA = /PCTS/i;
 const PT_RE_CP = /Facets?/i;
 function ptBugPlatforms(summary) {
   const s = summary || '';
-  if (PT_RE_AA.test(s)) return ['AA'];
-  if (PT_RE_CP.test(s)) return ['CP'];
+  const aa = PT_RE_AA.test(s), cp = PT_RE_CP.test(s);
+  // A title naming both suites ("[PCTS-…] [Facets-…]") is a bug on both sides.
+  if (aa && !cp) return ['AA'];
+  if (cp && !aa) return ['CP'];
   return ['CP', 'AA'];
 }
 
@@ -9540,6 +9547,7 @@ function ptBugRows() {
   ((PRETEST_CASES && PRETEST_CASES.bugs) || []).forEach(b => {
     out.set(b.key, { key: b.key, src: b.src.slice(), cases: b.cases || 0,
                      tagged: b.tagged || 0, taggedBy: b.tagged_by || {},
+                     replaces: b.replaces || [],
                      summary: b.summary || '', comment: b.comment || '' });
   });
   (PRETEST || []).forEach(r => {
@@ -10522,7 +10530,9 @@ function renderPretestPanel() {
       </tr>`;
       body.innerHTML = rows.length ? rows.map(b => `<tr data-bug-row="${esc(b.key)}">
         <td class="cmt-col">${bugCommentBtn(b.key)}</td>
-        <td class="key"><a href="${ticketUrl(b.key)}" target="_blank">${esc(b.key)}</a></td>
+        <td class="key"><a href="${ticketUrl(b.key)}" target="_blank">${esc(b.key)}</a>${(b.replaces || []).length
+          ? `<div class="pt-replaces" title="${esc(t('pt_replaces_title'))}">${esc(t('pt_replaces'))} ${b.replaces.map(k =>
+              `<a href="${ticketUrl(k)}" target="_blank">${esc(k)}</a>`).join(', ')}</div>` : ''}</td>
         <td title="${esc(t('pt_src_from', (b.from || []).join(', ') || '—'))}">${
           b.src.map(s => `<span class="pt-src">${esc(s)}</span>`).join('')}</td>
         <td class="num">${b.cases ? ptCaseJumpCell(b, plats) : ''}</td>
