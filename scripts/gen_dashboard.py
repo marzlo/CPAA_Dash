@@ -11389,8 +11389,11 @@ function schSavedNoteText(id) { const nt = schSavedNote(id); return nt ? (nt.tex
 function schSavedNoteHtml(id) { return notesValueToHtml(schSavedNoteText(id)); }
 function schNoteText(id) { return (id in schDrafts) ? schDrafts[id] : schSavedNoteHtml(id); }
 function schNoteDirty(id) { return (id in schDrafts) && schDrafts[id] !== schSavedNoteHtml(id); }
-// A note holding only tags and spaces is empty, whatever the markup says.
+// A note holding only tags and spaces is empty, whatever the markup says — except a
+// pasted picture: an <img> has no text but is very much content. Treating it as empty
+// made saving an image-only note (a pasted vehicle-plan table) delete the note instead.
 function schNoteIsEmpty(html) {
+  if (/<img\b/i.test(String(html || ''))) return false;
   return !String(html || '').replace(/<[^>]*>/g, '').replace(/&nbsp;|\u00a0/g, ' ').trim();
 }
 function schAnyNoteDirty() { return Object.keys(schDrafts).some(schNoteDirty); }
@@ -12100,6 +12103,7 @@ function renderSchedulePanel() {
     const raw = (schNoteText(id) || '').trim();
     const text = schNoteIsEmpty(raw) ? '' : raw;
     const box = fromBox || list.querySelector(`[data-sch-note-box="${CSS.escape(id)}"]`);
+    if (notesTooBig(text.length)) return;
     const btn = box && box.querySelector('[data-sch-note-save]');
     if (btn) btn.disabled = true;
     const ok = await commitSchedNotes(st => {
