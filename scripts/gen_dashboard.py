@@ -688,6 +688,17 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   /* The hatch is out on the chart and scrolls away with it; this keeps the task
      readable as blocked from the name column, which never scrolls. */
   .gantt-name .gn-block { margin-right: 3px; font-size: 10px; line-height: 1; }
+  /* Vehicle-dependent tasks share one 用車計畫 note; the badge says which ones. */
+  .gn-veh { display: inline-block; font-size: 9px; font-weight: 700; line-height: 13px;
+            padding: 0 4px; margin-right: 4px; border-radius: 3px; vertical-align: 1px;
+            color: #0f766e; background: color-mix(in srgb, #14b8a6 14%, transparent);
+            box-shadow: inset 0 0 0 1px #14b8a6; }
+  .gantt-row.is-veh .gantt-name { box-shadow: inset 3px 0 0 #14b8a6; }
+  .sch-note.veh-plan { border: 1px solid #14b8a6; border-radius: 8px; padding: 6px 8px 4px;
+                       background: color-mix(in srgb, #14b8a6 6%, transparent); }
+  .sch-note.veh-plan .veh-title { font-size: 12px; font-weight: 700; color: #0f766e; margin-bottom: 4px;
+                                  display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .sch-note.veh-plan .veh-title small { font-weight: 400; color: var(--muted); font-size: 11px; }
   .gantt-track { position: relative; flex: 0 0 auto; height: 24px; }
   .gantt-bar { position: absolute; top: 7px; height: 10px; border-radius: 2px; }
   /* A 2px surface gap so touching segments of different kinds stay two bars. */
@@ -2014,6 +2025,12 @@ const STRINGS = {
   sch_note_ph: { zh: '備註 —— 這一項的進度、卡在哪、誰在追。打完按儲存,會存回 GitHub,換台電腦也看得到。',
                  en: 'Notes — where this one stands, what it is waiting on, who is chasing it. Save commits it to GitHub, so it follows you to another machine.' },
   sch_note_save: { zh: '儲存備註', en: 'Save note' },
+  sch_veh_badge: { zh: '用車', en: 'Vehicle' },
+  sch_veh_title: { zh: '用車相關:這一項需要實車', en: 'Vehicle-dependent: needs the test vehicle' },
+  sch_veh_plan: { zh: '🚗 用車計畫', en: '🚗 Vehicle plan' },
+  sch_veh_shared: { zh: n => `共用 · 這 ${n} 項看到的是同一份,改一處全部同步`, en: n => `shared by ${n} tasks — edit once, all update` },
+  sch_veh_ph: { zh: '用車計畫 —— 哪台車、哪段時間給哪個測試、跟誰借、衝突怎麼排。所有用車相關的項目共用這一格。',
+                en: 'Vehicle plan — which car, which window for which test, who lends it, how conflicts are resolved. Shared by every vehicle-dependent task.' },
   sch_note_saved: { zh: '已儲存', en: 'Saved' },
   sch_note_dirty: { zh: '未儲存', en: 'unsaved' },
   sch_note_meta: { zh: (who, when) => `${who} · ${when}`, en: (who, when) => `${who} · ${when}` },
@@ -11296,6 +11313,17 @@ function schStatusTextBase(st) {
 
 function schComments(id) { return SCHED_NOTES.comments[id] || []; }
 
+// Tasks that need the real vehicle. Matched by name (letters only, lower-case) so the
+// tag survives a rebuild from a newer workbook and covers every certification round.
+const SCH_VEH_NAMES = ['itutsiriesiri', 'locationtest', 'vehicleassessment', 'invehicletest'];
+function schIsVehicle(task) {
+  const k = String(task.name || '').toLowerCase().replace(/[^a-z]/g, '');
+  return SCH_VEH_NAMES.some(n => k.startsWith(n));
+}
+// The one note every vehicle task shows. Kept in schedule_notes.json under this key
+// so it rides the same save / merge path as the per-task notes.
+const SCH_VEH_NOTE_ID = 'shared|vehicle-plan';
+
 // Grow a note box to its content so the whole note is readable without dragging the
 // resize handle. Past this height it stops growing and scrolls, so one long note
 // cannot push everything else off the screen.
@@ -11551,6 +11579,7 @@ function schRowHtml(task) {
   return `<div class="sch-row is-${st.k}" data-sch-row="${esc(task.id)}">
     <div class="sch-head">
       <span class="sch-feat${task.feature === 'CarPlay' ? '' : ' aa'}">${esc(task.feature === 'CarPlay' ? 'CP' : 'AA')}</span>
+      ${schIsVehicle(task) ? `<span class="gn-veh" title="${esc(t('sch_veh_title'))}">🚗 ${esc(t('sch_veh_badge'))}</span>` : ''}
       <span class="nm">${esc(task.name)}</span>
       <span class="sch-phase">${esc(task.phase)}</span>
     </div>
@@ -11576,18 +11605,21 @@ function schRowHtml(task) {
       const d = [c.de ? t('sch_chg_end', c.de) : '', c.ds ? t('sch_chg_start', c.ds) : ''].filter(Boolean).join(' · ');
       return `<div class="sch-meta"><span class="sch-chg-line">Δ ${esc(t('sch_chg_row', was, d))}</span></div>`;
     })()}
+    ${schIsVehicle(task) ? schNoteHtml(SCH_VEH_NOTE_ID, true) : ''}
     ${schNoteHtml(task.id)}
   </div>`;
 }
 
-function schNoteHtml(id) {
+function schNoteHtml(id, veh) {
   const saved = schSavedNote(id);
   const dirty = schNoteDirty(id);
   const html = schNoteText(id);
-  return `<div class="sch-note${dirty ? ' dirty' : ''}" data-sch-note-box="${esc(id)}">
+  const vehN = veh ? SCHEDULE.tasks.filter(schIsVehicle).length : 0;
+  return `<div class="sch-note${dirty ? ' dirty' : ''}${veh ? ' veh-plan' : ''}" data-sch-note-box="${esc(id)}">
+    ${veh ? `<div class="veh-title">${esc(t('sch_veh_plan'))}<small>${esc(t('sch_veh_shared', vehN))}</small></div>` : ''}
     ${notesToolbarHtml('')}
     <div class="notes-editor sch-note-editor" contenteditable="true" data-sch-note="${esc(id)}"
-         data-ph="${esc(t('sch_note_ph'))}"${schNoteIsEmpty(html) ? ' data-empty="1"' : ''}>${html}</div>
+         data-ph="${esc(t(veh ? 'sch_veh_ph' : 'sch_note_ph'))}"${schNoteIsEmpty(html) ? ' data-empty="1"' : ''}>${html}</div>
     <div class="sch-note-bar">
       <button type="button" class="btn small" data-sch-note-save="${esc(id)}"${dirty ? '' : ' hidden'}>${esc(t('sch_note_save'))}</button>
       <span class="sch-note-flag"${dirty ? '' : ' hidden'}>${esc(t('sch_note_dirty'))}</span>
@@ -11669,11 +11701,13 @@ function schGanttHtml(tasks) {
     const title = `${task.feature} · ${task.phase} · ${task.name}\n` +
       `${t('sch_range', schWeekLabelDated(task.s, false), schWeekLabelDated(task.e, true))}\n${schStatusText(st)}` +
       (chg && chg.old ? `\nΔ ${t('sch_chg_row', chg.old.segs.map(g => t('sch_range', schWeekLabel(g.s), schWeekLabel(g.e))).join('、'), '')}` : '');
-    return `${header}<div class="gantt-row${task.id === schGanttSel ? ' sel' : ''}" title="${esc(title)}">
+    const veh = schIsVehicle(task);
+    return `${header}<div class="gantt-row${task.id === schGanttSel ? ' sel' : ''}${veh ? ' is-veh' : ''}" title="${esc(title)}">
       <div class="gantt-name${st.k === 'done' ? ' done' : ''}" data-sch-pick="${esc(task.id)}"
            role="button" tabindex="0">${st.blocked
              ? `<span class="gn-block" title="${esc(t('sch_blocked'))}" aria-label="${esc(t('sch_blocked'))}">⛔</span>` : ''}${chg
-             ? `<span class="gn-chg" title="${esc(t('sch_chg_badge_title'))}">Δ</span>` : ''}${esc(task.name)}</div>
+             ? `<span class="gn-chg" title="${esc(t('sch_chg_badge_title'))}">Δ</span>` : ''}${veh
+             ? `<span class="gn-veh" title="${esc(t('sch_veh_title'))}">🚗</span>` : ''}${esc(task.name)}</div>
       <div class="gantt-track" style="width:${trackW}px">${grid.join('')}${ghost}${bars}${blocked}${over}${tick}</div>
     </div>`;
   }).join('');
@@ -11807,6 +11841,7 @@ function renderSchedulePanel() {
       `<span><i style="background:var(--gantt-${k})"></i>${esc(t('sch_kind_' + k))}</span>`).join('')}
     <span><i style="background:repeating-linear-gradient(45deg,var(--critical) 0 3px,transparent 3px 6px)"></i>${esc(t('sch_grp_late'))}</span>
     <span><i style="background:repeating-linear-gradient(135deg,var(--warning) 0 2px,transparent 2px 5px); box-shadow:inset 0 0 0 1px var(--warning)"></i>${esc(t('sch_blocked'))}</span>
+    <span><span class="gn-veh">🚗</span>${esc(t('sch_veh_badge'))}</span>
     <span style="color:var(--muted)">✋ ${esc(t('sch_drag_hint'))}</span>
   </div>`;
 
@@ -11999,8 +12034,11 @@ function renderSchedulePanel() {
   // Typing only updates the draft and the dirty markers in place; it never redraws
   // the panel, so the caret stays where it is and nothing commits per keystroke.
   function schPaintNote(id) {
-    const box = list.querySelector(`[data-sch-note-box="${CSS.escape(id)}"]`);
-    if (!box) return;
+    // The shared 用車計畫 box can be on screen several times at once (one per vehicle
+    // task in a list), so paint every copy, not just the first.
+    list.querySelectorAll(`[data-sch-note-box="${CSS.escape(id)}"]`).forEach(box => schPaintNoteBox(id, box));
+  }
+  function schPaintNoteBox(id, box) {
     const dirty = schNoteDirty(id);
     box.classList.toggle('dirty', dirty);
     const btn = box.querySelector('[data-sch-note-save]');
@@ -12018,13 +12056,19 @@ function renderSchedulePanel() {
     const html = notesEditorHtml(ed);
     schDrafts[ed.dataset.schNote] = html;
     if (schNoteIsEmpty(html)) ed.setAttribute('data-empty', '1'); else ed.removeAttribute('data-empty');
+    // Mirror into the other copies of the same (shared) note so they never disagree.
+    list.querySelectorAll(`[data-sch-note="${CSS.escape(ed.dataset.schNote)}"]`).forEach(o => {
+      if (o === ed) return;
+      o.innerHTML = html;
+      if (schNoteIsEmpty(html)) o.setAttribute('data-empty', '1'); else o.removeAttribute('data-empty');
+    });
     schPaintNote(ed.dataset.schNote);
   });
 
-  async function schSaveNote(id) {
+  async function schSaveNote(id, fromBox) {
     const raw = (schNoteText(id) || '').trim();
     const text = schNoteIsEmpty(raw) ? '' : raw;
-    const box = list.querySelector(`[data-sch-note-box="${CSS.escape(id)}"]`);
+    const box = fromBox || list.querySelector(`[data-sch-note-box="${CSS.escape(id)}"]`);
     const btn = box && box.querySelector('[data-sch-note-save]');
     if (btn) btn.disabled = true;
     const ok = await commitSchedNotes(st => {
@@ -12037,26 +12081,28 @@ function renderSchedulePanel() {
     if (!ok) return;
     delete schDrafts[id];
     // Put back what was actually committed — trimmed — so the box matches the file.
-    const ed = box && box.querySelector('[data-sch-note]');
-    if (ed && notesEditorHtml(ed) !== text) {
-      ed.innerHTML = text;
-      applyNotesTheme();
-    }
-    if (ed) { if (schNoteIsEmpty(text)) ed.setAttribute('data-empty', '1'); else ed.removeAttribute('data-empty'); }
+    list.querySelectorAll(`[data-sch-note="${CSS.escape(id)}"]`).forEach(ed => {
+      if (notesEditorHtml(ed) !== text) {
+        ed.innerHTML = text;
+        applyNotesTheme();
+      }
+      if (schNoteIsEmpty(text)) ed.setAttribute('data-empty', '1'); else ed.removeAttribute('data-empty');
+    });
     schPaintNote(id);
-    const st = list.querySelector(`[data-sch-note-status="${CSS.escape(id)}"]`);
+    const st = (box && box.querySelector(`[data-sch-note-status="${CSS.escape(id)}"]`)) ||
+               list.querySelector(`[data-sch-note-status="${CSS.escape(id)}"]`);
     if (st) { st.textContent = t('sch_note_saved'); setTimeout(() => { if (st.textContent === t('sch_note_saved')) st.textContent = ''; }, 1800); }
   }
 
   list.addEventListener('keydown', e => {
     const ed = e.target.closest('[data-sch-note]');
     if (!ed) return;
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); schSaveNote(ed.dataset.schNote); }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); schSaveNote(ed.dataset.schNote, ed.closest('[data-sch-note-box]')); }
   });
 
   list.addEventListener('click', async e => {
     const noteSave = e.target.closest('[data-sch-note-save]');
-    if (noteSave) { await schSaveNote(noteSave.dataset.schNoteSave); return; }
+    if (noteSave) { await schSaveNote(noteSave.dataset.schNoteSave, noteSave.closest('[data-sch-note-box]')); return; }
 
     const toggle = e.target.closest('[data-sch-toggle]');
     if (toggle) {
