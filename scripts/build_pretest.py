@@ -74,6 +74,30 @@ RESULTS = {
     "na": "N/A",
 }
 EXECUTED = ("Pass", "Fail", "Block")
+
+# Old bug key -> the ticket that blocks those cases now. Kept beside the workbooks
+# rather than edited into them, so dropping in a newer workbook does not undo it.
+REMAP_FILE = os.environ.get("PRETEST_REMAP", "pretest_bug_remap.json")
+
+
+def load_remap():
+    try:
+        with open(REMAP_FILE, encoding="utf-8") as f:
+            raw = json.load(f).get("remap") or {}
+    except FileNotFoundError:
+        return {}
+    except (ValueError, AttributeError) as e:
+        print(f"Pretest: {REMAP_FILE} unreadable ({e}) — no bug remap applied")
+        return {}
+    out = {}
+    for old, v in raw.items():
+        to = v.get("to") if isinstance(v, dict) else v
+        if to and to != old:
+            out[old] = {"to": to, "summary": (v.get("summary") if isinstance(v, dict) else "") or ""}
+    return out
+
+
+REMAP = load_remap()
 ORDER = ["Pass", "Fail", "Block", "Not executed", "N/A", "Other"]
 
 
@@ -177,7 +201,7 @@ def read_cases(ws, spec):
         if bug:
             # The cell holds "NR1LT-5217 [High][CPAA]…" or several keys; keep the keys.
             keys = re.findall(r"[A-Z][A-Z0-9]+-\d+", bug)
-            rec["bugs"] = sorted(set(keys)) if keys else []
+            rec["bugs"] = sorted({REMAP[k]["to"] if k in REMAP else k for k in keys}) if keys else []
         out.append(rec)
     return {"cases": out, "suite": suite}, None
 
@@ -200,13 +224,18 @@ def read_bugs(wb, pid):
         if not key or not re.fullmatch(r"[A-Z][A-Z0-9]+-\d+", key):
             continue
         n = row[c_n] if c_n is not None and c_n < len(row) else None
-        out.append({
+        rec = {
             "key": key,
             "src": [pid],
             "summary": (cell(row[c_sum]) if c_sum is not None and c_sum < len(row) else "")[:300],
             "cases": int(n) if isinstance(n, (int, float)) else 0,
             "comment": (cell(row[c_cmt]) if c_cmt is not None and c_cmt < len(row) else "")[:300],
-        })
+        }
+        if key in REMAP:
+            # The old summary describes the old ticket; leave it to Jira (or the remap
+            # file) to say what the new one is.
+            rec.update(key=REMAP[key]["to"], summary=REMAP[key]["summary"], replaces=[key])
+        out.append(rec)
     return out
 
 
@@ -262,6 +291,8 @@ def main():
                 hit["cases"] += b["cases"]
                 hit["summary"] = hit["summary"] or b["summary"]
                 hit["comment"] = hit["comment"] or b["comment"]
+                if b.get("replaces"):
+                    hit["replaces"] = sorted(set(hit.get("replaces", [])) | set(b["replaces"]))
             else:
                 bugs[b["key"]] = b
         stats = summarise(cases)
@@ -305,6 +336,13 @@ def main():
         for pid in counts:
             if pid not in b["src"]:
                 b["src"] = sorted(set(b["src"]) | {pid})
+    for old, m in REMAP.items():
+        b = bugs.get(m["to"])
+        if b:
+            b["replaces"] = sorted(set(b.get("replaces", [])) | {old})
+            b["summary"] = b["summary"] or m["summary"]
+    if REMAP:
+        print("Pretest: bug remap " + ", ".join(f"{o} -> {m['to']}" for o, m in REMAP.items()))
     for b in bugs.values():
         b.setdefault("tagged", 0)
         b.setdefault("tagged_by", {})

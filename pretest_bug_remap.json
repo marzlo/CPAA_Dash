@@ -1,0 +1,12 @@
+{
+  "_readme": "Pretest bug key remap. The Facets/PCTS workbooks keep the ticket that was raised at the time; when a different ticket is now what blocks those test cases, map old -> new here. build_pretest.py applies it to every case and to the BugList, so it survives a new workbook upload.",
+  "remap": {
+    "NR1LT-6874": {
+      "to": "NR1LT-7899",
+      "summary": "[Highest][CPAA] [PCTS-WPC62] [Facets-789AA ] STR function is unavailable.（5/5)",
+      "note": "NR1LT-7899 (STR unavailable) is what blocks the test cases originally tagged NR1LT-6874",
+      "by": "Leyo",
+      "at": "2026-11-25"
+    }
+  }
+}
