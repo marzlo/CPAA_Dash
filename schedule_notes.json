@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-25T10:39:23.874Z",
+  "updated_at": "2026-11-25T10:40:50.339Z",
   "updated_by": "Leyo",
   "state": {
     "carplay|certification-1st|usb-performance": {
@@ -28,8 +28,8 @@
       "by": "Leyo"
     },
     "carplay|certification-1st|location-test-wireless-performance": {
-      "text": "<ul><li>Vehicle Allocation:​​ CTC</li><ul><li>CarPlay: Internal Amplifier.​​</li><li>Android Auto: External Amplifier.​​</li></ul><li>Prerequisites: GPS Location and Dead Reckoning validation.​​</li><li>Risks: Lab availability, Christmas/New Year holidays, and potential vehicle scheduling conflicts.​​</li><li>Action: MD to validate GPS Location and Harman's Dead Reckoning algorithm ASAP to enable early lab booking and potentially advance Location Testing.​​</li><ul><li>​​Business trip: Dec 4 Taipei team to CTC for testing</li></ul></ul>",
-      "at": "2026-11-25T09:56:47.016Z",
+      "text": "<ul><li>Vehicle Allocation:​​ CTC</li><ul><li>CarPlay: Internal Amplifier.​​</li><li>Android Auto: External Amplifier.​​</li></ul><li>Prerequisites: GPS Location and Dead Reckoning validation.​​</li><li>Risks: Lab availability, Christmas/New Year holidays, and potential vehicle scheduling conflicts.​​</li><li>Action: MD to validate GPS Location and Harman's Dead Reckoning algorithm ASAP to enable early lab booking and potentially advance Location Testing.​​</li><ul><li><span style=\"color: rgb(208, 59, 59)\">​​Business trip: Dec 4 Taipei team to CTC for testing</span></li></ul></ul>",
+      "at": "2026-11-25T10:40:50.339Z",
       "by": "Leyo"
     },
     "carplay|certification-1st|usb-performance": {
