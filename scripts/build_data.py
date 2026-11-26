@@ -169,6 +169,10 @@ TEAM_MAP = {
     '林嘉漳': 'TS_CPAA',
     'Hemalatha': 'MDI_System',
     'CraigJXFu(傅嘉祥)': 'MDT_System',
+    # Added per user confirmation (2026-11-26): shown as Unknown on the Pretest tab's
+    # grouped bug view.
+    'Afzal Amanullah': 'MDI_System',
+    'Hemanth Rag S': 'MDI_System',
 }
 
 # Per-assignee team corrections made from the dashboard itself and committed back to
