@@ -7913,7 +7913,7 @@
  },
  "2026-11-26": {
   "bugs": {
-   "done": 400,
+   "done": 405,
    "total": 504
   },
   "bugs_by_rca": {
@@ -7922,18 +7922,18 @@
     "total": 267
    },
    "filled": {
-    "done": 216,
+    "done": 221,
     "total": 237
    }
   },
   "bugs_by_status": {
    "Blocked": {
     "done": 0,
-    "total": 44
+    "total": 45
    },
    "Done": {
-    "done": 372,
-    "total": 372
+    "done": 374,
+    "total": 374
    },
    "Eng build": {
     "done": 5,
@@ -7941,7 +7941,7 @@
    },
    "In Progress": {
     "done": 0,
-    "total": 25
+    "total": 23
    },
    "Monitoring": {
     "done": 2,
@@ -7953,15 +7953,15 @@
    },
    "Ready for integration": {
     "done": 0,
-    "total": 6
+    "total": 1
    },
    "Ready for test": {
-    "done": 7,
-    "total": 7
+    "done": 10,
+    "total": 10
    },
    "Reopen": {
     "done": 0,
-    "total": 8
+    "total": 9
    },
    "To Do": {
     "done": 0,
@@ -7971,15 +7971,15 @@
   "bugs_by_team": {
    "MDI_System": {
     "done": 6,
-    "total": 32
+    "total": 33
    },
    "MDT_App": {
     "done": 11,
-    "total": 34
+    "total": 35
    },
    "MDT_PM": {
-    "done": 21,
-    "total": 36
+    "done": 25,
+    "total": 34
    },
    "MDT_Sys_QA": {
     "done": 5,
@@ -7990,7 +7990,7 @@
     "total": 10
    },
    "TS_CPAA": {
-    "done": 318,
+    "done": 319,
     "total": 345
    },
    "TS_FW": {
@@ -8007,19 +8007,18 @@
    "AA": {
     "open": 15,
     "open_by_status": {
-     "Blocked": 8,
-     "In Progress": 6,
+     "Blocked": 9,
+     "In Progress": 5,
      "To Do": 1
     },
     "total": 79,
     "unknown": 2
    },
    "CP": {
-    "open": 37,
+    "open": 36,
     "open_by_status": {
      "Blocked": 22,
      "In Progress": 10,
-     "Ready for integration": 1,
      "Reopen": 2,
      "To Do": 2
     },
@@ -8027,11 +8026,10 @@
     "unknown": 2
    },
    "all": {
-    "open": 46,
+    "open": 45,
     "open_by_status": {
-     "Blocked": 25,
-     "In Progress": 15,
-     "Ready for integration": 1,
+     "Blocked": 26,
+     "In Progress": 14,
      "Reopen": 2,
      "To Do": 3
     },
@@ -8040,7 +8038,7 @@
    }
   },
   "swe2": {
-   "done": 881,
+   "done": 885,
    "total": 1149
   },
   "swe3": {
