@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-24T02:50:59.171Z",
+  "updated_at": "2026-11-26T02:50:15.802Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -408,6 +408,12 @@
         "text": "調整Flextech建議的配置字",
         "by": "Leyo",
         "at": "2026-11-05T02:44:59.745Z"
+      },
+      {
+        "id": "mwwyfzef66h21",
+        "text": "Block by CR004",
+        "by": "Leyo",
+        "at": "2026-11-26T02:50:15.159Z"
       }
     ],
     "NR1LT-6874": [
