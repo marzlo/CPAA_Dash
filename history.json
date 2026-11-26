@@ -7919,11 +7919,11 @@
   "bugs_by_rca": {
    "empty": {
     "done": 184,
-    "total": 268
+    "total": 267
    },
    "filled": {
     "done": 218,
-    "total": 237
+    "total": 238
    }
   },
   "bugs_by_status": {
@@ -7941,7 +7941,7 @@
    },
    "In Progress": {
     "done": 0,
-    "total": 27
+    "total": 26
    },
    "Monitoring": {
     "done": 2,
@@ -7957,7 +7957,7 @@
    },
    "Ready for integration": {
     "done": 0,
-    "total": 2
+    "total": 3
    },
    "Ready for test": {
     "done": 8,
@@ -7979,11 +7979,11 @@
    },
    "MDT_App": {
     "done": 11,
-    "total": 40
+    "total": 39
    },
    "MDT_PM": {
     "done": 25,
-    "total": 36
+    "total": 37
    },
    "MDT_Sys_QA": {
     "done": 4,
@@ -8023,8 +8023,8 @@
     "open": 37,
     "open_by_status": {
      "Blocked": 22,
-     "In Progress": 12,
-     "Ready for integration": 1,
+     "In Progress": 11,
+     "Ready for integration": 2,
      "Reopen": 1,
      "To Do": 1
     },
@@ -8035,8 +8035,8 @@
     "open": 47,
     "open_by_status": {
      "Blocked": 26,
-     "In Progress": 16,
-     "Ready for integration": 1,
+     "In Progress": 15,
+     "Ready for integration": 2,
      "Reopen": 2,
      "To Do": 2
     },
