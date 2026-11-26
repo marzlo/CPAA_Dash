@@ -7932,8 +7932,8 @@
     "total": 44
    },
    "Done": {
-    "done": 371,
-    "total": 371
+    "done": 372,
+    "total": 372
    },
    "Eng build": {
     "done": 5,
@@ -7948,8 +7948,8 @@
     "total": 2
    },
    "Non-issue": {
-    "done": 15,
-    "total": 15
+    "done": 14,
+    "total": 14
    },
    "Ready for integration": {
     "done": 0,
@@ -7975,7 +7975,7 @@
    },
    "MDT_App": {
     "done": 11,
-    "total": 35
+    "total": 34
    },
    "MDT_PM": {
     "done": 21,
@@ -7987,19 +7987,15 @@
    },
    "MDT_System": {
     "done": 3,
-    "total": 11
+    "total": 10
    },
    "TS_CPAA": {
     "done": 318,
-    "total": 341
+    "total": 345
    },
    "TS_FW": {
     "done": 34,
     "total": 36
-   },
-   "Unassigned": {
-    "done": 0,
-    "total": 2
    },
    "Unknown": {
     "done": 2,
@@ -8011,8 +8007,8 @@
    "AA": {
     "open": 15,
     "open_by_status": {
-     "Blocked": 7,
-     "In Progress": 7,
+     "Blocked": 8,
+     "In Progress": 6,
      "To Do": 1
     },
     "total": 79,
@@ -8021,8 +8017,8 @@
    "CP": {
     "open": 37,
     "open_by_status": {
-     "Blocked": 23,
-     "In Progress": 9,
+     "Blocked": 22,
+     "In Progress": 10,
      "Ready for integration": 1,
      "Reopen": 2,
      "To Do": 2
@@ -8044,7 +8040,7 @@
    }
   },
   "swe2": {
-   "done": 878,
+   "done": 881,
    "total": 1149
   },
   "swe3": {
