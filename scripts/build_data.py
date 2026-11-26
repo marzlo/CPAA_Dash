@@ -61,6 +61,10 @@ IDX_CREATED = header.index("Created") if "Created" in header else None
 # claiming every bug is missing its analysis.
 IDX_RCA = (header.index("Custom field (Root Cause Analysis)")
            if "Custom field (Root Cause Analysis)" in header else None)
+# Jira's Due date (YYYY-MM-DD). Absent from exports made before 2026-11-26 and from
+# manual CSV exports without the column, hence the None guard: no column means no
+# deadline shown, never a guessed one.
+IDX_DUE = header.index("Due date") if "Due date" in header else None
 LABEL_COLS = [i for i, h in enumerate(header) if h == "Labels" or (isinstance(h, str) and h.startswith("Labels_"))]
 
 # Normalise the "Created" cell to an ISO date string regardless of source: the CSV path
@@ -70,6 +74,16 @@ def created_iso(v):
     if isinstance(v, (_dt.datetime, _dt.date)):
         return v.isoformat()
     return v or None
+
+
+def due_iso(v):
+    """Due date as YYYY-MM-DD, or None. Accepts the API's string or an openpyxl date."""
+    if v is None or v == "":
+        return None
+    if isinstance(v, (_dt.datetime, _dt.date)):
+        return v.strftime("%Y-%m-%d")
+    s = str(v).strip()[:10]
+    return s if len(s) == 10 and s[4] == "-" and s[7] == "-" else None
 
 # Assignee -> team/org mapping, sourced from the cpaa-dashboard skill's TEAM_MAP
 # (build_all_swe.py). Anyone not in here falls under "Unknown" and should be
@@ -338,6 +352,7 @@ for r in data:
         "assignee": assignee,
         "team": team_of(assignee),
         "created": created_iso(r[IDX_CREATED]) if IDX_CREATED is not None else None,
+        "due": due_iso(r[IDX_DUE]) if IDX_DUE is not None else None,
     }
     rec["labelBucket"] = label_bucket(rec["hasR2"], rec["hasR3"], rec["hasCPAA0830"])
     rec["subFeature"] = classify_subfeature(rec["feature"], summary) or "未分類"
@@ -413,6 +428,7 @@ for r in data:
         "severity": severity,
         "priority": priority,
         "created": created_iso(r[IDX_CREATED]) if IDX_CREATED is not None else None,
+        "due": due_iso(r[IDX_DUE]) if IDX_DUE is not None else None,
         # True / False when the column exists, None when the export predates it.
         "hasRca": (bool((r[IDX_RCA] or "").strip()) if IDX_RCA is not None else None),
     }
