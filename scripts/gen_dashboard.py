@@ -126,6 +126,15 @@ _pt_keys = {r.get("key") for r in DATA.get("pretest") or []}
 for _b in (PRETEST_CASES or {}).get("bugs") or []:
     _pt_keys.add(_b.get("key"))
 DATA["jira_comments"] = {k: v for k, v in _all_jira_comments.items() if k in _pt_keys}
+
+# The Pretest bug board: date columns the team creates and which column each ticket was
+# dragged to. Written from the browser (GitHub Contents API) and re-read there at load,
+# so the copy baked in here only has to be a reasonable first paint.
+try:
+    with open("pretest_deadlines.json", encoding="utf-8") as f:
+        DATA["pretest_deadlines"] = json.load(f)
+except FileNotFoundError:
+    DATA["pretest_deadlines"] = {"updated_at": None, "updated_by": None, "lanes": [], "cards": {}}
 print("Jira comment threads embedded for the Pretest tab:", len(DATA["jira_comments"]))
 
 # The weeks before history.json started recording Pretest counts (2026-11-10): open
@@ -422,56 +431,72 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
                 padding-left: 8px; border-left: 2px solid var(--series-cp); }
   .pt-lastcmt .txt { white-space: pre-wrap; overflow-wrap: anywhere; }
   .pt-lastcmt .who, .pt-lastcmt-more { color: var(--muted); margin-left: 6px; font-size: 11.5px; white-space: nowrap; }
-  /* Pretest "Overall bug status" card: notes / grouped-view switch and the grouped view. */
+  /* Pretest "Overall bug status" card: notes / board switch, and the deadline board.
+     Lanes are dates the team creates; a card sits in the lane it was dragged to. */
   .notes-view { margin: 10px 0 4px; }
   .ptg-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0 8px; }
   .ptg-controls .lbl { font-size: 12px; color: var(--text-secondary); }
-  .ptg-controls .chips { margin: 0; }
-  .ptg-controls select, .ptg-controls input[type=text] { font-size: 12px; }
+  .ptg-controls select, .ptg-controls input { font-size: 12px; }
   .ptg-controls .grow { flex: 1 1 160px; min-width: 140px; }
+  .save-state { font-size: 12px; color: var(--muted); }
   .ptg-summary { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px;
                  color: var(--text-secondary); margin: 4px 0 10px; }
   .ptg-summary b { color: var(--text-primary); }
   .ptg-summary .warn { color: var(--critical); }
-  .ptg-group { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
-  .ptg-group > summary { list-style: none; cursor: pointer; display: flex; flex-wrap: wrap; gap: 6px 10px;
-                         align-items: center; padding: 8px 12px; background: var(--page); font-size: 13px; }
-  .ptg-group > summary::-webkit-details-marker { display: none; }
-  .ptg-group > summary::before { content: '\25B8'; color: var(--muted); font-size: 11px; transition: transform .15s; }
-  .ptg-group[open] > summary::before { transform: rotate(90deg); }
-  .ptg-group > summary .name { font-weight: 700; }
-  .ptg-group > summary .n { color: var(--muted); font-size: 12px; }
-  .ptg-group > summary .mix { display: flex; flex-wrap: wrap; gap: 4px; margin-left: auto; }
-  .ptg-group > summary .mix .badge { font-size: 10.5px; padding: 1px 6px; }
-  .ptg-group.tone-red > summary { border-left: 3px solid var(--critical); }
-  .ptg-group.tone-amber > summary { border-left: 3px solid var(--warning); }
-  .ptg-group.tone-muted > summary { border-left: 3px solid var(--muted); }
-  .ptg-row { padding: 8px 12px 8px 12px; border-top: 1px solid var(--grid); font-size: 12.5px; }
-  .ptg-main { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
-  .ptg-main .key a { font-weight: 600; white-space: nowrap; }
-  .ptg-main .sum { flex: 1 1 280px; min-width: 0; overflow-wrap: anywhere; }
-  .ptg-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; margin-top: 4px;
-              color: var(--text-secondary); font-size: 12px; }
-  .ptg-meta .team { color: var(--muted); margin-left: 4px; font-size: 11px; }
-  .ptg-due { white-space: nowrap; }
+  .ptb-board { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 10px; align-items: flex-start; }
+  .ptb-lane { flex: 0 0 210px; background: var(--page); border: 1px solid var(--border); border-radius: 8px;
+              display: flex; flex-direction: column; max-height: 640px; border-top: 3px solid var(--series-cp); }
+  .ptb-lane.unplanned { flex-basis: 230px; border-top-color: var(--muted); }
+  .ptb-lane.past { border-top-color: var(--critical); }
+  .ptb-lane.soon { border-top-color: var(--warning); }
+  .ptb-lane-hd { padding: 7px 10px 6px; border-bottom: 1px solid var(--grid); display: flex; gap: 6px; align-items: flex-start; }
+  .ptb-lane-hd .t { flex: 1; min-width: 0; }
+  .ptb-lane-hd .d { font-weight: 700; font-size: 13px; }
+  .ptb-lane-hd .sub { font-size: 11.5px; color: var(--muted); overflow-wrap: anywhere; }
+  .ptb-lane.past .ptb-lane-hd .rel { color: var(--critical); font-weight: 600; }
+  .ptb-lane-hd .n { font-size: 12px; color: var(--text-secondary); background: var(--surface-1);
+                    border: 1px solid var(--border); border-radius: 999px; padding: 0 7px; line-height: 18px; }
+  .ptb-lane-hd .ic { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 13px;
+                     padding: 0 2px; line-height: 18px; }
+  .ptb-lane-hd .ic:hover { color: var(--critical); }
+  .ptb-lane-hd .ic.edit:hover { color: var(--series-cp); }
+  .ptb-lane-body { padding: 8px; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; min-height: 90px; flex: 1; }
+  .ptb-lane-body.over { background: color-mix(in srgb, var(--series-cp) 10%, transparent);
+                        outline: 2px dashed var(--series-cp); outline-offset: -4px; }
+  .ptb-hint { font-size: 11.5px; color: var(--muted); text-align: center; padding: 18px 4px; }
+  .ptb-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px;
+              cursor: grab; font-size: 12px; display: grid; gap: 3px; user-select: none; }
+  .ptb-card:hover { border-color: var(--series-cp); }
+  .ptb-card:focus-visible { outline: 2px solid var(--series-cp); outline-offset: 1px; }
+  .ptb-card.dragging { opacity: .4; }
+  .ptb-card.done { opacity: .6; }
+  .ptb-card .k { font-weight: 700; color: var(--series-cp); display: flex; align-items: center; flex-wrap: wrap; }
+  .ptb-card .k .badge.prio-flag { margin-left: 4px; font-size: 10px; padding: 0 5px; }
+  .ptb-card .who { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ptb-card .badge { justify-self: start; font-size: 10.5px; padding: 1px 7px; }
+  .ptb-modal { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.42);
+               display: flex; align-items: flex-start; justify-content: center; padding: 5vh 16px; overflow-y: auto; }
+  .ptb-dialog { background: var(--surface-1); color: var(--text-primary); border-radius: 10px; width: min(820px, 100%);
+                box-shadow: 0 12px 40px rgba(0,0,0,.25); padding: 16px 18px 18px; }
+  .ptb-dialog .hd { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .ptb-dialog .hd a { font-weight: 700; font-size: 15px; }
+  .ptb-dialog .hd .close { margin-left: auto; background: none; border: none; font-size: 20px; cursor: pointer; color: var(--muted); }
+  .ptb-dialog .sum { font-size: 13.5px; margin-bottom: 10px; overflow-wrap: anywhere; }
+  .ptb-facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; font-size: 12.5px; margin: 0 0 12px; align-items: center; }
+  .ptb-facts dt { color: var(--muted); }
+  .ptb-facts dd { margin: 0; }
   .ptg-due.over { color: var(--critical); font-weight: 600; }
   .ptg-due.soon { color: #8a6200; font-weight: 600; }
-  .ptg-due.none { color: var(--muted); }
   :root[data-theme="dark"] .ptg-due.soon { color: #f2c75c; }
-  .ptg-last { margin-top: 5px; font-size: 12px; color: var(--text-secondary); padding-left: 8px;
-              border-left: 2px solid var(--series-aa); display: -webkit-box; -webkit-line-clamp: 2;
-              -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
-  .ptg-last .who { color: var(--muted); font-size: 11.5px; }
-  .ptg-detail { margin-top: 8px; display: grid; gap: 8px; }
+  .ptg-detail { display: grid; gap: 10px; }
   .ptg-detail h4 { margin: 0 0 4px; font-size: 12px; color: var(--text-secondary); font-weight: 600; }
   .ptg-jira { border: 1px solid var(--border); border-radius: 6px; background: var(--page); padding: 8px 10px;
-              display: flex; flex-direction: column; gap: 8px; }
+              display: flex; flex-direction: column; gap: 8px; max-height: 46vh; overflow-y: auto; }
   .ptg-jira .item { font-size: 12px; }
   .ptg-jira .item .hd { color: var(--muted); font-size: 11px; margin-bottom: 2px; }
   .ptg-jira .item .hd b { color: var(--text-primary); font-weight: 600; }
-  .ptg-jira .item .body { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 220px; overflow: auto; }
+  .ptg-jira .item .body { white-space: pre-wrap; overflow-wrap: anywhere; }
   .ptg-detail .cmt-box { margin: 0; }
-  .ptg-empty { padding: 16px; color: var(--muted); font-size: 12.5px; text-align: center; }
   .pt-trend details { margin-top: 12px; font-size: 12.5px; }
   .pt-trend summary { cursor: pointer; color: var(--text-secondary); }
   .pt-trend summary:hover { color: var(--text-primary); }
@@ -2417,44 +2442,53 @@ const STRINGS = {
   audio_notes_caption: { zh: '這一頁的自由筆記:進度、卡點、跟 Harman／MDI 的待辦。與統計數據頁的專案總覽用同一組編輯工具與同一把 token', en: 'Free-text notes for this tab — progress, blockers, open items with Harman/MDI. Same editor and same token as the project overview on the Stats tab' },
   pt_notes_heading: { zh: 'Bug 整體現狀(可編輯)', en: 'Overall bug status (editable)' },
   pt_view_notes: { zh: '📝 整體現狀', en: '📝 Summary' },
-  pt_view_group: { zh: '🗂 Bug 分群', en: '🗂 Grouped bugs' },
-  ptg_by: { zh: '分群依據', en: 'Group by' },
-  ptg_by_team: { zh: 'Team', en: 'Team' },
-  ptg_by_plat: { zh: 'CP / AA', en: 'CP / AA' },
-  ptg_by_assignee: { zh: '處理人', en: 'Assignee' },
-  ptg_by_due: { zh: 'Deadline', en: 'Deadline' },
+  pt_view_group: { zh: '🗂 Bug 看板', en: '🗂 Bug board' },
+  ptg_team_all: { zh: '全部 Team', en: 'All teams' },
+  ptg_plat_all: { zh: 'CP + AA', en: 'CP + AA' },
+  ptg_who_all: { zh: '全部處理人', en: 'All assignees' },
   ptg_scope_open: { zh: '只看未完成', en: 'Open only' },
   ptg_scope_all: { zh: '全部(含已完成)', en: 'All (incl. done)' },
-  ptg_all_plat: { zh: 'CP + AA', en: 'CP + AA' },
   ptg_copy: { zh: '📋 複製成文字', en: '📋 Copy as text' },
   ptg_copied: { zh: '已複製', en: 'Copied' },
   ptg_total: { zh: n => `共 <b>${n}</b> 張`, en: n => `<b>${n}</b> tickets` },
   ptg_ts: { zh: (a, b) => `TS 負責 <b>${a}</b> · 非 TS <b>${b}</b>`, en: (a, b) => `TS-owned <b>${a}</b> · non-TS <b>${b}</b>` },
-  ptg_overdue_n: { zh: n => `逾期 ${n}`, en: n => `${n} overdue` },
-  ptg_nodue_n: { zh: n => `未設 deadline ${n}`, en: n => `${n} without a deadline` },
+  ptg_unplanned_n: { zh: n => `未排定 ${n}`, en: n => `${n} unscheduled` },
+  ptg_late_n: { zh: n => `已過日期仍未完成 ${n}`, en: n => `${n} past their date and still open` },
   ptg_unknown_n: { zh: n => `另有 ${n} 張不在 Jira 匯出範圍、狀態未知(選「全部」可看到)`, en: n => `${n} more are outside the Jira export, status unknown (choose "All" to see them)` },
-  ptg_both_note: { zh: '標題同時寫 PCTS 與 Facets(或都沒寫)的票會同時出現在 CP 與 AA', en: 'A ticket whose title names both PCTS and Facets (or neither) appears under both CP and AA' },
-  ptg_due_over: { zh: '已逾期', en: 'Overdue' },
-  ptg_due_week: { zh: '本週到期', en: 'Due this week' },
-  ptg_due_next: { zh: '下週到期', en: 'Due next week' },
-  ptg_due_later: { zh: '之後', en: 'Later' },
-  ptg_due_none: { zh: '未設定 deadline', en: 'No deadline' },
-  ptg_due_done: { zh: '已完成', en: 'Done' },
-  ptg_due_days_over: { zh: n => `逾期 ${n} 天`, en: n => `${n}d overdue` },
-  ptg_due_today: { zh: '今天到期', en: 'due today' },
-  ptg_due_days_left: { zh: n => `剩 ${n} 天`, en: n => `${n}d left` },
-  ptg_no_due: { zh: '無 deadline', en: 'no deadline' },
+  ptg_search: { zh: '搜尋 key / summary / 留言', en: 'Search key / summary / comments' },
   ptg_unassigned: { zh: '(未指派)', en: '(unassigned)' },
-  ptg_cmt_btn: { zh: (j, d) => `💬 Jira ${j} · 備註 ${d}`, en: (j, d) => `💬 Jira ${j} · notes ${d}` },
+  ptg_due_days_over: { zh: n => `逾期 ${n} 天`, en: n => `${n}d overdue` },
+  ptg_due_today: { zh: '今天', en: 'today' },
+  ptg_due_days_left: { zh: n => `剩 ${n} 天`, en: n => `${n}d left` },
+  ptg_no_due: { zh: '未設定', en: 'not set' },
   ptg_jira_cmts: { zh: 'Jira 留言(新 → 舊)', en: 'Jira comments (newest first)' },
   ptg_jira_more: { zh: (shown, total) => `只顯示最新 ${shown} 則,共 ${total} 則 — 到 Jira 看全部`, en: (shown, total) => `Showing the newest ${shown} of ${total} — open Jira for all` },
   ptg_jira_none: { zh: 'Jira 上沒有留言', en: 'No comments on Jira' },
   ptg_jira_missing: { zh: '這次建置沒有抓到 Jira 留言(下次排程重建後就會出現)', en: 'This build carried no Jira comments (they appear after the next scheduled rebuild)' },
   ptg_dash_cmts: { zh: 'Dashboard 備註(和下方 Bug 清單的 💬 是同一串)', en: 'Dashboard notes (same thread as 💬 in the Bug list below)' },
-  ptg_expand_all: { zh: '全部展開', en: 'Expand all' },
-  ptg_collapse_all: { zh: '全部收合', en: 'Collapse all' },
-  ptg_empty: { zh: '沒有符合條件的票', en: 'No tickets match' },
-  ptg_search: { zh: '搜尋 key / summary / 留言 / 處理人', en: 'Search key / summary / comments / assignee' },
+  ptb_unplanned: { zh: '未排定', en: 'Unscheduled' },
+  ptb_unplanned_sub: { zh: '把卡片拖到右邊的日期', en: 'Drag cards onto a date' },
+  ptb_new_date: { zh: '新增日期', en: 'New date' },
+  ptb_new_label: { zh: '說明(選填,例如 BSP R8)', en: 'Label (optional, e.g. BSP R8)' },
+  ptb_add: { zh: '＋ 新增日期', en: '＋ Add date' },
+  ptb_add_need_date: { zh: '請先選一個日期', en: 'Pick a date first' },
+  ptb_add_exists: { zh: d => `${d} 已經有了`, en: d => `${d} already exists` },
+  ptb_drop_here: { zh: '拖曳卡片到這裡', en: 'Drop cards here' },
+  ptb_del_lane: { zh: '刪除這個日期', en: 'Delete this date' },
+  ptb_edit_lane: { zh: '修改說明', en: 'Edit label' },
+  ptb_edit_prompt: { zh: d => `${d} 的說明:`, en: d => `Label for ${d}:` },
+  ptb_del_confirm: { zh: (d, n) => `刪除 ${d}?${n ? `上面的 ${n} 張卡片會回到「未排定」。` : ''}`, en: (d, n) => `Delete ${d}?${n ? ` Its ${n} cards go back to "Unscheduled".` : ''}` },
+  ptb_saving: { zh: '儲存中…', en: 'Saving…' },
+  ptb_saved: { zh: '已儲存', en: 'Saved' },
+  ptb_need_token: { zh: '要先設定 🔑 GitHub token 才能存看板', en: 'Set the 🔑 GitHub token first to save the board' },
+  ptb_save_error: { zh: m => `看板儲存失敗,已還原:${m}`, en: m => `Could not save the board (change undone): ${m}` },
+  ptb_f_plat: { zh: '平台', en: 'Platform' },
+  ptb_f_team: { zh: 'Team', en: 'Team' },
+  ptb_f_who: { zh: '處理人', en: 'Assignee' },
+  ptb_f_status: { zh: '狀態', en: 'Status' },
+  ptb_f_jira_due: { zh: 'Jira Due date', en: 'Jira due date' },
+  ptb_f_lane: { zh: '看板日期', en: 'Board date' },
+  ptb_f_updated: { zh: m => `看板最後更新:${m}`, en: m => `Board last saved: ${m}` },
   pt_notes_caption: { zh: '描述這一輪 pretest 的 bug 整體現狀:主要 blocker、狀態分布、卡在誰身上、下一步。與統計數據頁的專案總覽用同一組編輯工具與同一把 token', en: 'The overall pretest bug picture — main blockers, status spread, who things wait on, next steps. Same editor and same token as the project overview on the Stats tab' },
   bug_notes_heading: { zh: 'Bug 備註(可編輯)', en: 'Bug notes (editable)' },
   bug_notes_caption: { zh: '這一頁的自由筆記:本週重點票、卡在誰身上、與 RD／QA 約定的事項。與統計數據頁的專案總覽用同一組編輯工具與同一把 token', en: 'Free-text notes for this tab — key tickets this week, who things are blocked on, agreements with RD/QA. Same editor and same token as the project overview on the Stats tab' },
@@ -9757,23 +9791,45 @@ function ptLatestComment(key) {
          `<span class="who">— ${esc(c.by || '?')} · ${esc((c.at || '').slice(0, 10))}</span>${more}</div>`;
 }
 
-// --- Pretest bugs, grouped ("Bug 分群" view of the Overall bug status card) ----------
-// The same tickets as the Bug list below (ptAllBugs), regrouped by whoever has to act:
-// team, platform, assignee, or how close the Jira due date is. Each ticket carries its
-// assignee, its live Jira status and its deadline, and opens to its Jira comment thread
-// (the newest few, from jira_export_comments.json) plus the dashboard's own 💬 thread.
+// --- Pretest bug board ("Bug 看板" view of the Overall bug status card) ---------------
+// The same tickets as the Bug list below (ptAllBugs), as cards on a board whose columns
+// are dates the team sets itself. A card sits in the column it was dragged to; one never
+// dragged anywhere sits in "未排定". Dropdowns narrow the board to one team, platform or
+// assignee. A card shows only key / assignee / status; clicking it opens the rest:
+// summary, platform, team, Jira due date, the Jira comment thread (newest few, from
+// jira_export_comments.json) and the dashboard's own 💬 thread.
+//
+// The board lives in pretest_deadlines.json — {lanes: [{date, label}], cards: {key: date}}
+// — committed from the browser like the other *_notes files. Each change is its own
+// GET-then-PUT on the file, so two people moving different cards merge instead of
+// overwriting each other.
 const JIRA_COMMENTS = RAW.jira_comments || null;   // null = this build predates the file
-const PTG = { by: 'team', scope: 'open', plat: '', q: '', open: new Set() };
+const GITHUB_PT_DL_PATH = 'pretest_deadlines.json';
+const PT_DL = Object.assign({ updated_at: null, updated_by: null, lanes: [], cards: {} },
+                            RAW.pretest_deadlines || {});
+const PTG = { team: '', plat: '', who: '', scope: 'open', q: '' };
 try {
-  const saved = JSON.parse(localStorage.getItem('cpaaPtGroup') || '{}');
-  if (['team', 'plat', 'assignee', 'due'].includes(saved.by)) PTG.by = saved.by;
+  const saved = JSON.parse(localStorage.getItem('cpaaPtBoard') || '{}');
+  ['team', 'plat', 'who'].forEach(k => { if (typeof saved[k] === 'string') PTG[k] = saved[k]; });
   if (['open', 'all'].includes(saved.scope)) PTG.scope = saved.scope;
 } catch (e) { /* no storage */ }
+function ptgSavePrefs() {
+  try { localStorage.setItem('cpaaPtBoard', JSON.stringify({ team: PTG.team, plat: PTG.plat, who: PTG.who, scope: PTG.scope })); }
+  catch (e) { /* no storage */ }
+}
 
 function ptgJira(key) { return (JIRA_COMMENTS && JIRA_COMMENTS[key]) || null; }
 function ptgToday() { return ptDayIso(new Date(Date.now() + 8 * 3600000)); }
 function ptgDaysBetween(a, b) {
   return Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 86400000);
+}
+function ptgRel(date) {
+  const d = ptgDaysBetween(ptgToday(), date);
+  return d < 0 ? t('ptg_due_days_over', -d) : d === 0 ? t('ptg_due_today') : t('ptg_due_days_left', d);
+}
+function ptgWeekday(date) {
+  const i = new Date(date + 'T00:00:00Z').getUTCDay();
+  return LANG === 'en' ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][i] : '週' + '日一二三四五六'[i];
 }
 function ptgLinkify(s) {
   return esc(s).replace(/https?:\/\/[^\s<>"']+/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
@@ -9783,8 +9839,9 @@ function ptgFmtAt(at) {
   const m = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(at || '');
   return m ? `${m[1]} ${m[2]}` : (at || '').slice(0, 16);
 }
+function ptgWho(r) { return r.assignee === 'Unassigned' ? t('ptg_unassigned') : (r.assignee || '—'); }
 
-// Every ticket the view can show, with the fields it groups and sorts on.
+// Every ticket the board can show, with the fields it filters on.
 function ptgRows() {
   return ptAllBugs().map(b => {
     const tk = ptTicket(b.key) || {};
@@ -9799,97 +9856,98 @@ function ptgRows() {
     });
   });
 }
-
-function ptgDueBucket(r, today) {
-  if (r.known && r.done) return 'done';
-  if (!r.due) return 'none';
-  if (r.due < today) return 'over';
-  const monday = ptMondayOf(today);
-  if (r.due <= ptAddDays(monday, 6)) return 'week';
-  if (r.due <= ptAddDays(monday, 13)) return 'next';
-  return 'later';
-}
-const PTG_DUE_ORDER = ['over', 'week', 'next', 'later', 'none', 'done'];
-const PTG_DUE_TONE = { over: 'red', week: 'amber', none: 'muted' };
-
-function ptgFiltered() {
-  const q = PTG.q.trim().toLowerCase();
+// What the dropdowns choose from: scope and platform only, so picking a team never
+// empties the team list itself.
+function ptgBaseRows() {
   let rows = ptgRows();
   if (PTG.scope === 'open') rows = rows.filter(r => r.known && !r.done);
   if (PTG.plat) rows = rows.filter(r => r.src.includes(PTG.plat));
+  return rows;
+}
+function ptgFiltered() {
+  const q = PTG.q.trim().toLowerCase();
+  let rows = ptgBaseRows();
+  if (PTG.team) rows = rows.filter(r => r.team === PTG.team);
+  if (PTG.who) rows = rows.filter(r => r.assignee === PTG.who);
   if (q) rows = rows.filter(r => {
     const j = ptgJira(r.key);
     return r.key.toLowerCase().includes(q) || (r.summary || '').toLowerCase().includes(q) ||
-      (r.assignee || '').toLowerCase().includes(q) || (r.team || '').toLowerCase().includes(q) ||
-      (r.status || '').toLowerCase().includes(q) ||
+      (r.assignee || '').toLowerCase().includes(q) || (r.status || '').toLowerCase().includes(q) ||
       bugComments(r.key).some(c => (c.text || '').toLowerCase().includes(q)) ||
-      ((j && j.items) || []).some(c => (c.text || '').toLowerCase().includes(q) ||
-                                       (c.by || '').toLowerCase().includes(q));
+      ((j && j.items) || []).some(c => (c.text || '').toLowerCase().includes(q));
   });
   return rows;
 }
 
-// [{id, name, tone, rows}] in display order. A CP+AA ticket sits in both platform groups.
-function ptgGroups(rows) {
-  const today = ptgToday();
-  const map = new Map();
-  const add = (id, name, r, tone) => {
-    if (!map.has(id)) map.set(id, { id, name, tone: tone || '', rows: [] });
-    map.get(id).rows.push(r);
-  };
-  rows.forEach(r => {
-    if (PTG.by === 'team') add(r.team, r.team, r);
-    else if (PTG.by === 'plat') r.src.forEach(p => add(p, p === 'CP' ? 'CarPlay (CP)' : 'Android Auto (AA)', r));
-    else if (PTG.by === 'assignee') add(r.assignee || '?', r.assignee === 'Unassigned' ? t('ptg_unassigned') : (r.assignee || '?'), r);
-    else { const k = ptgDueBucket(r, today); add(k, t('ptg_due_' + k), r, PTG_DUE_TONE[k]); }
-  });
-  let groups = [...map.values()];
-  if (PTG.by === 'team') {
-    const rank = k => { const i = TEAM_ORDER.indexOf(k); return i < 0 ? 99 : i; };
-    groups.sort((a, b) => rank(a.id) - rank(b.id) || a.id.localeCompare(b.id));
-  } else if (PTG.by === 'plat') {
-    groups.sort((a, b) => (a.id === 'CP' ? 0 : 1) - (b.id === 'CP' ? 0 : 1));
-  } else if (PTG.by === 'assignee') {
-    groups.sort((a, b) => b.rows.length - a.rows.length || a.name.localeCompare(b.name));
-    groups.forEach(g => { g.sub = [...new Set(g.rows.map(r => r.team))].join(' / '); });
-  } else {
-    groups.sort((a, b) => PTG_DUE_ORDER.indexOf(a.id) - PTG_DUE_ORDER.indexOf(b.id));
-  }
-  // Inside a group: nearest deadline first (none last), then priority, then key.
-  const pr = p => { const i = PRIORITY_ORDER.indexOf(p); return i < 0 ? 99 : i; };
-  groups.forEach(g => g.rows.sort((a, b) =>
-    (a.done - b.done) || (a.due || '9999').localeCompare(b.due || '9999') ||
-    pr(a.priority) - pr(b.priority) || a.key.localeCompare(b.key)));
-  return groups;
+function ptgLanes() { return (PT_DL.lanes || []).slice().sort((a, b) => a.date.localeCompare(b.date)); }
+// A card whose date has no column any more (deleted elsewhere) falls back to 未排定.
+function ptgLaneOf(key) {
+  const d = (PT_DL.cards || {})[key];
+  return d && (PT_DL.lanes || []).some(l => l.date === d) ? d : '';
 }
 
 function ptgStatusBadge(r) {
   return r.known ? bugStatusBadge(r)
                  : `<span class="badge unknown" title="${esc(t('pt_bug_unknown'))}">?</span>`;
 }
-function ptgDueHtml(r) {
-  if (!r.due) return `<span class="ptg-due none">📅 ${esc(t('ptg_no_due'))}</span>`;
-  if (r.done) return `<span class="ptg-due">📅 ${esc(r.due)}</span>`;
-  const d = ptgDaysBetween(ptgToday(), r.due);
-  const cls = d < 0 ? 'over' : d <= 3 ? 'soon' : '';
-  const rel = d < 0 ? t('ptg_due_days_over', -d) : d === 0 ? t('ptg_due_today') : t('ptg_due_days_left', d);
-  return `<span class="ptg-due ${cls}">📅 ${esc(r.due)} · ${esc(rel)}</span>`;
+function ptgCardHtml(r) {
+  return `<div class="ptb-card${r.known && r.done ? ' done' : ''}" draggable="true" tabindex="0" role="button"
+      data-ptb-card="${esc(r.key)}" title="${esc(r.summary)}">
+    <div class="k">${esc(r.key)}${bugFlagBadge(r.key)}</div>
+    <div class="who">👤 ${esc(ptgWho(r))}</div>
+    ${ptgStatusBadge(r)}
+  </div>`;
 }
-function ptgLatestHtml(key) {
-  const j = ptgJira(key);
-  const c = j && j.items && j.items[j.items.length - 1];
-  if (!c) return '';
-  // One flowing line: a comment that opens with "@name" and a blank line would
-  // otherwise spend the whole two-line preview on the greeting.
-  const flat = String(c.text || '').replace(/\s+/g, ' ').trim();
-  return `<div class="ptg-last">${esc(flat)} <span class="who">— ${esc(c.by || '?')} · ${esc(ptgFmtAt(c.at))}</span></div>`;
+function ptgLaneHtml(lane, cards) {
+  const today = ptgToday();
+  const openN = cards.filter(r => r.known && !r.done).length;
+  let cls = 'ptb-lane', head;
+  if (!lane) {
+    cls += ' unplanned';
+    head = `<div class="t"><div class="d">${esc(t('ptb_unplanned'))}</div>
+      <div class="sub">${esc(t('ptb_unplanned_sub'))}</div></div>`;
+  } else {
+    const d = ptgDaysBetween(today, lane.date);
+    if (d < 0 && openN) cls += ' past';
+    else if (d >= 0 && d <= 3) cls += ' soon';
+    head = `<div class="t"><div class="d">${esc(lane.date.slice(5).replace('-', '/'))} ${esc(ptgWeekday(lane.date))}</div>
+      <div class="sub"><span class="rel">${esc(ptgRel(lane.date))}</span>${lane.label ? ' · ' + esc(lane.label) : ''}</div></div>`;
+  }
+  const date = lane ? lane.date : '';
+  return `<div class="${cls}" data-ptb-lane="${esc(date)}">
+    <div class="ptb-lane-hd">${head}<span class="n">${cards.length}</span>
+      ${lane ? `<button type="button" class="ic edit" data-ptb-edit-lane="${esc(date)}" title="${esc(t('ptb_edit_lane'))}">✎</button>
+      <button type="button" class="ic" data-ptb-del-lane="${esc(date)}" title="${esc(t('ptb_del_lane'))}">✕</button>` : ''}
+    </div>
+    <div class="ptb-lane-body" data-ptb-drop="${esc(date)}">
+      ${cards.length ? cards.map(ptgCardHtml).join('') : `<div class="ptb-hint">${esc(t('ptb_drop_here'))}</div>`}
+    </div>
+  </div>`;
 }
-function ptgCmtBtnText(key) {
-  const j = ptgJira(key);
-  return t('ptg_cmt_btn', j ? j.total : 0, bugComments(key).length);
+function ptgColumns(rows) {
+  const pr = p => { const i = PRIORITY_ORDER.indexOf(p); return i < 0 ? 99 : i; };
+  const cols = [{ lane: null, cards: [] }].concat(ptgLanes().map(l => ({ lane: l, cards: [] })));
+  const byDate = new Map(cols.map(c => [c.lane ? c.lane.date : '', c]));
+  rows.forEach(r => byDate.get(ptgLaneOf(r.key)).cards.push(r));
+  cols.forEach(c => c.cards.sort((a, b) =>
+    ((a.known && a.done) - (b.known && b.done)) || pr(a.priority) - pr(b.priority) || a.key.localeCompare(b.key)));
+  return cols;
 }
-function ptgDetailHtml(key) {
-  const j = ptgJira(key);
+
+function ptgText(cols) {
+  const out = [`Pretest bugs — ${ptgToday()}`];
+  cols.forEach(c => {
+    if (!c.cards.length) return;
+    const name = c.lane ? `${c.lane.date}${c.lane.label ? ' ' + c.lane.label : ''}` : t('ptb_unplanned');
+    out.push('', `■ ${name} (${c.cards.length})`);
+    c.cards.forEach(r => out.push(`  - ${r.key} [${r.known ? r.status : '?'}] ${r.assignee || '—'} · ${r.summary}`));
+  });
+  return out.join('\n');
+}
+
+// --- the detail dialog ---
+function ptgDetailHtml(r) {
+  const j = ptgJira(r.key);
   let jira;
   if (!JIRA_COMMENTS) jira = `<div class="item" style="color:var(--muted)">${esc(t('ptg_jira_missing'))}</div>`;
   else if (!j || !(j.items || []).length) jira = `<div class="item" style="color:var(--muted)">${esc(t('ptg_jira_none'))}</div>`;
@@ -9898,141 +9956,221 @@ function ptgDetailHtml(key) {
         <div class="hd"><b>${esc(c.by || '?')}</b> · ${esc(ptgFmtAt(c.at))}</div>
         <div class="body">${ptgLinkify(c.text)}</div></div>`).join('');
     if (j.total > j.items.length) {
-      jira += `<div class="item"><a href="${ticketUrl(key)}" target="_blank">${esc(t('ptg_jira_more', j.items.length, j.total))}</a></div>`;
+      jira += `<div class="item"><a href="${ticketUrl(r.key)}" target="_blank">${esc(t('ptg_jira_more', j.items.length, j.total))}</a></div>`;
     }
   }
-  return `<div class="ptg-detail">
+  let due = esc(t('ptg_no_due'));
+  if (r.due) {
+    const d = ptgDaysBetween(ptgToday(), r.due);
+    const cls = r.done ? '' : d < 0 ? 'over' : d <= 3 ? 'soon' : '';
+    due = `<span class="ptg-due ${cls}">${esc(r.due)}${r.done ? '' : ' · ' + esc(ptgRel(r.due))}</span>`;
+  }
+  const cur = ptgLaneOf(r.key);
+  const laneSel = `<select data-ptb-move="${esc(r.key)}">
+      <option value="">${esc(t('ptb_unplanned'))}</option>
+      ${ptgLanes().map(l => `<option value="${esc(l.date)}"${l.date === cur ? ' selected' : ''}>${esc(l.date)}${l.label ? ' · ' + esc(l.label) : ''}</option>`).join('')}
+    </select> <span class="save-state" data-ptb-state></span>`;
+  return `<div class="hd">
+      <a href="${ticketUrl(r.key)}" target="_blank">${esc(r.key)}</a>${bugFlagBadge(r.key)}
+      <button type="button" class="close" data-ptb-close aria-label="close">✕</button>
+    </div>
+    <div class="sum">${esc(r.summary)}</div>
+    <dl class="ptb-facts">
+      <dt>${esc(t('ptb_f_plat'))}</dt><dd>${r.src.map(s => `<span class="pt-src">${esc(s)}</span>`).join('')}</dd>
+      <dt>${esc(t('ptb_f_team'))}</dt><dd>${esc(r.team)}</dd>
+      <dt>${esc(t('ptb_f_who'))}</dt><dd>${esc(ptgWho(r))}</dd>
+      <dt>${esc(t('ptb_f_status'))}</dt><dd>${ptgStatusBadge(r)}</dd>
+      <dt>${esc(t('ptb_f_jira_due'))}</dt><dd>${due}</dd>
+      <dt>${esc(t('ptb_f_lane'))}</dt><dd>${laneSel}</dd>
+    </dl>
+    <div class="ptg-detail">
       <div><h4>${esc(t('ptg_jira_cmts'))}</h4><div class="ptg-jira">${jira}</div></div>
-      <div><h4>${esc(t('ptg_dash_cmts'))}</h4>${bugCommentPanelHtml(key)}</div>
+      <div><h4>${esc(t('ptg_dash_cmts'))}</h4>${bugCommentPanelHtml(r.key)}</div>
     </div>`;
 }
-function ptgRowHtml(r) {
-  const open = PTG.open.has(r.key);
-  const who = r.assignee === 'Unassigned' ? t('ptg_unassigned') : (r.assignee || '—');
-  return `<div class="ptg-row" data-ptg-row="${esc(r.key)}">
-    <div class="ptg-main">
-      <span class="key"><a href="${ticketUrl(r.key)}" target="_blank">${esc(r.key)}</a>${bugFlagBadge(r.key)}</span>
-      ${r.src.map(s => `<span class="pt-src">${esc(s)}</span>`).join('')}
-      <span class="sum">${esc(r.summary)}</span>
-    </div>
-    <div class="ptg-meta">
-      <span>👤 ${esc(who)}<span class="team">${esc(r.team)}</span></span>
-      ${ptgStatusBadge(r)}
-      ${ptgDueHtml(r)}
-      <button type="button" class="cmt-btn${open ? ' has' : ''}" data-ptg-open="${esc(r.key)}" aria-expanded="${open}">${esc(ptgCmtBtnText(r.key))}</button>
-    </div>
-    ${open ? '' : ptgLatestHtml(r.key)}
-    ${open ? ptgDetailHtml(r.key) : ''}
-  </div>`;
-}
-function ptgGroupHtml(g) {
-  const byStatus = new Map();
-  g.rows.forEach(r => {
-    const k = r.known ? r.status : '?';
-    if (!byStatus.has(k)) byStatus.set(k, { n: 0, r });
-    byStatus.get(k).n += 1;
-  });
-  const mix = [...byStatus.entries()].sort((a, b) => b[1].n - a[1].n).map(([k, v]) =>
-    v.r.known ? bugStatusBadge(Object.assign({}, v.r, { status: `${k} ${v.n}` }))
-              : `<span class="badge unknown">? ${v.n}</span>`).join('');
-  const over = PTG.by === 'due' ? 0 : g.rows.filter(r => r.due && !r.done && r.due < ptgToday()).length;
-  return `<details class="ptg-group${g.tone ? ' tone-' + g.tone : ''}" open data-ptg-group="${esc(g.id)}">
-    <summary><span class="name">${esc(g.name)}</span><span class="n">${g.rows.length}</span>
-      ${g.sub ? `<span class="n">${esc(g.sub)}</span>` : ''}
-      ${over ? `<span class="ptg-due over">${esc(t('ptg_overdue_n', over))}</span>` : ''}
-      <span class="mix">${mix}</span></summary>
-    ${g.rows.map(ptgRowHtml).join('')}
-  </details>`;
-}
 
-function ptgText(groups) {
-  const byName = { team: t('ptg_by_team'), plat: t('ptg_by_plat'), assignee: t('ptg_by_assignee'), due: t('ptg_by_due') };
-  const out = [`Pretest bugs — ${byName[PTG.by]} (${ptgToday()})`];
-  groups.forEach(g => {
-    out.push('', `■ ${g.name} (${g.rows.length})`);
-    g.rows.forEach(r => out.push(`  - ${r.key} [${r.known ? r.status : '?'}] ${r.assignee || '—'}` +
-      `${r.due ? ' · due ' + r.due : ''} · ${r.summary}`));
-  });
-  return out.join('\n');
+// --- saving ---
+let ptDlQueue = Promise.resolve();
+async function ptDlCommitNow(apply) {
+  const token = getGithubToken(false);
+  if (!token) { alert(t('ptb_need_token')); return false; }
+  const apiBase = `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_PT_DL_PATH}`;
+  const hdr = { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' };
+  try {
+    // Two tries: a 409 means someone else committed between our GET and our PUT.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const getResp = await fetch(apiBase + '?ref=main&t=' + Date.now(), { headers: hdr, cache: 'no-store' });
+      let sha, remote = {};
+      if (getResp.ok) {
+        const meta = await getResp.json();
+        sha = meta.sha;
+        try { remote = JSON.parse(decodeURIComponent(escape(atob((meta.content || '').replace(/\n/g, ''))))); }
+        catch (e) { remote = {}; }
+      } else if (getResp.status !== 404) {
+        throw new Error(ghErr('GET', getResp.status));
+      }
+      // No file yet (404): start from what this page holds rather than from nothing.
+      if (!sha) remote = { lanes: PT_DL.lanes, cards: PT_DL.cards };
+      const state = { lanes: (remote.lanes || []).map(l => Object.assign({}, l)),
+                      cards: Object.assign({}, remote.cards || {}) };
+      apply(state);
+      state.lanes.sort((a, b) => a.date.localeCompare(b.date));
+      const payload = {
+        updated_at: new Date().toISOString(),
+        updated_by: traceUserName(false) || t('notes_meta_unknown'),
+        lanes: state.lanes, cards: state.cards,
+      };
+      const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+      const putResp = await fetch(apiBase, {
+        method: 'PUT',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, hdr),
+        body: JSON.stringify({ message: 'Update pretest bug board via dashboard', content: b64, sha, branch: 'main' }),
+      });
+      if (putResp.status === 409 && attempt === 0) continue;
+      if (!putResp.ok) throw new Error(ghErr('PUT', putResp.status, (await putResp.text()).slice(0, 200)));
+      Object.assign(PT_DL, payload);
+      return true;
+    }
+    return false;
+  } catch (err) {
+    alert(t('ptb_save_error', String((err && err.message) || err)));
+    return false;
+  }
 }
-
-function ptgDraw(box) {
-  const rows = ptgFiltered();
-  const groups = ptgGroups(rows);
-  const today = ptgToday();
-  const open = rows.filter(r => r.known && !r.done);
-  const ts = rows.filter(r => r.isTs).length;
-  const over = open.filter(r => r.due && r.due < today).length;
-  const nodue = open.filter(r => !r.due).length;
-  const unknown = PTG.scope === 'open'
-    ? ptAllBugs().filter(b => !b.known && (!PTG.plat || b.src.includes(PTG.plat))).length : 0;
-  box.querySelector('.ptg-summary').innerHTML = [
-    `<span>${t('ptg_total', rows.length)}</span>`,
-    `<span>${t('ptg_ts', ts, rows.length - ts)}</span>`,
-    over ? `<span class="warn">${esc(t('ptg_overdue_n', over))}</span>` : '',
-    nodue ? `<span>${esc(t('ptg_nodue_n', nodue))}</span>` : '',
-    unknown ? `<span>${esc(t('ptg_unknown_n', unknown))}</span>` : '',
-    PTG.by === 'plat' ? `<span>${esc(t('ptg_both_note'))}</span>` : '',
-  ].filter(Boolean).join('');
-  box.querySelector('.ptg-groups').innerHTML = groups.length
-    ? groups.map(ptgGroupHtml).join('')
-    : `<div class="ptg-empty">${esc(t('ptg_empty'))}</div>`;
-  box.querySelectorAll('.ptg-detail .cmt-box').forEach(fitCommentBox);
-  box._ptgGroups = groups;
+// One commit at a time: each GET has to see the previous PUT.
+function ptDlCommit(apply) {
+  const run = ptDlQueue.then(() => ptDlCommitNow(apply));
+  ptDlQueue = run.catch(() => false);
+  return run;
+}
+async function ptDlRefresh() {
+  try {
+    const resp = await fetch(`https://raw.githubusercontent.com/${GITHUB_REPO}/main/${GITHUB_PT_DL_PATH}?t=${Date.now()}`, { cache: 'no-store' });
+    if (!resp.ok) return false;
+    const fresh = await resp.json();
+    if (!fresh || typeof fresh !== 'object') return false;
+    // raw.githubusercontent is CDN-cached; never step back to an older copy.
+    if (PT_DL.updated_at && (!fresh.updated_at || new Date(fresh.updated_at) <= new Date(PT_DL.updated_at))) return false;
+    Object.assign(PT_DL, { lanes: fresh.lanes || [], cards: fresh.cards || {},
+                           updated_at: fresh.updated_at, updated_by: fresh.updated_by });
+    return true;
+  } catch (e) { return false; }
 }
 
 function ptGroupMount(box) {
-  const chip = (k, label) => `<button type="button" class="chip${PTG.by === k ? ' active' : ''}" data-ptg-by="${k}">${esc(t(label))}</button>`;
   box.innerHTML = `
     <div class="ptg-controls">
-      <span class="lbl">${esc(t('ptg_by'))}</span>
-      <div class="chips">${chip('team', 'ptg_by_team')}${chip('plat', 'ptg_by_plat')}${chip('assignee', 'ptg_by_assignee')}${chip('due', 'ptg_by_due')}</div>
+      <select data-ptg-team></select>
+      <select data-ptg-plat>
+        <option value="">${esc(t('ptg_plat_all'))}</option>
+        ${['CP', 'AA'].map(p => `<option value="${p}"${PTG.plat === p ? ' selected' : ''}>${p}</option>`).join('')}
+      </select>
+      <select data-ptg-who></select>
       <select data-ptg-scope>
         <option value="open"${PTG.scope === 'open' ? ' selected' : ''}>${esc(t('ptg_scope_open'))}</option>
         <option value="all"${PTG.scope === 'all' ? ' selected' : ''}>${esc(t('ptg_scope_all'))}</option>
       </select>
-      <select data-ptg-plat>
-        <option value="">${esc(t('ptg_all_plat'))}</option>
-        ${['CP', 'AA'].map(p => `<option value="${p}"${PTG.plat === p ? ' selected' : ''}>${p}</option>`).join('')}
-      </select>
       <input type="text" class="grow" data-ptg-q placeholder="${esc(t('ptg_search'))}" value="${esc(PTG.q)}">
-      <button type="button" class="btn small" data-ptg-fold="1">${esc(t('ptg_collapse_all'))}</button>
-      <button type="button" class="btn small" data-ptg-fold="0">${esc(t('ptg_expand_all'))}</button>
       <button type="button" class="btn small" data-ptg-copy>${esc(t('ptg_copy'))}</button>
     </div>
+    <div class="ptg-controls">
+      <span class="lbl">${esc(t('ptb_new_date'))}</span>
+      <input type="date" data-ptb-new-date>
+      <input type="text" data-ptb-new-label placeholder="${esc(t('ptb_new_label'))}" style="min-width:200px">
+      <button type="button" class="btn small" data-ptb-add>${esc(t('ptb_add'))}</button>
+      <button type="button" class="btn small" data-ptb-token title="${esc(t('notes_change_token'))}">🔑</button>
+      <span class="save-state" data-ptb-state></span>
+    </div>
     <div class="ptg-summary"></div>
-    <div class="ptg-groups"></div>`;
-  const save = () => { try { localStorage.setItem('cpaaPtGroup', JSON.stringify({ by: PTG.by, scope: PTG.scope })); } catch (e) { /* no storage */ } };
-  const draw = () => ptgDraw(box);
+    <div class="ptb-board"></div>`;
+  const $ = sel => box.querySelector(sel);
+  const stateEl = $('[data-ptb-state]');
+  const setState = msg => {
+    stateEl.textContent = msg;
+    if (msg === t('ptb_saved')) setTimeout(() => { if (stateEl.textContent === msg) stateEl.textContent = ''; }, 1800);
+  };
+
+  function drawSelects() {
+    const base = ptgBaseRows();
+    const count = (list, f) => { const m = new Map(); list.forEach(r => m.set(f(r), (m.get(f(r)) || 0) + 1)); return m; };
+    const teams = count(base, r => r.team);
+    if (PTG.team && !teams.has(PTG.team)) PTG.team = '';
+    const rank = k => { const i = TEAM_ORDER.indexOf(k); return i < 0 ? 99 : i; };
+    $('[data-ptg-team]').innerHTML = `<option value="">${esc(t('ptg_team_all'))} (${base.length})</option>` +
+      [...teams.entries()].sort((a, b) => rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0]))
+        .map(([k, n]) => `<option value="${esc(k)}"${k === PTG.team ? ' selected' : ''}>${esc(k)} (${n})</option>`).join('');
+    // The assignee list follows the team choice.
+    const inTeam = PTG.team ? base.filter(r => r.team === PTG.team) : base;
+    const people = count(inTeam, r => r.assignee);
+    if (PTG.who && !people.has(PTG.who)) PTG.who = '';
+    $('[data-ptg-who]').innerHTML = `<option value="">${esc(t('ptg_who_all'))} (${inTeam.length})</option>` +
+      [...people.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+        .map(([k, n]) => `<option value="${esc(k)}"${k === PTG.who ? ' selected' : ''}>${esc(k === 'Unassigned' ? t('ptg_unassigned') : k)} (${n})</option>`).join('');
+  }
+  function draw() {
+    const rows = ptgFiltered();
+    const cols = ptgColumns(rows);
+    const today = ptgToday();
+    const ts = rows.filter(r => r.isTs).length;
+    const late = rows.filter(r => r.known && !r.done && ptgLaneOf(r.key) && ptgLaneOf(r.key) < today).length;
+    const unknown = PTG.scope === 'open' && !PTG.team && !PTG.who
+      ? ptAllBugs().filter(b => !b.known && (!PTG.plat || b.src.includes(PTG.plat))).length : 0;
+    $('.ptg-summary').innerHTML = [
+      `<span>${t('ptg_total', rows.length)}</span>`,
+      `<span>${t('ptg_ts', ts, rows.length - ts)}</span>`,
+      `<span>${esc(t('ptg_unplanned_n', cols[0].cards.length))}</span>`,
+      late ? `<span class="warn">${esc(t('ptg_late_n', late))}</span>` : '',
+      unknown ? `<span>${esc(t('ptg_unknown_n', unknown))}</span>` : '',
+      PT_DL.updated_at ? `<span>${esc(t('ptb_f_updated', `${PT_DL.updated_at.slice(0, 10)} ${PT_DL.updated_by || ''}`))}</span>` : '',
+    ].filter(Boolean).join('');
+    const board = $('.ptb-board');
+    const scrollX = board.scrollLeft;
+    board.innerHTML = cols.map(c => ptgLaneHtml(c.lane, c.cards)).join('');
+    board.scrollLeft = scrollX;
+    box._ptgCols = cols;
+  }
+  const redrawAll = () => { drawSelects(); draw(); };
+
+  // Moves a card on screen at once, then saves; a failed save puts it back.
+  async function moveCard(key, date) {
+    const before = ptgLaneOf(key);
+    if (before === date) return true;
+    const setLocal = d => {
+      PT_DL.cards = Object.assign({}, PT_DL.cards);
+      if (d) PT_DL.cards[key] = d; else delete PT_DL.cards[key];
+    };
+    setLocal(date);
+    draw();
+    setState(t('ptb_saving'));
+    const ok = await ptDlCommit(s => { if (date) s.cards[key] = date; else delete s.cards[key]; });
+    if (!ok) { setLocal(before); setState(''); } else setState(t('ptb_saved'));
+    draw();
+    return ok;
+  }
+  async function laneChange(apply) {
+    setState(t('ptb_saving'));
+    const ok = await ptDlCommit(apply);
+    setState(ok ? t('ptb_saved') : '');
+    draw();
+    return ok;
+  }
 
   box.addEventListener('change', e => {
-    if (e.target.matches('[data-ptg-scope]')) { PTG.scope = e.target.value; save(); draw(); }
-    else if (e.target.matches('[data-ptg-plat]')) { PTG.plat = e.target.value; draw(); }
+    const el = e.target;
+    if (el.matches('[data-ptg-team]')) { PTG.team = el.value; ptgSavePrefs(); redrawAll(); }
+    else if (el.matches('[data-ptg-who]')) { PTG.who = el.value; ptgSavePrefs(); draw(); }
+    else if (el.matches('[data-ptg-plat]')) { PTG.plat = el.value; ptgSavePrefs(); redrawAll(); }
+    else if (el.matches('[data-ptg-scope]')) { PTG.scope = el.value; ptgSavePrefs(); redrawAll(); }
   });
   box.addEventListener('input', e => {
     if (e.target.matches('[data-ptg-q]')) { PTG.q = e.target.value; draw(); }
   });
-  // Redraws one ticket in place, so a thread being typed into elsewhere survives.
-  const redrawRow = key => {
-    box.querySelectorAll(`[data-ptg-row="${CSS.escape(key)}"]`).forEach(el => {
-      const r = ptgRows().find(x => x.key === key);
-      if (!r) return;
-      el.outerHTML = ptgRowHtml(r);
-    });
-    box.querySelectorAll(`[data-ptg-row="${CSS.escape(key)}"] .cmt-box`).forEach(fitCommentBox);
-  };
+
   box.addEventListener('click', async e => {
-    const by = e.target.closest('[data-ptg-by]');
-    if (by) {
-      PTG.by = by.dataset.ptgBy; save();
-      box.querySelectorAll('[data-ptg-by]').forEach(b => b.classList.toggle('active', b === by));
-      draw(); return;
-    }
-    const fold = e.target.closest('[data-ptg-fold]');
-    if (fold) { box.querySelectorAll('.ptg-group').forEach(d => { d.open = fold.dataset.ptgFold !== '1'; }); return; }
+    if (e.target.closest('[data-ptb-token]')) { getGithubToken(true); return; }
     const copy = e.target.closest('[data-ptg-copy]');
     if (copy) {
-      const text = ptgText(box._ptgGroups || []);
+      const text = ptgText(box._ptgCols || []);
       try { await navigator.clipboard.writeText(text); }
       catch (err) {
         const ta = document.createElement('textarea');
@@ -10044,49 +10182,156 @@ function ptGroupMount(box) {
       setTimeout(() => { copy.textContent = old; }, 1500);
       return;
     }
-    const tog = e.target.closest('[data-ptg-open]');
-    if (tog) {
-      const key = tog.dataset.ptgOpen;
-      if (PTG.open.has(key)) PTG.open.delete(key); else PTG.open.add(key);
-      redrawRow(key);
+    if (e.target.closest('[data-ptb-add]')) {
+      const date = $('[data-ptb-new-date]').value;
+      const label = $('[data-ptb-new-label]').value.trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { alert(t('ptb_add_need_date')); return; }
+      if ((PT_DL.lanes || []).some(l => l.date === date)) { alert(t('ptb_add_exists', date)); return; }
+      const ok = await laneChange(s => {
+        if (!s.lanes.some(l => l.date === date)) s.lanes.push(label ? { date, label } : { date });
+      });
+      if (ok) { $('[data-ptb-new-date]').value = ''; $('[data-ptb-new-label]').value = ''; }
       return;
     }
-    // The dashboard thread inside an opened ticket: same file and same calls as the
-    // Bug list's 💬, so a note posted here shows up there too.
-    const post = e.target.closest('[data-bug-cmt-post]');
-    if (post) {
-      const key = post.dataset.bugCmtPost;
-      const cbox = post.closest('.cmt-box');
-      const input = cbox.querySelector('textarea');
-      const text = (input.value || '').trim();
-      if (!text) return;
-      const who = traceUserName(false) || t('notes_meta_unknown');
-      const comment = { id: bugCommentId(), text, by: who, at: new Date().toISOString() };
-      post.disabled = true;
-      const ok = await commitBugComments(map => { map[key] = (map[key] || []).concat([comment]); },
-                                         cbox.querySelector('.cmt-status'));
-      post.disabled = false;
-      if (ok) redrawRow(key);
+    const edit = e.target.closest('[data-ptb-edit-lane]');
+    if (edit) {
+      const date = edit.dataset.ptbEditLane;
+      const lane = (PT_DL.lanes || []).find(l => l.date === date);
+      const label = prompt(t('ptb_edit_prompt', date), (lane && lane.label) || '');
+      if (label === null) return;
+      await laneChange(s => {
+        const l = s.lanes.find(x => x.date === date);
+        if (!l) return;
+        if (label.trim()) l.label = label.trim(); else delete l.label;
+      });
       return;
     }
-    const del = e.target.closest('[data-bug-cmt-del]');
+    const del = e.target.closest('[data-ptb-del-lane]');
     if (del) {
-      const cbox = del.closest('.cmt-box');
-      const key = cbox.dataset.bugCmtBox;
-      const id = del.dataset.bugCmtDel;
-      if (!confirm(t('bug_comment_delete_confirm'))) return;
-      del.disabled = true;
-      const ok = await commitBugComments(map => {
-        const left = (map[key] || []).filter(c => c.id !== id);
-        if (left.length) map[key] = left; else delete map[key];
-      }, cbox.querySelector('.cmt-status'));
-      if (ok) redrawRow(key); else del.disabled = false;
+      const date = del.dataset.ptbDelLane;
+      const n = Object.values(PT_DL.cards || {}).filter(d => d === date).length;
+      if (!confirm(t('ptb_del_confirm', date, n))) return;
+      await laneChange(s => {
+        s.lanes = s.lanes.filter(l => l.date !== date);
+        Object.keys(s.cards).forEach(k => { if (s.cards[k] === date) delete s.cards[k]; });
+      });
+      return;
     }
+    const card = e.target.closest('[data-ptb-card]');
+    if (card) openDetail(card.dataset.ptbCard);
   });
-  draw();
-  // The baked-in dashboard notes are as old as the last build; redraw once the current
-  // file is in, unless someone already has a ticket open (they may be typing).
-  refreshBugComments().then(() => { if (box.isConnected && !PTG.open.size) draw(); });
+  box.addEventListener('keydown', e => {
+    const card = e.target.closest && e.target.closest('[data-ptb-card]');
+    if (card && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openDetail(card.dataset.ptbCard); }
+  });
+
+  // Drag and drop between columns.
+  let dragKey = null;
+  const clearOver = except => box.querySelectorAll('.ptb-lane-body.over').forEach(el => { if (el !== except) el.classList.remove('over'); });
+  box.addEventListener('dragstart', e => {
+    const card = e.target.closest && e.target.closest('[data-ptb-card]');
+    if (!card) return;
+    dragKey = card.dataset.ptbCard;
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', dragKey); } catch (err) { /* old browsers */ }
+    card.classList.add('dragging');
+  });
+  box.addEventListener('dragend', e => {
+    const card = e.target.closest && e.target.closest('[data-ptb-card]');
+    if (card) card.classList.remove('dragging');
+    clearOver(null);
+    dragKey = null;
+  });
+  box.addEventListener('dragover', e => {
+    const drop = e.target.closest && e.target.closest('[data-ptb-lane]');
+    if (!drop || !dragKey) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const body = drop.querySelector('[data-ptb-drop]');
+    clearOver(body);
+    body.classList.add('over');
+  });
+  box.addEventListener('dragleave', e => {
+    const drop = e.target.closest && e.target.closest('[data-ptb-lane]');
+    if (drop && !drop.contains(e.relatedTarget)) drop.querySelector('[data-ptb-drop]').classList.remove('over');
+  });
+  box.addEventListener('drop', e => {
+    const drop = e.target.closest && e.target.closest('[data-ptb-lane]');
+    if (!drop) return;
+    e.preventDefault();
+    clearOver(null);
+    const key = dragKey || e.dataTransfer.getData('text/plain');
+    dragKey = null;
+    if (key) moveCard(key, drop.dataset.ptbLane);
+  });
+
+  // The detail dialog lives on <body>, so no column's scroll box can clip it.
+  function openDetail(key) {
+    const r = ptgRows().find(x => x.key === key);
+    if (!r) return;
+    closeDetail();
+    const modal = document.createElement('div');
+    modal.className = 'ptb-modal';
+    modal.innerHTML = `<div class="ptb-dialog" role="dialog" aria-modal="true">${ptgDetailHtml(r)}</div>`;
+    document.body.appendChild(modal);
+    const rerender = () => {
+      const fresh = ptgRows().find(x => x.key === key) || r;
+      modal.querySelector('.ptb-dialog').innerHTML = ptgDetailHtml(fresh);
+    };
+    modal.addEventListener('click', async ev => {
+      if (ev.target === modal || ev.target.closest('[data-ptb-close]')) { closeDetail(); return; }
+      // The dashboard thread: same file and calls as the Bug list's 💬.
+      const post = ev.target.closest('[data-bug-cmt-post]');
+      if (post) {
+        const cbox = post.closest('.cmt-box');
+        const input = cbox.querySelector('textarea');
+        const text = (input.value || '').trim();
+        if (!text) return;
+        const who = traceUserName(false) || t('notes_meta_unknown');
+        const comment = { id: bugCommentId(), text, by: who, at: new Date().toISOString() };
+        post.disabled = true;
+        const ok = await commitBugComments(map => { map[key] = (map[key] || []).concat([comment]); },
+                                           cbox.querySelector('.cmt-status'));
+        post.disabled = false;
+        if (ok) rerender();
+        return;
+      }
+      const delc = ev.target.closest('[data-bug-cmt-del]');
+      if (delc) {
+        const id = delc.dataset.bugCmtDel;
+        if (!confirm(t('bug_comment_delete_confirm'))) return;
+        delc.disabled = true;
+        const ok = await commitBugComments(map => {
+          const left = (map[key] || []).filter(c => c.id !== id);
+          if (left.length) map[key] = left; else delete map[key];
+        }, delc.closest('.cmt-box').querySelector('.cmt-status'));
+        if (ok) rerender(); else delc.disabled = false;
+      }
+    });
+    // Moving from inside the dialog — the way to do it without a mouse to drag with.
+    modal.addEventListener('change', async ev => {
+      const sel = ev.target.closest('[data-ptb-move]');
+      if (!sel) return;
+      const st = modal.querySelector('[data-ptb-state]');
+      st.textContent = t('ptb_saving');
+      const ok = await moveCard(key, sel.value);
+      st.textContent = ok ? t('ptb_saved') : '';
+      if (!ok) sel.value = ptgLaneOf(key);
+    });
+    modal._esc = ev => { if (ev.key === 'Escape') closeDetail(); };
+    document.addEventListener('keydown', modal._esc);
+  }
+  function closeDetail() {
+    document.querySelectorAll('.ptb-modal').forEach(m => {
+      if (m._esc) document.removeEventListener('keydown', m._esc);
+      m.remove();
+    });
+  }
+
+  redrawAll();
+  // Pick up board changes and dashboard notes saved since this page was built.
+  ptDlRefresh().then(changed => { if (changed && box.isConnected && !dragKey) redrawAll(); });
+  refreshBugComments();
 }
 
 // --- Pretest open bugs, week by week -------------------------------------------------
