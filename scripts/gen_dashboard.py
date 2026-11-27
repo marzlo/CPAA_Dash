@@ -133,6 +133,8 @@ except FileNotFoundError:
 _pt_keys = {r.get("key") for r in DATA.get("pretest") or []}
 for _b in (PRETEST_CASES or {}).get("bugs") or []:
     _pt_keys.add(_b.get("key"))
+# The Bug tab's board also lists every Highest-priority bug, so their threads come too.
+_pt_keys |= {r.get("key") for r in DATA.get("bugs") or [] if r.get("priority") == "Highest"}
 DATA["jira_comments"] = {k: v for k, v in _all_jira_comments.items() if k in _pt_keys}
 
 # The Pretest bug board: date columns the team creates and which column each ticket was
@@ -498,6 +500,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .ptb-card .k .badge.prio-flag { margin-left: 4px; font-size: 10px; padding: 0 5px; }
   .ptb-card .who { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .ptb-card .badge { justify-self: start; font-size: 10.5px; padding: 1px 7px; }
+  .ptb-card .st { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+  .badge.pt-chip { background: color-mix(in srgb, var(--series-cp) 14%, transparent); color: var(--series-cp);
+                   border: 1px solid color-mix(in srgb, var(--series-cp) 40%, transparent); }
   .ptb-modal { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.42);
                display: flex; align-items: flex-start; justify-content: center; padding: 5vh 16px; overflow-y: auto; }
   .ptb-dialog { background: var(--surface-1); color: var(--text-primary); border-radius: 10px; width: min(820px, 100%);
@@ -2602,6 +2607,13 @@ const STRINGS = {
   ptb_f_jira_due: { zh: 'Jira Due date', en: 'Jira due date' },
   ptb_f_lane: { zh: '看板日期', en: 'Board date' },
   ptg_summary_btn: { zh: '🧾 產生 Summary', en: '🧾 Summary' },
+  ptg_plat_all_bug: { zh: 'Pretest + Highest', en: 'Pretest + Highest' },
+  ptg_plat_pt: { zh: '只看 Pretest', en: 'Pretest only' },
+  ptg_plat_hi: { zh: '只看 Highest(非 Pretest)', en: 'Highest (non-pretest) only' },
+  pts_heading_bug: { zh: 'Bug Summary(Pretest + Highest)', en: 'Bug summary (pretest + Highest)' },
+  pts_title_bug: { zh: (d, c) => `Bug Summary — Pretest + Highest(${d},危險線 ${c})`, en: (d, c) => `Bug summary — pretest + Highest (${d}, danger line ${c})` },
+  pts_bug_pt_split: { zh: (cp, aa) => `CP ${cp} · AA ${aa}(兩邊都寫的各算一次)`, en: (cp, aa) => `CP ${cp} · AA ${aa} (tickets naming both count on each)` },
+  pts_bug_hi: { zh: 'Highest(非 Pretest)', en: 'Highest (non-pretest)' },
   pts_heading: { zh: 'Pretest Bug Summary', en: 'Pretest bug summary' },
   pts_title: { zh: (d, c) => `Pretest Bug Summary(${d},危險線 ${c})`, en: (d, c) => `Pretest bug summary (${d}, danger line ${c})` },
   pts_cutoff: { zh: '危險日期(晚於此日即危險)', en: 'Danger date (later = at risk)' },
@@ -4131,6 +4143,7 @@ const BUG_TAB_NOTES = makeTabNotes({
   id: 'bugNotes', path: 'bug_notes.json', initial: RAW.bug_notes,
   headingKey: 'bug_notes_heading', captionKey: 'bug_notes_caption',
   commitMessage: 'Update bug notes via dashboard',
+  extra: { notesLabelKey: 'pt_view_notes', labelKey: 'pt_view_group', mount: box => ptGroupMount(box, 'bug') },
 });
 
 async function refreshOverviewNotesFromGithub() {
@@ -9969,15 +9982,40 @@ const JIRA_COMMENTS = RAW.jira_comments || null;   // null = this build predates
 const GITHUB_PT_DL_PATH = 'pretest_deadlines.json';
 const PT_DL = Object.assign({ updated_at: null, updated_by: null, lanes: [], cards: {} },
                             RAW.pretest_deadlines || {});
-const PTG = { team: '', plat: '', who: '', scope: 'open', q: '', risk: '' };   // risk: '' any, '*' all risks, else a tag
-try {
-  const saved = JSON.parse(localStorage.getItem('cpaaPtBoard') || '{}');
-  ['team', 'plat', 'who'].forEach(k => { if (typeof saved[k] === 'string') PTG[k] = saved[k]; });
-  if (['open', 'all'].includes(saved.scope)) PTG.scope = saved.scope;
-  PTG.risk = saved.risk === true ? '*' : (typeof saved.risk === 'string' ? saved.risk : '');
-} catch (e) { /* no storage */ }
+// Two boards share this code and the same pretest_deadlines.json — so a date set on one
+// shows on the other:
+//   pretest — the Pretest tab: every pretest bug;
+//   bug     — the Bug tab: the pretest bugs plus every other bug whose Jira Priority is
+//             Highest (those carry no Pretest chip and never appear on the Pretest board).
+// Each board keeps its own filters. PTG / PTG_ACTIVE point at whichever board is being
+// drawn or handled right now; every entry point (draw, event handler, dialog) switches
+// them first with ptgUse(ctx), so the helpers below can stay context-free.
+function ptgLoadPrefs(storeKey) {
+  const st = { team: '', plat: '', who: '', scope: 'open', q: '', risk: '' };   // risk: '' any, '*' all risks, else a tag
+  try {
+    const saved = JSON.parse(localStorage.getItem(storeKey) || '{}');
+    ['team', 'plat', 'who'].forEach(k => { if (typeof saved[k] === 'string') st[k] = saved[k]; });
+    if (['open', 'all'].includes(saved.scope)) st.scope = saved.scope;
+    st.risk = saved.risk === true ? '*' : (typeof saved.risk === 'string' ? saved.risk : '');
+  } catch (e) { /* no storage */ }
+  return st;
+}
+const PTG_CTX = {
+  pretest: { kind: 'pretest', prefsKey: 'cpaaPtBoard', state: ptgLoadPrefs('cpaaPtBoard'), rows: () => ptgPretestRows() },
+  bug: { kind: 'bug', prefsKey: 'cpaaBugBoard', state: ptgLoadPrefs('cpaaBugBoard'), rows: () => ptgBugBoardRows() },
+};
+let PTG_ACTIVE = PTG_CTX.pretest;
+let PTG = PTG_ACTIVE.state;
+function ptgUse(ctx) { PTG_ACTIVE = ctx; PTG = ctx.state; }
+// Mounted boards' redraws, so a change made on one board repaints the other.
+const PTB_REDRAW = {};
+function ptbSyncOthers(kind) {
+  const keep = PTG_ACTIVE;
+  Object.keys(PTB_REDRAW).forEach(k => { if (k !== kind) PTB_REDRAW[k](); });
+  ptgUse(keep);
+}
 function ptgSavePrefs() {
-  try { localStorage.setItem('cpaaPtBoard', JSON.stringify({ team: PTG.team, plat: PTG.plat, who: PTG.who, scope: PTG.scope, risk: PTG.risk })); }
+  try { localStorage.setItem(PTG_ACTIVE.prefsKey, JSON.stringify({ team: PTG.team, plat: PTG.plat, who: PTG.who, scope: PTG.scope, risk: PTG.risk })); }
   catch (e) { /* no storage */ }
 }
 
@@ -10004,8 +10042,9 @@ function ptgFmtAt(at) {
 }
 function ptgWho(r) { return r.assignee === 'Unassigned' ? t('ptg_unassigned') : (r.assignee || '—'); }
 
-// Every ticket the board can show, with the fields it filters on.
-function ptgRows() {
+// Every ticket the active board can show, with the fields it filters on.
+function ptgRows() { return PTG_ACTIVE.rows(); }
+function ptgPretestRows() {
   return ptAllBugs().map(b => {
     const tk = ptTicket(b.key) || {};
     const team = b.known ? effTeam(tk) : 'Unknown';
@@ -10016,15 +10055,35 @@ function ptgRows() {
       priority: tk.priority || '',
       statusCategory: tk.statusCategory,
       assignee: b.assignee || (b.known ? 'Unassigned' : ''),
+      pretest: true,
     });
   });
+}
+// The Bug tab's board: every pretest bug, plus every other bug whose Jira Priority is
+// Highest. A Highest bug that is also a pretest bug is listed once, as a pretest bug.
+function ptgBugBoardRows() {
+  const out = ptgPretestRows();
+  const seen = new Set(out.map(r => r.key));
+  (BUGS || []).forEach(b => {
+    if (seen.has(b.key) || b.priority !== 'Highest') return;
+    const team = effTeam(b);
+    out.push({
+      key: b.key, summary: b.summary || '', status: b.status, done: !!b.done, known: true,
+      statusCategory: b.statusCategory, assignee: b.assignee || 'Unassigned',
+      team, isTs: /^TS_/.test(team), due: b.due || null, priority: b.priority,
+      src: [], from: [], cases: 0, tagged: 0, taggedBy: {}, replaces: [], pretest: false,
+    });
+  });
+  return out;
 }
 // What the dropdowns choose from: scope and platform only, so picking a team never
 // empties the team list itself.
 function ptgBaseRows() {
   let rows = ptgRows();
   if (PTG.scope === 'open') rows = rows.filter(r => r.known && !r.done);
-  if (PTG.plat) rows = rows.filter(r => r.src.includes(PTG.plat));
+  if (PTG.plat === '__pt') rows = rows.filter(r => r.pretest);
+  else if (PTG.plat === '__hi') rows = rows.filter(r => !r.pretest);
+  else if (PTG.plat) rows = rows.filter(r => r.src.includes(PTG.plat));
   return rows;
 }
 function ptgFiltered() {
@@ -10069,7 +10128,7 @@ function ptgCardHtml(r) {
       data-ptb-card="${esc(r.key)}" title="${esc(r.summary)}">
     <div class="k">${esc(r.key)}${bugFlagBadge(r.key)}</div>
     <div class="who">👤 ${esc(ptgWho(r))}</div>
-    ${ptgStatusBadge(r)}
+    <div class="st">${ptgStatusBadge(r)}${PTG_ACTIVE.kind === 'bug' && r.pretest ? `<span class="badge pt-chip">Pretest</span>` : ''}</div>
     ${risk ? ptgRiskNoteHtml(r.key) : ''}
   </div>`;
 }
@@ -10151,7 +10210,8 @@ function ptgDetailHtml(r) {
     </div>
     <div class="sum">${esc(r.summary)}</div>
     <dl class="ptb-facts">
-      <dt>${esc(t('ptb_f_plat'))}</dt><dd>${r.src.map(s => `<span class="pt-src">${esc(s)}</span>`).join('')}</dd>
+      <dt>${esc(t('ptb_f_plat'))}</dt><dd>${r.src.length ? r.src.map(s => `<span class="pt-src">${esc(s)}</span>`).join('') : '—'}${r.pretest ? ' <span class="badge pt-chip">Pretest</span>' : ''}</dd>
+      <dt>Priority</dt><dd>${esc(r.priority || '—')}</dd>
       <dt>${esc(t('ptb_f_team'))}</dt><dd>${esc(r.team)}</dd>
       <dt>${esc(t('ptb_f_who'))}</dt><dd>${esc(ptgWho(r))}</dd>
       <dt>${esc(t('ptb_f_status'))}</dt><dd>${ptgStatusBadge(r)}</dd>
@@ -10311,23 +10371,33 @@ function ptgSummaryBlocks(cutoff) {
   const ref = r => `${r.key} (${ptgWho(r)}${r.status ? ' · ' + r.status : ''})`;
   const blocks = [];
 
-  // 1. CP / AA
-  const plat = id => {
-    const rows = open.filter(r => r.src.includes(id));
+  // 1. CP / AA (Pretest board) — Pretest / Highest (Bug board)
+  const grp = (name, rows, extra) => {
     const byLane = lanes.map(l => [l, rows.filter(r => ptgLaneOf(r.key) === l.date).length]).filter(x => x[1]);
     const unplanned = rows.filter(r => !ptgLaneOf(r.key)).length;
     const ts = rows.filter(r => r.isTs).length;
     const risk = rows.filter(r => bugIsRisk(r.key)).length;
     return {
-      text: t('pts_plat_line', id === 'CP' ? 'CarPlay (CP)' : 'Android Auto (AA)', rows.length, ts, rows.length - ts, risk),
-      sub: [
+      text: t('pts_plat_line', name, rows.length, ts, rows.length - ts, risk),
+      sub: (extra || []).concat([
         t('pts_plat_lanes', byLane.map(([l, n]) => `${ptgMD(l.date)}${l.label ? ' ' + l.label : ''}: ${n}`).join(', ') || '—'),
         t('pts_plat_unplanned', unplanned),
-      ],
+      ]),
     };
   };
-  const both = open.filter(r => r.src.includes('CP') && r.src.includes('AA')).length;
-  blocks.push({ h: t('pts_h_overall', open.length), items: [plat('CP'), plat('AA')].concat(both ? [{ text: t('pts_both', both) }] : []) });
+  if (PTG_ACTIVE.kind === 'bug') {
+    const pt = open.filter(r => r.pretest), hi = open.filter(r => !r.pretest);
+    blocks.push({ h: t('pts_h_overall', open.length), items: [
+      grp('Pretest', pt, [t('pts_bug_pt_split', pt.filter(r => r.src.includes('CP')).length, pt.filter(r => r.src.includes('AA')).length)]),
+      grp(t('pts_bug_hi'), hi),
+    ] });
+  } else {
+    const both = open.filter(r => r.src.includes('CP') && r.src.includes('AA')).length;
+    blocks.push({ h: t('pts_h_overall', open.length), items: [
+      grp('CarPlay (CP)', open.filter(r => r.src.includes('CP'))),
+      grp('Android Auto (AA)', open.filter(r => r.src.includes('AA'))),
+    ].concat(both ? [{ text: t('pts_both', both) }] : []) });
+  }
 
   // 2. Dates: after the danger line, overdue, unscheduled
   const late = open.filter(r => { const d = ptgLaneOf(r.key); return d && d > cutoff; });
@@ -10362,7 +10432,7 @@ function ptgSummaryBlocks(cutoff) {
     sub: rows.map(r => {
       const why = ptgRiskReason(r.key);
       const d = ptgLaneOf(r.key);
-      return `${r.key} [${r.src.join('/')}] ${ptgWho(r)} · ${r.status}${d ? ' · ' + t('pts_board', ptgMD(d)) : ' · ' + t('pts_unsched')} — ` +
+      return `${r.key} [${r.src.join('/') || 'Highest'}] ${ptgWho(r)} · ${r.status}${d ? ' · ' + t('pts_board', ptgMD(d)) : ' · ' + t('pts_unsched')} — ` +
         (why ? `${why.src === 'jira' ? t('pts_from_jira') : ''}${why.text} (${why.by || '?'}, ${ptgMD(why.at)})` : t('pts_no_reason'));
     }),
   }));
@@ -10383,7 +10453,7 @@ function ptgSummaryBlocks(cutoff) {
     const late2 = e.rows.filter(r => { const d = ptgLaneOf(r.key); return !d || d > cutoff; }).length;
     return {
       text: t('pts_lb_line', k, e.s, e.rows.length, cs.CP, cs.AA),
-      sub: e.rows.map(r => `${r.key} [${r.src.join('/')}] ${ptgWho(r)} · ${r.status}${ptgLaneOf(r.key) ? ' · ' + t('pts_board', ptgMD(ptgLaneOf(r.key))) : ' · ' + t('pts_unsched')}` +
+      sub: e.rows.map(r => `${r.key} [${r.src.join('/') || 'Highest'}] ${ptgWho(r)} · ${r.status}${ptgLaneOf(r.key) ? ' · ' + t('pts_board', ptgMD(ptgLaneOf(r.key))) : ' · ' + t('pts_unsched')}` +
                              (bugIsRisk(r.key) ? '' : ' · ' + t('pts_not_risk')))
         .concat(late2 ? [t('pts_lb_late', late2, ptgMD(cutoff))] : [])
         .concat(lbDone(e.s) ? [t('pts_lb_done', k)] : []),
@@ -10397,7 +10467,7 @@ function ptgSummaryBlocks(cutoff) {
 
 function ptgSummaryRender(cutoff) {
   const blocks = ptgSummaryBlocks(cutoff);
-  const title = t('pts_title', ptgToday(), ptgMD(cutoff));
+  const title = t(PTG_ACTIVE.kind === 'bug' ? 'pts_title_bug' : 'pts_title', ptgToday(), ptgMD(cutoff));
   const li = it => `<li>${esc(it.text)}${(it.sub && it.sub.length) ? `<ul>${it.sub.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</li>`;
   const html = `<p><strong>${esc(title)}</strong></p>` + blocks.map((b, i) =>
     `<p><strong>${i + 1}. ${esc(b.h)}</strong></p><ul>${b.items.map(li).join('')}</ul>`).join('');
@@ -10406,12 +10476,12 @@ function ptgSummaryRender(cutoff) {
   return { html, text };
 }
 
-function ptgOpenSummary() {
+function ptgOpenSummary(ctx) {
   document.querySelectorAll('.ptb-modal').forEach(m => m.remove());
   const modal = document.createElement('div');
   modal.className = 'ptb-modal';
   modal.innerHTML = `<div class="ptb-dialog pts-dialog" role="dialog" aria-modal="true">
-    <div class="hd"><strong style="font-size:15px">${esc(t('pts_heading'))}</strong>
+    <div class="hd"><strong style="font-size:15px">${esc(t(ctx.kind === 'bug' ? 'pts_heading_bug' : 'pts_heading'))}</strong>
       <button type="button" class="close" data-pts-close aria-label="close">✕</button></div>
     <div class="ptg-controls">
       <span class="lbl">${esc(t('pts_cutoff'))}</span>
@@ -10425,6 +10495,7 @@ function ptgOpenSummary() {
   document.body.appendChild(modal);
   let cur = null;
   const draw = () => {
+    ptgUse(ctx);
     cur = ptgSummaryRender(modal.querySelector('[data-pts-cutoff]').value || ptgCutoff());
     modal.querySelector('.pts-body').innerHTML = cur.html;
   };
@@ -10461,13 +10532,20 @@ function ptgOpenSummary() {
   draw();
 }
 
-function ptGroupMount(box) {
+function ptGroupMount(box, kind) {
+  const ctx = PTG_CTX[kind || 'pretest'];
+  ptgUse(ctx);
+  // Every listener switches the shared helpers to this board before it runs.
+  const on = (el, type, fn) => el.addEventListener(type, ev => { ptgUse(ctx); return fn(ev); });
+  const platOpts = (ctx.kind === 'bug'
+    ? [['__pt', t('ptg_plat_pt')], ['__hi', t('ptg_plat_hi')], ['CP', 'Pretest · CP'], ['AA', 'Pretest · AA']]
+    : [['CP', 'CP'], ['AA', 'AA']]);
   box.innerHTML = `
     <div class="ptg-controls">
       <select data-ptg-team></select>
       <select data-ptg-plat>
-        <option value="">${esc(t('ptg_plat_all'))}</option>
-        ${['CP', 'AA'].map(p => `<option value="${p}"${PTG.plat === p ? ' selected' : ''}>${p}</option>`).join('')}
+        <option value="">${esc(t(ctx.kind === 'bug' ? 'ptg_plat_all_bug' : 'ptg_plat_all'))}</option>
+        ${platOpts.map(([v, l]) => `<option value="${v}"${PTG.plat === v ? ' selected' : ''}>${esc(l)}</option>`).join('')}
       </select>
       <select data-ptg-who></select>
       <select data-ptg-scope>
@@ -10497,6 +10575,7 @@ function ptGroupMount(box) {
   };
 
   function drawSelects() {
+    ptgUse(ctx);
     const base = ptgBaseRows();
     const count = (list, f) => { const m = new Map(); list.forEach(r => m.set(f(r), (m.get(f(r)) || 0) + 1)); return m; };
     const teams = count(base, r => r.team);
@@ -10519,13 +10598,14 @@ function ptGroupMount(box) {
         .map(([k, n]) => `<option value="${esc(k)}"${k === PTG.who ? ' selected' : ''}>${esc(k === 'Unassigned' ? t('ptg_unassigned') : k)} (${n})</option>`).join('');
   }
   function draw() {
+    ptgUse(ctx);
     const rows = ptgFiltered();
     const cols = ptgColumns(rows);
     const today = ptgToday();
     const ts = rows.filter(r => r.isTs).length;
     const late = rows.filter(r => r.known && !r.done && ptgLaneOf(r.key) && ptgLaneOf(r.key) < today).length;
     const unknown = PTG.scope === 'open' && !PTG.team && !PTG.who && !PTG.risk
-      ? ptAllBugs().filter(b => !b.known && (!PTG.plat || b.src.includes(PTG.plat))).length : 0;
+      ? ptAllBugs().filter(b => !b.known && PTG.plat !== '__hi' && (!PTG.plat || PTG.plat === '__pt' || b.src.includes(PTG.plat))).length : 0;
     $('.ptg-summary').innerHTML = [
       `<span>${t('ptg_total', rows.length)}</span>`,
       `<span>${t('ptg_ts', ts, rows.length - ts)}</span>`,
@@ -10542,6 +10622,7 @@ function ptGroupMount(box) {
     box._ptgCols = cols;
   }
   const redrawAll = () => { drawSelects(); draw(); };
+  PTB_REDRAW[ctx.kind] = () => { if (box.isConnected) redrawAll(); };
 
   // Moves a card on screen at once, then saves; a failed save puts it back.
   async function moveCard(key, date) {
@@ -10557,6 +10638,7 @@ function ptGroupMount(box) {
     const ok = await ptDlCommit(s => { if (date) s.cards[key] = date; else delete s.cards[key]; });
     if (!ok) { setLocal(before); setState(''); } else setState(t('ptb_saved'));
     draw();
+    if (ok) ptbSyncOthers(ctx.kind);
     return ok;
   }
   async function laneChange(apply) {
@@ -10564,10 +10646,11 @@ function ptGroupMount(box) {
     const ok = await ptDlCommit(apply);
     setState(ok ? t('ptb_saved') : '');
     draw();
+    if (ok) ptbSyncOthers(ctx.kind);
     return ok;
   }
 
-  box.addEventListener('change', e => {
+  on(box, 'change', e => {
     const el = e.target;
     if (el.matches('[data-ptg-team]')) { PTG.team = el.value; ptgSavePrefs(); redrawAll(); }
     else if (el.matches('[data-ptg-who]')) { PTG.who = el.value; ptgSavePrefs(); draw(); }
@@ -10575,13 +10658,13 @@ function ptGroupMount(box) {
     else if (el.matches('[data-ptg-scope]')) { PTG.scope = el.value; ptgSavePrefs(); redrawAll(); }
     else if (el.matches('[data-ptg-risk]')) { PTG.risk = el.value; ptgSavePrefs(); draw(); }
   });
-  box.addEventListener('input', e => {
+  on(box, 'input', e => {
     if (e.target.matches('[data-ptg-q]')) { PTG.q = e.target.value; draw(); }
   });
 
-  box.addEventListener('click', async e => {
+  on(box, 'click', async e => {
     if (e.target.closest('[data-ptb-token]')) { getGithubToken(true); return; }
-    if (e.target.closest('[data-ptg-summary]')) { ptgOpenSummary(); return; }
+    if (e.target.closest('[data-ptg-summary]')) { ptgOpenSummary(ctx); return; }
     const copy = e.target.closest('[data-ptg-copy]');
     if (copy) {
       const text = ptgText(box._ptgCols || []);
@@ -10634,7 +10717,7 @@ function ptGroupMount(box) {
     const card = e.target.closest('[data-ptb-card]');
     if (card) openDetail(card.dataset.ptbCard);
   });
-  box.addEventListener('keydown', e => {
+  on(box, 'keydown', e => {
     const card = e.target.closest && e.target.closest('[data-ptb-card]');
     if (card && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openDetail(card.dataset.ptbCard); }
   });
@@ -10642,7 +10725,7 @@ function ptGroupMount(box) {
   // Drag and drop between columns.
   let dragKey = null;
   const clearOver = except => box.querySelectorAll('.ptb-lane-body.over').forEach(el => { if (el !== except) el.classList.remove('over'); });
-  box.addEventListener('dragstart', e => {
+  on(box, 'dragstart', e => {
     const card = e.target.closest && e.target.closest('[data-ptb-card]');
     if (!card) return;
     dragKey = card.dataset.ptbCard;
@@ -10650,13 +10733,13 @@ function ptGroupMount(box) {
     try { e.dataTransfer.setData('text/plain', dragKey); } catch (err) { /* old browsers */ }
     card.classList.add('dragging');
   });
-  box.addEventListener('dragend', e => {
+  on(box, 'dragend', e => {
     const card = e.target.closest && e.target.closest('[data-ptb-card]');
     if (card) card.classList.remove('dragging');
     clearOver(null);
     dragKey = null;
   });
-  box.addEventListener('dragover', e => {
+  on(box, 'dragover', e => {
     const drop = e.target.closest && e.target.closest('[data-ptb-lane]');
     if (!drop || !dragKey) return;
     e.preventDefault();
@@ -10665,11 +10748,11 @@ function ptGroupMount(box) {
     clearOver(body);
     body.classList.add('over');
   });
-  box.addEventListener('dragleave', e => {
+  on(box, 'dragleave', e => {
     const drop = e.target.closest && e.target.closest('[data-ptb-lane]');
     if (drop && !drop.contains(e.relatedTarget)) drop.querySelector('[data-ptb-drop]').classList.remove('over');
   });
-  box.addEventListener('drop', e => {
+  on(box, 'drop', e => {
     const drop = e.target.closest && e.target.closest('[data-ptb-lane]');
     if (!drop) return;
     e.preventDefault();
@@ -10690,11 +10773,12 @@ function ptGroupMount(box) {
     modal.innerHTML = `<div class="ptb-dialog" role="dialog" aria-modal="true">${ptgDetailHtml(r)}</div>`;
     document.body.appendChild(modal);
     const rerender = () => {
+      ptgUse(ctx);
       const fresh = ptgRows().find(x => x.key === key) || r;
       modal.querySelector('.ptb-dialog').innerHTML = ptgDetailHtml(fresh);
       draw();   // a new note changes what a risk card shows
     };
-    modal.addEventListener('click', async ev => {
+    on(modal, 'click', async ev => {
       if (ev.target === modal || ev.target.closest('[data-ptb-close]')) { closeDetail(); return; }
       const riskBtn = ev.target.closest('[data-ptb-risk]') || ev.target.closest('[data-ptb-risk-save]');
       if (riskBtn) {
@@ -10746,7 +10830,7 @@ function ptGroupMount(box) {
       }
     });
     // Moving from inside the dialog — the way to do it without a mouse to drag with.
-    modal.addEventListener('change', async ev => {
+    on(modal, 'change', async ev => {
       const sel = ev.target.closest('[data-ptb-move]');
       if (!sel) return;
       const st = modal.querySelector('[data-ptb-state]');
@@ -10755,7 +10839,7 @@ function ptGroupMount(box) {
       st.textContent = ok ? t('ptb_saved') : '';
       if (!ok) sel.value = ptgLaneOf(key);
     });
-    modal.addEventListener('keydown', ev => {
+    on(modal, 'keydown', ev => {
       if (ev.key === 'Enter' && ev.target.matches('[data-ptb-risk-label]')) {
         ev.preventDefault();
         modal.querySelector('[data-ptb-risk-save]').click();
@@ -10769,13 +10853,14 @@ function ptGroupMount(box) {
       if (m._esc) document.removeEventListener('keydown', m._esc);
       m.remove();
     });
-    // The Bug list and test-case lists further down this tab show the badge too.
+    // The lists further down the Pretest tab show the badge too (the other tabs were
+    // redrawn when the mark was saved).
     if (riskChanged) { riskChanged = false; renderPretestPanel(); }
   }
 
   redrawAll();
   // Pick up board changes and dashboard notes saved since this page was built.
-  ptDlRefresh().then(changed => { if (changed && box.isConnected && !dragKey) redrawAll(); });
+  ptDlRefresh().then(changed => { if (changed) Object.values(PTB_REDRAW).forEach(f => f()); });
   refreshBugComments();
 }
 
