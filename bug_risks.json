@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-27T02:21:26.876Z",
+  "updated_at": "2026-11-27T02:40:46.258Z",
   "updated_by": "Leyo",
   "risks": {
     "NR1LT-7747": {
@@ -31,6 +31,11 @@
       "by": "Leyo",
       "at": "2026-11-27T02:14:50.469Z",
       "label": "Harman dependency"
+    },
+    "NR1LT-7617": {
+      "by": "Leyo",
+      "at": "2026-11-27T02:40:46.258Z",
+      "label": "Degub session"
     }
   }
 }
