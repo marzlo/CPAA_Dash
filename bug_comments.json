@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-27T02:46:47.672Z",
+  "updated_at": "2026-11-27T03:01:18.770Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -530,6 +530,12 @@
         "text": "Blocked by Harman R7",
         "by": "Leyo",
         "at": "2026-11-23T02:12:44.262Z"
+      },
+      {
+        "id": "mwyea1n1df8pm",
+        "text": "CMS/DMS有無後續聯調需要",
+        "by": "Leyo",
+        "at": "2026-11-27T03:01:18.157Z"
       }
     ],
     "NR1LT-7899": [
