@@ -2641,11 +2641,22 @@ const STRINGS = {
   pts_unsched: { zh: '未排定', en: 'unscheduled' },
   pts_from_jira: { zh: '[Jira 留言] ', en: '[Jira comment] ' },
   pts_no_reason: { zh: '尚未寫原因(沒有備註)', en: 'no reason written yet' },
+  pts_un_due_late_n: { zh: (c, n) => `Jira due date 晚於 ${c}:${n} 張`, en: (c, n) => `Jira due date after ${c}: ${n}` },
+  pts_un_no_due_n: { zh: n => `連 Jira due date 也沒有:${n} 張`, en: n => `No Jira due date either: ${n}` },
+  pts_risk_tag_n: { zh: (g, n) => `${g}:${n} 張`, en: (g, n) => `${g}: ${n}` },
+  pts_n_unsched: { zh: n => `未排定 ${n}`, en: n => `${n} unscheduled` },
+  pts_n_after: { zh: (n, c) => `${c} 之後 ${n}`, en: (n, c) => `${n} after ${c}` },
+  pts_n_on_cut: { zh: (n, c) => `剛好 ${c} ${n}`, en: (n, c) => `${n} on ${c}` },
+  pts_n_no_reason: { zh: n => `沒寫原因 ${n}`, en: n => `${n} without a reason` },
+  pts_n_unsched_or_after: { zh: (n, c) => `未排定或 ${c} 之後 ${n}`, en: (n, c) => `${n} unscheduled or after ${c}` },
+  pts_n_not_risk: { zh: n => `未標 Risk ${n}`, en: n => `${n} not marked as risk` },
+  pts_lb_done_short: { zh: '已完成,確認可否解除 Block', en: 'done — check whether they can be unblocked' },
+  pts_h_harman_n: { zh: (k, b, cp, aa) => `Harman 相依:${k} 張 NR1LB 票,卡住 ${b} 張 bug,測試案例 CP ${cp} / AA ${aa}`, en: (k, b, cp, aa) => `Harman dependency: ${k} NR1LB tickets holding up ${b} bugs, test cases CP ${cp} / AA ${aa}` },
   pts_h_harman: { zh: n => `Harman 相依:提到 ${n} 張 NR1LB 票`, en: n => `Harman dependency: ${n} NR1LB tickets referenced` },
   pts_lb_line: { zh: (k, s, n, cp, aa) => `${k}${s ? `(${s})` : ''}:卡住 ${n} 張 bug,影響測試案例 CP ${cp} / AA ${aa}`, en: (k, s, n, cp, aa) => `${k}${s ? ` (${s})` : ''}: holds up ${n} bugs, test cases CP ${cp} / AA ${aa}` },
   pts_not_risk: { zh: '尚未標 Risk', en: 'not marked as a risk' },
   pts_lb_late: { zh: (n, c) => `其中 ${n} 張未排定或排在 ${c} 之後`, en: (n, c) => `${n} of them are unscheduled or after ${c}` },
-  pts_lb_missing: { zh: n => `⚠ 標了 Harman 相依卻沒提到任何 NR1LB 票:${n} 張(建議在備註或 Jira 補上 Harman 票號)`, en: n => `⚠ Marked Harman-dependent but no NR1LB ticket mentioned: ${n} (add the Harman ticket to a note or Jira)` },
+  pts_lb_missing: { zh: n => `⚠ 標了 Harman 相依卻沒提到任何 NR1LB 票:${n} 張(建議補上 Harman 票號)`, en: n => `⚠ Marked Harman-dependent but no NR1LB ticket mentioned: ${n} (add the Harman ticket)` },
   pts_lb_done: { zh: k => `${k} 已完成 — 確認這些 bug 是否可以解除 Block / 重測`, en: k => `${k} is done — check whether these bugs can be unblocked / retested` },
   pts_lb_none: { zh: '未完成的票裡沒有提到任何 NR1LB 票', en: 'No open ticket mentions an NR1LB ticket' },
   risk_badge: { zh: '⚠ Risk', en: '⚠ Risk' },
@@ -10399,46 +10410,45 @@ function ptgSummaryBlocks(cutoff) {
     ].concat(both ? [{ text: t('pts_both', both) }] : []) });
   }
 
-  // 2. Dates: after the danger line, overdue, unscheduled
-  const late = open.filter(r => { const d = ptgLaneOf(r.key); return d && d > cutoff; });
+  // Counts only: the summary says how many, the board itself says which.
+  // 2. Dates: after the danger line, on it, overdue, unscheduled
+  const laneAfter = r => { const d = ptgLaneOf(r.key); return d && d > cutoff; };
+  const late = open.filter(laneAfter);
   const onCut = open.filter(r => ptgLaneOf(r.key) === cutoff);
   const overdue = open.filter(r => { const d = ptgLaneOf(r.key); return d && d < today; });
   const unplanned = open.filter(r => !ptgLaneOf(r.key));
-  const unDueLate = unplanned.filter(r => r.due && r.due > cutoff);
-  const unNoDue = unplanned.filter(r => !r.due);
-  const dItems = [];
-  dItems.push(late.length
-    ? { text: t('pts_late', ptgMD(cutoff), late.length), sub: late.map(r => `${ref(r)} → ${ptgMD(ptgLaneOf(r.key))}`) }
-    : { text: t('pts_late_none', ptgMD(cutoff)) });
-  if (onCut.length) dItems.push({ text: t('pts_on_cut', ptgMD(cutoff), onCut.length), sub: onCut.map(ref) });
-  if (overdue.length) dItems.push({ text: t('pts_overdue', overdue.length), sub: overdue.map(r => `${ref(r)} → ${ptgMD(ptgLaneOf(r.key))}`) });
-  if (unplanned.length) {
-    const sub = [];
-    if (unDueLate.length) sub.push(t('pts_un_due_late', ptgMD(cutoff), unDueLate.map(r => `${r.key} (Jira due ${ptgMD(r.due)})`).join(', ')));
-    if (unNoDue.length) sub.push(t('pts_un_no_due', unNoDue.map(r => r.key).join(', ')));
-    const rest = unplanned.length - unDueLate.length - unNoDue.length;
-    if (rest) sub.push(t('pts_un_due_ok', rest));
-    dItems.push({ text: t('pts_unplanned', unplanned.length), sub });
-  }
+  const unDueLate = unplanned.filter(r => r.due && r.due > cutoff).length;
+  const unNoDue = unplanned.filter(r => !r.due).length;
+  const dItems = [
+    { text: late.length ? t('pts_late', ptgMD(cutoff), late.length) : t('pts_late_none', ptgMD(cutoff)) },
+    { text: t('pts_on_cut', ptgMD(cutoff), onCut.length) },
+    { text: t('pts_overdue', overdue.length) },
+    { text: t('pts_unplanned', unplanned.length), sub: unplanned.length ? [
+      t('pts_un_due_late_n', ptgMD(cutoff), unDueLate),
+      t('pts_un_no_due_n', unNoDue),
+      t('pts_un_due_ok', unplanned.length - unDueLate - unNoDue),
+    ] : [] },
+  ];
   blocks.push({ h: t('pts_h_dates', ptgMD(cutoff)), items: dItems });
 
-  // 3. Risks, grouped by tag
+  // 3. Risks, counted per tag
   const risks = open.filter(r => bugIsRisk(r.key));
   const byTag = new Map();
   risks.forEach(r => { const g = bugRiskLabel(r.key) || t('pts_no_tag'); if (!byTag.has(g)) byTag.set(g, []); byTag.get(g).push(r); });
   const tags = [...byTag.entries()].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
-  const rItems = tags.map(([g, rows]) => ({
-    text: `${g}: ${rows.length}`,
-    sub: rows.map(r => {
-      const why = ptgRiskReason(r.key);
-      const d = ptgLaneOf(r.key);
-      return `${r.key} [${r.src.join('/') || 'Highest'}] ${ptgWho(r)} · ${r.status}${d ? ' · ' + t('pts_board', ptgMD(d)) : ' · ' + t('pts_unsched')} — ` +
-        (why ? `${why.src === 'jira' ? t('pts_from_jira') : ''}${why.text} (${why.by || '?'}, ${ptgMD(why.at)})` : t('pts_no_reason'));
-    }),
-  }));
+  const parts = list => list.filter(([n]) => n).map(([n, key]) => t(key, n, ptgMD(cutoff))).join(' · ');
+  const rItems = tags.map(([g, rows]) => {
+    const extra = parts([
+      [rows.filter(r => !ptgLaneOf(r.key)).length, 'pts_n_unsched'],
+      [rows.filter(laneAfter).length, 'pts_n_after'],
+      [rows.filter(r => ptgLaneOf(r.key) === cutoff).length, 'pts_n_on_cut'],
+      [rows.filter(r => !ptgRiskReason(r.key)).length, 'pts_n_no_reason'],
+    ]);
+    return { text: t('pts_risk_tag_n', g, rows.length) + (extra ? `${LANG === 'en' ? ' (' : '('}${extra})` : '') };
+  });
   blocks.push({ h: t('pts_h_risk', risks.length), items: rItems.length ? rItems : [{ text: t('pts_risk_none') }] });
 
-  // 4. Harman (NR1LB)
+  // 4. Harman (NR1LB): per Harman ticket, how many bugs and test cases it holds up
   const lb = new Map();   // NR1LB key -> { status, rows }
   open.forEach(r => ptgNr1lbRefs(r.key, r.summary).forEach(x => {
     if (!lb.has(x.k)) lb.set(x.k, { s: '', rows: [] });
@@ -10450,18 +10460,18 @@ function ptgSummaryBlocks(cutoff) {
   const hItems = [...lb.entries()].sort((a, b) => lbDone(a[1].s) - lbDone(b[1].s) ||
       b[1].rows.length - a[1].rows.length || a[0].localeCompare(b[0])).map(([k, e]) => {
     const cs = ptgCasesFor(e.rows.map(r => r.key));
-    const late2 = e.rows.filter(r => { const d = ptgLaneOf(r.key); return !d || d > cutoff; }).length;
-    return {
-      text: t('pts_lb_line', k, e.s, e.rows.length, cs.CP, cs.AA),
-      sub: e.rows.map(r => `${r.key} [${r.src.join('/') || 'Highest'}] ${ptgWho(r)} · ${r.status}${ptgLaneOf(r.key) ? ' · ' + t('pts_board', ptgMD(ptgLaneOf(r.key))) : ' · ' + t('pts_unsched')}` +
-                             (bugIsRisk(r.key) ? '' : ' · ' + t('pts_not_risk')))
-        .concat(late2 ? [t('pts_lb_late', late2, ptgMD(cutoff))] : [])
-        .concat(lbDone(e.s) ? [t('pts_lb_done', k)] : []),
-    };
+    const extra = parts([
+      [e.rows.filter(r => !ptgLaneOf(r.key) || laneAfter(r)).length, 'pts_n_unsched_or_after'],
+      [e.rows.filter(r => !bugIsRisk(r.key)).length, 'pts_n_not_risk'],
+    ]);
+    return { text: t('pts_lb_line', k, e.s, e.rows.length, cs.CP, cs.AA) + (extra ? `${LANG === 'en' ? ' (' : '('}${extra})` : '') +
+                   (lbDone(e.s) ? ' — ' + t('pts_lb_done_short') : '') };
   });
   const harmanNoLb = risks.filter(r => /harman/i.test(bugRiskLabel(r.key)) && !ptgNr1lbRefs(r.key, r.summary).length);
-  if (harmanNoLb.length) hItems.push({ text: t('pts_lb_missing', harmanNoLb.length), sub: harmanNoLb.map(ref) });
-  blocks.push({ h: t('pts_h_harman', lb.size), items: hItems.length ? hItems : [{ text: t('pts_lb_none') }] });
+  if (harmanNoLb.length) hItems.push({ text: t('pts_lb_missing', harmanNoLb.length) });
+  const allCs = ptgCasesFor([...new Set([...lb.values()].flatMap(e => e.rows.map(r => r.key)))]);
+  const lbBugs = new Set([...lb.values()].flatMap(e => e.rows.map(r => r.key))).size;
+  blocks.push({ h: t('pts_h_harman_n', lb.size, lbBugs, allCs.CP, allCs.AA), items: hItems.length ? hItems : [{ text: t('pts_lb_none') }] });
   return blocks;
 }
 
