@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-27T03:23:20.123Z",
+  "updated_at": "2026-11-27T04:06:37.691Z",
   "updated_by": "Leyo",
   "risks": {
     "NR1LT-7747": {
@@ -118,6 +118,11 @@
     "NR1LT-7817": {
       "by": "Leyo",
       "at": "2026-11-27T03:23:13.272Z",
+      "label": "Harman dependency"
+    },
+    "NR1LT-6908": {
+      "by": "Leyo",
+      "at": "2026-11-27T04:06:37.691Z",
       "label": "Harman dependency"
     }
   }
