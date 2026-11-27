@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-26T02:50:15.802Z",
+  "updated_at": "2026-11-27T01:32:56.498Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -480,6 +480,12 @@
         "text": "與7620關聯",
         "by": "Leyo",
         "at": "2026-11-19T02:40:25.636Z"
+      },
+      {
+        "id": "mwyb4eehaqkvo",
+        "text": "Related to ICS powerdown. \nSantosh said Harman will release in R8 (Feb 8, 2027). but CPAA pretest have to finish before Dec 31, 2026",
+        "by": "Leyo",
+        "at": "2026-11-27T01:32:55.913Z"
       }
     ],
     "NR1LT-7643": [
