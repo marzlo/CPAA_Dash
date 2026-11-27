@@ -65,6 +65,22 @@ IDX_RCA = (header.index("Custom field (Root Cause Analysis)")
 # manual CSV exports without the column, hence the None guard: no column means no
 # deadline shown, never a guessed one.
 IDX_DUE = header.index("Due date") if "Due date" in header else None
+# Jira issue links, as fetch_jira.py writes them (a JSON list in one cell). Only the
+# linked keys and their status are kept on bug records — the Pretest summary looks for NR1LB tickets
+# (Harman's board) a bug is tied to.
+IDX_LINKS = header.index("Linked Issues") if "Linked Issues" in header else None
+
+
+def linked_keys(row):
+    if IDX_LINKS is None or IDX_LINKS >= len(row) or not row[IDX_LINKS]:
+        return []
+    try:
+        parsed = json.loads(row[IDX_LINKS])
+    except (ValueError, TypeError):
+        return []
+    if not isinstance(parsed, list):
+        return []
+    return [{"k": x["key"], "s": x.get("status") or ""} for x in parsed if isinstance(x, dict) and x.get("key")]
 LABEL_COLS = [i for i, h in enumerate(header) if h == "Labels" or (isinstance(h, str) and h.startswith("Labels_"))]
 
 # Normalise the "Created" cell to an ISO date string regardless of source: the CSV path
@@ -435,6 +451,7 @@ for r in data:
         "due": due_iso(r[IDX_DUE]) if IDX_DUE is not None else None,
         # True / False when the column exists, None when the export predates it.
         "hasRca": (bool((r[IDX_RCA] or "").strip()) if IDX_RCA is not None else None),
+        "lk": linked_keys(r),
     }
     rec["labelBucket"] = label_bucket(rec["hasR2"], rec["hasR3"], rec["hasCPAA0830"])
     rec["subFeature"] = classify_subfeature(rec["feature"], summary) or "未分類"

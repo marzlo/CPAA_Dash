@@ -486,6 +486,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .ptb-card .note .who { color: var(--muted); font-size: 11px; }
   .ptb-card .note.empty { color: var(--muted); font-style: italic; }
   .ptb-risk-btn.on { border-color: var(--critical); color: var(--critical); }
+  .pts-dialog .pts-body { max-height: 66vh; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px;
+                          padding: 4px 14px; background: var(--page); font-size: 13px; }
+  .pts-dialog .pts-body ul { margin: 2px 0 8px; padding-left: 20px; }
+  .pts-dialog .pts-body ul ul { margin: 2px 0 4px; color: var(--text-secondary); font-size: 12.5px; }
+  .pts-dialog .pts-body li { margin: 2px 0; overflow-wrap: anywhere; }
   .ptb-risk-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
   .ptb-risk-row input[type=text] { font-size: 12.5px; min-width: 220px; padding: 4px 8px; }
   .pt-bugref .badge.risk-flag { margin-left: 3px; font-size: 10px; padding: 0 5px; }
@@ -2596,6 +2601,41 @@ const STRINGS = {
   ptb_f_status: { zh: '狀態', en: 'Status' },
   ptb_f_jira_due: { zh: 'Jira Due date', en: 'Jira due date' },
   ptb_f_lane: { zh: '看板日期', en: 'Board date' },
+  ptg_summary_btn: { zh: '🧾 產生 Summary', en: '🧾 Summary' },
+  pts_heading: { zh: 'Pretest Bug Summary', en: 'Pretest bug summary' },
+  pts_title: { zh: (d, c) => `Pretest Bug Summary(${d},危險線 ${c})`, en: (d, c) => `Pretest bug summary (${d}, danger line ${c})` },
+  pts_cutoff: { zh: '危險日期(晚於此日即危險)', en: 'Danger date (later = at risk)' },
+  pts_copy: { zh: '📋 複製', en: '📋 Copy' },
+  pts_copied: { zh: '已複製 — 到「📝 整體現狀」按 Edit 貼上即可保留格式', en: 'Copied — paste into 📝 Summary → Edit to keep the formatting' },
+  pts_caption: { zh: '依目前看板的日期、Risk 標記與備註即時產生,範圍是所有未完成的 pretest bug(不受上方篩選影響)。', en: 'Built live from the board dates, risk marks and notes, over every open pretest bug (the board filters do not apply).' },
+  pts_h_overall: { zh: n => `整體:未完成 ${n} 張`, en: n => `Overall: ${n} open` },
+  pts_plat_line: { zh: (name, n, ts, non, risk) => `${name}:${n} 張(TS ${ts} · 非 TS ${non} · Risk ${risk})`, en: (name, n, ts, non, risk) => `${name}: ${n} open (TS ${ts} · non-TS ${non} · risk ${risk})` },
+  pts_plat_lanes: { zh: s => `看板日期:${s}`, en: s => `Board dates: ${s}` },
+  pts_plat_unplanned: { zh: n => `未排定:${n}`, en: n => `Unscheduled: ${n}` },
+  pts_both: { zh: n => `其中 ${n} 張標題同時寫 PCTS 與 Facets,CP、AA 各算一次`, en: n => `${n} tickets name both PCTS and Facets and are counted on both sides` },
+  pts_h_dates: { zh: c => `時程(危險線 ${c})`, en: c => `Dates (danger line ${c})` },
+  pts_late: { zh: (c, n) => `⚠ 排在 ${c} 之後:${n} 張`, en: (c, n) => `⚠ Scheduled after ${c}: ${n}` },
+  pts_late_none: { zh: c => `看板上沒有排在 ${c} 之後的票`, en: c => `Nothing on the board is scheduled after ${c}` },
+  pts_on_cut: { zh: (c, n) => `剛好排在 ${c}(沒有緩衝):${n} 張`, en: (c, n) => `Scheduled on ${c} itself (no buffer): ${n}` },
+  pts_overdue: { zh: n => `已過看板日期仍未完成:${n} 張`, en: n => `Past their board date and still open: ${n}` },
+  pts_unplanned: { zh: n => `未排定日期:${n} 張`, en: n => `No board date yet: ${n}` },
+  pts_un_due_late: { zh: (c, s) => `⚠ Jira due date 晚於 ${c}:${s}`, en: (c, s) => `⚠ Jira due date after ${c}: ${s}` },
+  pts_un_no_due: { zh: s => `連 Jira due date 也沒有:${s}`, en: s => `No Jira due date either: ${s}` },
+  pts_un_due_ok: { zh: n => `其餘 ${n} 張的 Jira due date 在危險線之前`, en: n => `The other ${n} have a Jira due date before the danger line` },
+  pts_h_risk: { zh: n => `Risk:${n} 張`, en: n => `Risks: ${n}` },
+  pts_risk_none: { zh: '目前沒有標記 Risk 的未完成票', en: 'No open ticket is marked as a risk' },
+  pts_no_tag: { zh: '(未標籤)', en: '(no tag)' },
+  pts_board: { zh: d => `看板 ${d}`, en: d => `board ${d}` },
+  pts_unsched: { zh: '未排定', en: 'unscheduled' },
+  pts_from_jira: { zh: '[Jira 留言] ', en: '[Jira comment] ' },
+  pts_no_reason: { zh: '尚未寫原因(沒有備註)', en: 'no reason written yet' },
+  pts_h_harman: { zh: n => `Harman 相依:提到 ${n} 張 NR1LB 票`, en: n => `Harman dependency: ${n} NR1LB tickets referenced` },
+  pts_lb_line: { zh: (k, s, n, cp, aa) => `${k}${s ? `(${s})` : ''}:卡住 ${n} 張 bug,影響測試案例 CP ${cp} / AA ${aa}`, en: (k, s, n, cp, aa) => `${k}${s ? ` (${s})` : ''}: holds up ${n} bugs, test cases CP ${cp} / AA ${aa}` },
+  pts_not_risk: { zh: '尚未標 Risk', en: 'not marked as a risk' },
+  pts_lb_late: { zh: (n, c) => `其中 ${n} 張未排定或排在 ${c} 之後`, en: (n, c) => `${n} of them are unscheduled or after ${c}` },
+  pts_lb_missing: { zh: n => `⚠ 標了 Harman 相依卻沒提到任何 NR1LB 票:${n} 張(建議在備註或 Jira 補上 Harman 票號)`, en: n => `⚠ Marked Harman-dependent but no NR1LB ticket mentioned: ${n} (add the Harman ticket to a note or Jira)` },
+  pts_lb_done: { zh: k => `${k} 已完成 — 確認這些 bug 是否可以解除 Block / 重測`, en: k => `${k} is done — check whether these bugs can be unblocked / retested` },
+  pts_lb_none: { zh: '未完成的票裡沒有提到任何 NR1LB 票', en: 'No open ticket mentions an NR1LB ticket' },
   risk_badge: { zh: '⚠ Risk', en: '⚠ Risk' },
   risk_tip: { zh: (by, at) => `由 ${by} 在 ${at} 標記為 Risk`, en: (by, at) => `Marked as a risk by ${by} on ${at}` },
   risk_need_token: { zh: '要先設定 🔑 GitHub token 才能標記 Risk', en: 'Set the 🔑 GitHub token first to mark risks' },
@@ -10202,6 +10242,225 @@ async function ptDlRefresh() {
   } catch (e) { return false; }
 }
 
+// --- Board summary ----------------------------------------------------------------
+// "🧾 Summary" on the board: a written status of every open pretest bug, built from the
+// board's own dates, the risk marks and the notes — CP / AA counts, what lands after the
+// danger date (default 12/08, editable), what is overdue or still unscheduled, every risk
+// with its reason, and which Harman (NR1LB) tickets the Harman-dependent bugs wait on and
+// how many bugs / test cases each one holds up. Copied as HTML so it pastes into the
+// 整體現狀 editor with its lists intact.
+const PTG_NR1LB_RE = /NR1LB-\d+/g;
+function ptgCutoff() {
+  try { const v = localStorage.getItem('cpaaPtCutoff'); if (/^\d{4}-\d{2}-\d{2}$/.test(v || '')) return v; } catch (e) { /* no storage */ }
+  return '2026-12-08';
+}
+function ptgMD(date) {
+  if (!date) return '';
+  // Month/day is enough inside this year; another year is spelled out (2027/02/12).
+  return date.slice(0, 4) === ptgToday().slice(0, 4) ? date.slice(5).replace('-', '/') : date.replace(/-/g, '/');
+}
+function ptgFlat(s, n) {
+  const f = String(s || '')
+    .replace(/\[((?:\\.|[^\]])*)\]\((https?:[^)\s]+)\)/g, '$1')   // markdown links -> their text
+    .replace(/\\([\[\]_*`])/g, '$1')
+    .replace(/\s+/g, ' ').trim();
+  return n && f.length > n ? f.slice(0, n - 1) + '…' : f;
+}
+// Every NR1LB key a ticket points at: Jira links first (they carry a status), then
+// anything written in its summary, dashboard notes or Jira comments.
+function ptgNr1lbRefs(key, summary) {
+  const out = new Map();
+  const tk = ptTicket(key) || {};
+  (tk.lk || []).forEach(l => {
+    const k = typeof l === 'string' ? l : l.k;
+    if (/^NR1LB-\d+$/.test(k || '')) out.set(k, { k, s: (l && l.s) || '', via: 'link' });
+  });
+  const texts = [summary || ''];
+  bugComments(key).forEach(c => texts.push(c.text || ''));
+  const j = ptgJira(key);
+  ((j && j.items) || []).forEach(c => texts.push(c.text || ''));
+  texts.join('\n').replace(PTG_NR1LB_RE, k => { if (!out.has(k)) out.set(k, { k, s: '', via: 'text' }); return k; });
+  return [...out.values()];
+}
+// Why a ticket is a risk: its newest dashboard note, else the newest Jira comment.
+function ptgRiskReason(key) {
+  const list = bugComments(key);
+  const c = list[list.length - 1];
+  if (c) return { text: ptgFlat(c.text, 220), by: c.by, at: (c.at || '').slice(0, 10), src: 'note' };
+  const j = ptgJira(key);
+  const jc = j && j.items && j.items[j.items.length - 1];
+  if (jc) return { text: ptgFlat(jc.text, 220), by: jc.by, at: (jc.at || '').slice(0, 10), src: 'jira' };
+  return null;
+}
+// Test cases (CP / AA, de-duplicated) whose bug list names any of the given tickets.
+function ptgCasesFor(keys) {
+  const set = new Set(keys);
+  const plats = (PRETEST_CASES && PRETEST_CASES.platforms) || {};
+  const out = { CP: 0, AA: 0 };
+  Object.keys(out).forEach(p => ((plats[p] && plats[p].cases) || []).forEach(c => {
+    if ((c.bugs || []).some(k => set.has(k))) out[p]++;
+  }));
+  return out;
+}
+
+function ptgSummaryBlocks(cutoff) {
+  const today = ptgToday();
+  const all = ptgRows();
+  const open = all.filter(r => r.known && !r.done);
+  const lanes = ptgLanes();
+  const ref = r => `${r.key} (${ptgWho(r)}${r.status ? ' · ' + r.status : ''})`;
+  const blocks = [];
+
+  // 1. CP / AA
+  const plat = id => {
+    const rows = open.filter(r => r.src.includes(id));
+    const byLane = lanes.map(l => [l, rows.filter(r => ptgLaneOf(r.key) === l.date).length]).filter(x => x[1]);
+    const unplanned = rows.filter(r => !ptgLaneOf(r.key)).length;
+    const ts = rows.filter(r => r.isTs).length;
+    const risk = rows.filter(r => bugIsRisk(r.key)).length;
+    return {
+      text: t('pts_plat_line', id === 'CP' ? 'CarPlay (CP)' : 'Android Auto (AA)', rows.length, ts, rows.length - ts, risk),
+      sub: [
+        t('pts_plat_lanes', byLane.map(([l, n]) => `${ptgMD(l.date)}${l.label ? ' ' + l.label : ''}: ${n}`).join(', ') || '—'),
+        t('pts_plat_unplanned', unplanned),
+      ],
+    };
+  };
+  const both = open.filter(r => r.src.includes('CP') && r.src.includes('AA')).length;
+  blocks.push({ h: t('pts_h_overall', open.length), items: [plat('CP'), plat('AA')].concat(both ? [{ text: t('pts_both', both) }] : []) });
+
+  // 2. Dates: after the danger line, overdue, unscheduled
+  const late = open.filter(r => { const d = ptgLaneOf(r.key); return d && d > cutoff; });
+  const onCut = open.filter(r => ptgLaneOf(r.key) === cutoff);
+  const overdue = open.filter(r => { const d = ptgLaneOf(r.key); return d && d < today; });
+  const unplanned = open.filter(r => !ptgLaneOf(r.key));
+  const unDueLate = unplanned.filter(r => r.due && r.due > cutoff);
+  const unNoDue = unplanned.filter(r => !r.due);
+  const dItems = [];
+  dItems.push(late.length
+    ? { text: t('pts_late', ptgMD(cutoff), late.length), sub: late.map(r => `${ref(r)} → ${ptgMD(ptgLaneOf(r.key))}`) }
+    : { text: t('pts_late_none', ptgMD(cutoff)) });
+  if (onCut.length) dItems.push({ text: t('pts_on_cut', ptgMD(cutoff), onCut.length), sub: onCut.map(ref) });
+  if (overdue.length) dItems.push({ text: t('pts_overdue', overdue.length), sub: overdue.map(r => `${ref(r)} → ${ptgMD(ptgLaneOf(r.key))}`) });
+  if (unplanned.length) {
+    const sub = [];
+    if (unDueLate.length) sub.push(t('pts_un_due_late', ptgMD(cutoff), unDueLate.map(r => `${r.key} (Jira due ${ptgMD(r.due)})`).join(', ')));
+    if (unNoDue.length) sub.push(t('pts_un_no_due', unNoDue.map(r => r.key).join(', ')));
+    const rest = unplanned.length - unDueLate.length - unNoDue.length;
+    if (rest) sub.push(t('pts_un_due_ok', rest));
+    dItems.push({ text: t('pts_unplanned', unplanned.length), sub });
+  }
+  blocks.push({ h: t('pts_h_dates', ptgMD(cutoff)), items: dItems });
+
+  // 3. Risks, grouped by tag
+  const risks = open.filter(r => bugIsRisk(r.key));
+  const byTag = new Map();
+  risks.forEach(r => { const g = bugRiskLabel(r.key) || t('pts_no_tag'); if (!byTag.has(g)) byTag.set(g, []); byTag.get(g).push(r); });
+  const tags = [...byTag.entries()].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+  const rItems = tags.map(([g, rows]) => ({
+    text: `${g}: ${rows.length}`,
+    sub: rows.map(r => {
+      const why = ptgRiskReason(r.key);
+      const d = ptgLaneOf(r.key);
+      return `${r.key} [${r.src.join('/')}] ${ptgWho(r)} · ${r.status}${d ? ' · ' + t('pts_board', ptgMD(d)) : ' · ' + t('pts_unsched')} — ` +
+        (why ? `${why.src === 'jira' ? t('pts_from_jira') : ''}${why.text} (${why.by || '?'}, ${ptgMD(why.at)})` : t('pts_no_reason'));
+    }),
+  }));
+  blocks.push({ h: t('pts_h_risk', risks.length), items: rItems.length ? rItems : [{ text: t('pts_risk_none') }] });
+
+  // 4. Harman (NR1LB)
+  const lb = new Map();   // NR1LB key -> { status, rows }
+  open.forEach(r => ptgNr1lbRefs(r.key, r.summary).forEach(x => {
+    if (!lb.has(x.k)) lb.set(x.k, { s: '', rows: [] });
+    const e = lb.get(x.k);
+    if (x.s) e.s = x.s;
+    e.rows.push(r);
+  }));
+  const lbDone = st => /^(done|closed|resolved|fixed|released)$/i.test(st || '');
+  const hItems = [...lb.entries()].sort((a, b) => lbDone(a[1].s) - lbDone(b[1].s) ||
+      b[1].rows.length - a[1].rows.length || a[0].localeCompare(b[0])).map(([k, e]) => {
+    const cs = ptgCasesFor(e.rows.map(r => r.key));
+    const late2 = e.rows.filter(r => { const d = ptgLaneOf(r.key); return !d || d > cutoff; }).length;
+    return {
+      text: t('pts_lb_line', k, e.s, e.rows.length, cs.CP, cs.AA),
+      sub: e.rows.map(r => `${r.key} [${r.src.join('/')}] ${ptgWho(r)} · ${r.status}${ptgLaneOf(r.key) ? ' · ' + t('pts_board', ptgMD(ptgLaneOf(r.key))) : ' · ' + t('pts_unsched')}` +
+                             (bugIsRisk(r.key) ? '' : ' · ' + t('pts_not_risk')))
+        .concat(late2 ? [t('pts_lb_late', late2, ptgMD(cutoff))] : [])
+        .concat(lbDone(e.s) ? [t('pts_lb_done', k)] : []),
+    };
+  });
+  const harmanNoLb = risks.filter(r => /harman/i.test(bugRiskLabel(r.key)) && !ptgNr1lbRefs(r.key, r.summary).length);
+  if (harmanNoLb.length) hItems.push({ text: t('pts_lb_missing', harmanNoLb.length), sub: harmanNoLb.map(ref) });
+  blocks.push({ h: t('pts_h_harman', lb.size), items: hItems.length ? hItems : [{ text: t('pts_lb_none') }] });
+  return blocks;
+}
+
+function ptgSummaryRender(cutoff) {
+  const blocks = ptgSummaryBlocks(cutoff);
+  const title = t('pts_title', ptgToday(), ptgMD(cutoff));
+  const li = it => `<li>${esc(it.text)}${(it.sub && it.sub.length) ? `<ul>${it.sub.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}</li>`;
+  const html = `<p><strong>${esc(title)}</strong></p>` + blocks.map((b, i) =>
+    `<p><strong>${i + 1}. ${esc(b.h)}</strong></p><ul>${b.items.map(li).join('')}</ul>`).join('');
+  const text = [title].concat(blocks.map((b, i) => [`${i + 1}. ${b.h}`]
+    .concat(b.items.map(it => ['- ' + it.text].concat((it.sub || []).map(x => '    - ' + x)).join('\n'))).join('\n'))).join('\n\n');
+  return { html, text };
+}
+
+function ptgOpenSummary() {
+  document.querySelectorAll('.ptb-modal').forEach(m => m.remove());
+  const modal = document.createElement('div');
+  modal.className = 'ptb-modal';
+  modal.innerHTML = `<div class="ptb-dialog pts-dialog" role="dialog" aria-modal="true">
+    <div class="hd"><strong style="font-size:15px">${esc(t('pts_heading'))}</strong>
+      <button type="button" class="close" data-pts-close aria-label="close">✕</button></div>
+    <div class="ptg-controls">
+      <span class="lbl">${esc(t('pts_cutoff'))}</span>
+      <input type="date" data-pts-cutoff value="${esc(ptgCutoff())}">
+      <button type="button" class="btn small primary" data-pts-copy>${esc(t('pts_copy'))}</button>
+      <span class="save-state" data-pts-state></span>
+    </div>
+    <p class="caption" style="margin:0 0 8px; font-size:12px">${esc(t('pts_caption'))}</p>
+    <div class="pts-body notes-html"></div>
+  </div>`;
+  document.body.appendChild(modal);
+  let cur = null;
+  const draw = () => {
+    cur = ptgSummaryRender(modal.querySelector('[data-pts-cutoff]').value || ptgCutoff());
+    modal.querySelector('.pts-body').innerHTML = cur.html;
+  };
+  const close = () => { document.removeEventListener('keydown', onEsc); modal.remove(); };
+  const onEsc = ev => { if (ev.key === 'Escape') close(); };
+  document.addEventListener('keydown', onEsc);
+  modal.addEventListener('change', ev => {
+    if (!ev.target.matches('[data-pts-cutoff]')) return;
+    const v = ev.target.value;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) { try { localStorage.setItem('cpaaPtCutoff', v); } catch (e) { /* no storage */ } }
+    draw();
+  });
+  modal.addEventListener('click', async ev => {
+    if (ev.target === modal || ev.target.closest('[data-pts-close]')) { close(); return; }
+    if (!ev.target.closest('[data-pts-copy]')) return;
+    const st = modal.querySelector('[data-pts-state]');
+    try {
+      if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+        await navigator.clipboard.write([new ClipboardItem({
+          'text/html': new Blob([cur.html], { type: 'text/html' }),
+          'text/plain': new Blob([cur.text], { type: 'text/plain' }),
+        })]);
+      } else {
+        await navigator.clipboard.writeText(cur.text);
+      }
+      st.textContent = t('pts_copied');
+    } catch (err) {
+      const ta = document.createElement('textarea');
+      ta.value = cur.text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); st.textContent = t('pts_copied'); } catch (e2) { st.textContent = ''; }
+      ta.remove();
+    }
+  });
+  draw();
+}
+
 function ptGroupMount(box) {
   box.innerHTML = `
     <div class="ptg-controls">
@@ -10218,6 +10477,7 @@ function ptGroupMount(box) {
       <select data-ptg-risk></select>
       <input type="text" class="grow" data-ptg-q placeholder="${esc(t('ptg_search'))}" value="${esc(PTG.q)}">
       <button type="button" class="btn small" data-ptg-copy>${esc(t('ptg_copy'))}</button>
+      <button type="button" class="btn small primary" data-ptg-summary>${esc(t('ptg_summary_btn'))}</button>
     </div>
     <div class="ptg-controls">
       <span class="lbl">${esc(t('ptb_new_date'))}</span>
@@ -10321,6 +10581,7 @@ function ptGroupMount(box) {
 
   box.addEventListener('click', async e => {
     if (e.target.closest('[data-ptb-token]')) { getGithubToken(true); return; }
+    if (e.target.closest('[data-ptg-summary]')) { ptgOpenSummary(); return; }
     const copy = e.target.closest('[data-ptg-copy]');
     if (copy) {
       const text = ptgText(box._ptgCols || []);
