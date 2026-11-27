@@ -8060,12 +8060,12 @@
  "2026-11-27": {
   "bugs": {
    "done": 405,
-   "total": 507
+   "total": 510
   },
   "bugs_by_rca": {
    "empty": {
     "done": 185,
-    "total": 263
+    "total": 266
    },
    "filled": {
     "done": 220,
@@ -8115,13 +8115,13 @@
    },
    "To Do": {
     "done": 0,
-    "total": 19
+    "total": 22
    }
   },
   "bugs_by_team": {
    "MDI_System": {
     "done": 5,
-    "total": 31
+    "total": 32
    },
    "MDT_App": {
     "done": 11,
@@ -8137,11 +8137,11 @@
    },
    "MDT_System": {
     "done": 3,
-    "total": 14
+    "total": 12
    },
    "TS_CPAA": {
     "done": 321,
-    "total": 336
+    "total": 340
    },
    "TS_FW": {
     "done": 34,
