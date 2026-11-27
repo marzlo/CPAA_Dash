@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-27T04:08:54.872Z",
+  "updated_at": "2026-11-27T04:10:02.972Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -478,6 +478,12 @@
         "text": "與NR1LT-7747關聯",
         "by": "Leyo",
         "at": "2026-11-19T02:40:08.042Z"
+      },
+      {
+        "id": "mwygqfsw4ag7x",
+        "text": "Related to NR1LB-284",
+        "by": "Leyo",
+        "at": "2026-11-27T04:10:02.240Z"
       }
     ],
     "NR1LT-7747": [
