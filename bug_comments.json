@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-27T03:01:30.547Z",
+  "updated_at": "2026-11-27T03:06:49.675Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -514,6 +514,12 @@
         "text": "查一下需求看Factory reset是否會自動重啟",
         "by": "Leyo",
         "at": "2026-11-20T02:49:19.195Z"
+      },
+      {
+        "id": "mwyeh4zbvwq7t",
+        "text": "請Frank查明需求",
+        "by": "Leyo",
+        "at": "2026-11-27T03:06:49.079Z"
       }
     ],
     "NR1LT-5217": [
