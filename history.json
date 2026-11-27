@@ -8121,7 +8121,7 @@
   "bugs_by_team": {
    "MDI_System": {
     "done": 5,
-    "total": 32
+    "total": 33
    },
    "MDT_App": {
     "done": 11,
@@ -8149,7 +8149,7 @@
    },
    "Unknown": {
     "done": 2,
-    "total": 3
+    "total": 2
    }
   },
   "date": "2026-11-27",
