@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-27T04:08:26.754Z",
+  "updated_at": "2026-11-27T04:08:54.872Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -656,6 +656,14 @@
         "text": "Not sure the blog reason",
         "by": "Leyo",
         "at": "2026-11-27T04:07:21.083Z"
+      }
+    ],
+    "NR1LT-7817": [
+      {
+        "id": "mwygozf9prnk8",
+        "text": "Related to NR1LB-284",
+        "by": "Leyo",
+        "at": "2026-11-27T04:08:54.357Z"
       }
     ]
   }
