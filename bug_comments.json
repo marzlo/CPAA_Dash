@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-27T01:32:56.498Z",
+  "updated_at": "2026-11-27T02:46:47.672Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -354,6 +354,12 @@
         "text": "Jesse看一下Melco車機放到megasim是否可以打SOS call是否有作用，再來看新案子整條鏈斷在哪裡",
         "by": "Leyo",
         "at": "2026-11-24T02:47:06.948Z"
+      },
+      {
+        "id": "mwydrdi8vmkj3",
+        "text": "琦哥追問Flextech，更新後仍舊打bcall要什麼Log來分析",
+        "by": "Leyo",
+        "at": "2026-11-27T02:46:47.072Z"
       }
     ],
     "NR1LT-7364": [
