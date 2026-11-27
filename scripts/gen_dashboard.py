@@ -11166,7 +11166,10 @@ function renderPretestPanel() {
 
   PT_BUGS = null;            // rebuilt per render, so a language switch picks up new text
   const bugs = ptAllBugs();
+  // The overall bug status card (summary / bug board) leads the tab: it is what the
+  // daily pretest meeting opens on. Upload bar and rates follow it.
   panel.innerHTML = `
+    ${PRETEST_TAB_NOTES.cardHtml()}
     <div class="pt-upload-bar">
       <span class="lbl">${esc(t('pt_up_label'))}</span>
       ${Object.keys(PT_UP_SPECS).map(k => `<button type="button" class="btn small" data-pt-up="${k}">${esc(t('pt_up_btn', PT_UP_SPECS[k].label))}</button>`).join('')}
@@ -11198,8 +11201,6 @@ function renderPretestPanel() {
         <tbody id="ptSecBody"></tbody>
       </table></div>
     </section>` : `<section class="card"><p class="caption">${esc(t('pt_no_cases'))}</p></section>`}
-
-    ${PRETEST_TAB_NOTES.cardHtml()}
 
     <section class="card">
       <div class="pt-head-row">
