@@ -486,6 +486,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .ptb-card .note .who { color: var(--muted); font-size: 11px; }
   .ptb-card .note.empty { color: var(--muted); font-style: italic; }
   .ptb-risk-btn.on { border-color: var(--critical); color: var(--critical); }
+  .ptb-risk-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .ptb-risk-row input[type=text] { font-size: 12.5px; min-width: 220px; padding: 4px 8px; }
   .pt-bugref .badge.risk-flag { margin-left: 3px; font-size: 10px; padding: 0 5px; }
   .ptb-card .k { font-weight: 700; color: var(--series-cp); display: flex; align-items: center; flex-wrap: wrap; }
   .ptb-card .k .badge.prio-flag { margin-left: 4px; font-size: 10px; padding: 0 5px; }
@@ -1827,7 +1829,11 @@ function bugIsRisk(key) { return !!(BUG_RISKS.risks || {})[key]; }
 function bugRiskBadge(key) {
   const r = (BUG_RISKS.risks || {})[key];
   if (!r) return '';
-  return ` <span class="badge risk-flag" title="${esc(t('risk_tip', r.by || '?', (r.at || '').slice(0, 10)))}">${esc(t('risk_badge'))}</span>`;
+  return ` <span class="badge risk-flag" title="${esc(t('risk_tip', r.by || '?', (r.at || '').slice(0, 10)))}">${esc(t('risk_badge'))}${r.label ? ' · ' + esc(r.label) : ''}</span>`;
+}
+function bugRiskLabel(key) { const r = (BUG_RISKS.risks || {})[key]; return (r && r.label) || ''; }
+function bugRiskLabels() {
+  return [...new Set(Object.values(BUG_RISKS.risks || {}).map(r => r.label).filter(Boolean))].sort();
 }
 async function refreshBugRisks() {
   try {
@@ -1842,8 +1848,9 @@ async function refreshBugRisks() {
   } catch (e) { return false; }
 }
 // Sets (on=true) or clears one ticket's mark: GET, change that one key, PUT — so two
-// people marking different tickets merge instead of overwriting each other.
-async function commitBugRisk(key, on) {
+// people marking different tickets merge instead of overwriting each other. `label` is
+// the free-text risk tag; '' removes it. Re-saving keeps who marked it and when.
+async function commitBugRisk(key, on, label) {
   const token = getGithubToken(false);
   if (!token) { alert(t('risk_need_token')); return false; }
   const apiBase = `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_BUG_RISKS_PATH}`;
@@ -1862,7 +1869,13 @@ async function commitBugRisk(key, on) {
       }
       const risks = Object.assign({}, remote.risks || {});
       const who = traceUserName(false) || t('notes_meta_unknown');
-      if (on) risks[key] = { by: who, at: new Date().toISOString() }; else delete risks[key];
+      if (on) {
+        const prev = risks[key];
+        const mark = prev ? { by: prev.by, at: prev.at } : { by: who, at: new Date().toISOString() };
+        const tag = (label === undefined ? (prev && prev.label) : label) || '';
+        if (tag.trim()) mark.label = tag.trim();
+        risks[key] = mark;
+      } else delete risks[key];
       const payload = { updated_at: new Date().toISOString(), updated_by: who, risks };
       const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
       const putResp = await fetch(apiBase, {
@@ -2590,9 +2603,12 @@ const STRINGS = {
   ptb_f_risk: { zh: 'Risk', en: 'Risk' },
   ptb_risk_on: { zh: '⚠ 標記為 Risk', en: '⚠ Mark as risk' },
   ptb_risk_off: { zh: '取消 Risk 標記', en: 'Remove risk mark' },
-  ptb_risk_hint: { zh: 'Risk 卡片上會顯示這張票最新的 Dashboard 備註,說明寫在下面的備註欄', en: 'A risk card shows the ticket\'s newest dashboard note — write the reason in the notes below' },
+  ptb_risk_hint: { zh: '標籤會跟著 ⚠ Risk 一起出現在每個清單;儲存標籤時若還沒標 Risk 會一併標上。卡片上另外顯示這張票最新的 Dashboard 備註,詳細說明寫在下面的備註欄', en: 'The tag shows with ⚠ Risk in every list; saving a tag also marks the ticket as a risk. The card also shows the newest dashboard note — write details in the notes below' },
   ptb_risk_no_note: { zh: '(還沒有 Dashboard 備註)', en: '(no dashboard note yet)' },
   ptg_risk_only: { zh: '只看 Risk', en: 'Risks only' },
+  ptg_risk_any: { zh: 'Risk:不篩選', en: 'Risk: any' },
+  ptb_risk_label_ph: { zh: 'Risk 標籤(例如 Harman 依賴、影響認證)', en: 'Risk tag (e.g. Harman dependency)' },
+  ptb_risk_label_save: { zh: '儲存標籤', en: 'Save tag' },
   ptg_risk_n: { zh: n => `⚠ Risk ${n}`, en: n => `⚠ ${n} risks` },
   ptb_f_updated: { zh: m => `看板最後更新:${m}`, en: m => `Board last saved: ${m}` },
   pt_notes_caption: { zh: '描述這一輪 pretest 的 bug 整體現狀:主要 blocker、狀態分布、卡在誰身上、下一步。與統計數據頁的專案總覽用同一組編輯工具與同一把 token', en: 'The overall pretest bug picture — main blockers, status spread, who things wait on, next steps. Same editor and same token as the project overview on the Stats tab' },
@@ -9913,12 +9929,12 @@ const JIRA_COMMENTS = RAW.jira_comments || null;   // null = this build predates
 const GITHUB_PT_DL_PATH = 'pretest_deadlines.json';
 const PT_DL = Object.assign({ updated_at: null, updated_by: null, lanes: [], cards: {} },
                             RAW.pretest_deadlines || {});
-const PTG = { team: '', plat: '', who: '', scope: 'open', q: '', risk: false };
+const PTG = { team: '', plat: '', who: '', scope: 'open', q: '', risk: '' };   // risk: '' any, '*' all risks, else a tag
 try {
   const saved = JSON.parse(localStorage.getItem('cpaaPtBoard') || '{}');
   ['team', 'plat', 'who'].forEach(k => { if (typeof saved[k] === 'string') PTG[k] = saved[k]; });
   if (['open', 'all'].includes(saved.scope)) PTG.scope = saved.scope;
-  PTG.risk = saved.risk === true;
+  PTG.risk = saved.risk === true ? '*' : (typeof saved.risk === 'string' ? saved.risk : '');
 } catch (e) { /* no storage */ }
 function ptgSavePrefs() {
   try { localStorage.setItem('cpaaPtBoard', JSON.stringify({ team: PTG.team, plat: PTG.plat, who: PTG.who, scope: PTG.scope, risk: PTG.risk })); }
@@ -9976,7 +9992,8 @@ function ptgFiltered() {
   let rows = ptgBaseRows();
   if (PTG.team) rows = rows.filter(r => r.team === PTG.team);
   if (PTG.who) rows = rows.filter(r => r.assignee === PTG.who);
-  if (PTG.risk) rows = rows.filter(r => bugIsRisk(r.key));
+  if (PTG.risk === '*') rows = rows.filter(r => bugIsRisk(r.key));
+  else if (PTG.risk) rows = rows.filter(r => bugRiskLabel(r.key) === PTG.risk);
   if (q) rows = rows.filter(r => {
     const j = ptgJira(r.key);
     return r.key.toLowerCase().includes(q) || (r.summary || '').toLowerCase().includes(q) ||
@@ -10058,7 +10075,7 @@ function ptgText(cols) {
     if (!c.cards.length) return;
     const name = c.lane ? `${c.lane.date}${c.lane.label ? ' ' + c.lane.label : ''}` : t('ptb_unplanned');
     out.push('', `■ ${name} (${c.cards.length})`);
-    c.cards.forEach(r => out.push(`  - ${bugIsRisk(r.key) ? '⚠ ' : ''}${r.key} [${r.known ? r.status : '?'}] ${r.assignee || '—'} · ${r.summary}`));
+    c.cards.forEach(r => out.push(`  - ${bugIsRisk(r.key) ? '⚠' + (bugRiskLabel(r.key) ? '[' + bugRiskLabel(r.key) + ']' : '') + ' ' : ''}${r.key} [${r.known ? r.status : '?'}] ${r.assignee || '—'} · ${r.summary}`));
   });
   return out.join('\n');
 }
@@ -10101,8 +10118,14 @@ function ptgDetailHtml(r) {
       <dt>${esc(t('ptb_f_jira_due'))}</dt><dd>${due}</dd>
       <dt>${esc(t('ptb_f_lane'))}</dt><dd>${laneSel}</dd>
       <dt>${esc(t('ptb_f_risk'))}</dt><dd>
+        <div class="ptb-risk-row">
         <button type="button" class="btn small ptb-risk-btn${bugIsRisk(r.key) ? ' on' : ''}" data-ptb-risk="${esc(r.key)}">${esc(t(bugIsRisk(r.key) ? 'ptb_risk_off' : 'ptb_risk_on'))}</button>
+        <input type="text" data-ptb-risk-label list="ptbRiskTags" maxlength="40"
+               placeholder="${esc(t('ptb_risk_label_ph'))}" value="${esc(bugRiskLabel(r.key))}">
+        <datalist id="ptbRiskTags">${bugRiskLabels().map(g => `<option value="${esc(g)}">`).join('')}</datalist>
+        <button type="button" class="btn small" data-ptb-risk-save>${esc(t('ptb_risk_label_save'))}</button>
         <span class="save-state" data-ptb-risk-state></span>
+        </div>
         <div class="caption" style="margin:4px 0 0">${esc(t('ptb_risk_hint'))}</div></dd>
     </dl>
     <div class="ptg-detail">
@@ -10192,7 +10215,7 @@ function ptGroupMount(box) {
         <option value="open"${PTG.scope === 'open' ? ' selected' : ''}>${esc(t('ptg_scope_open'))}</option>
         <option value="all"${PTG.scope === 'all' ? ' selected' : ''}>${esc(t('ptg_scope_all'))}</option>
       </select>
-      <label class="chk"><input type="checkbox" data-ptg-risk${PTG.risk ? ' checked' : ''}> ${esc(t('ptg_risk_only'))}</label>
+      <select data-ptg-risk></select>
       <input type="text" class="grow" data-ptg-q placeholder="${esc(t('ptg_search'))}" value="${esc(PTG.q)}">
       <button type="button" class="btn small" data-ptg-copy>${esc(t('ptg_copy'))}</button>
     </div>
@@ -10222,6 +10245,11 @@ function ptGroupMount(box) {
     $('[data-ptg-team]').innerHTML = `<option value="">${esc(t('ptg_team_all'))} (${base.length})</option>` +
       [...teams.entries()].sort((a, b) => rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0]))
         .map(([k, n]) => `<option value="${esc(k)}"${k === PTG.team ? ' selected' : ''}>${esc(k)} (${n})</option>`).join('');
+    const tags = bugRiskLabels();
+    if (PTG.risk && PTG.risk !== '*' && !tags.includes(PTG.risk)) PTG.risk = '';
+    $('[data-ptg-risk]').innerHTML = `<option value="">${esc(t('ptg_risk_any'))}</option>` +
+      `<option value="*"${PTG.risk === '*' ? ' selected' : ''}>${esc(t('ptg_risk_only'))}</option>` +
+      tags.map(g => `<option value="${esc(g)}"${g === PTG.risk ? ' selected' : ''}>⚠ ${esc(g)}</option>`).join('');
     // The assignee list follows the team choice.
     const inTeam = PTG.team ? base.filter(r => r.team === PTG.team) : base;
     const people = count(inTeam, r => r.assignee);
@@ -10236,7 +10264,7 @@ function ptGroupMount(box) {
     const today = ptgToday();
     const ts = rows.filter(r => r.isTs).length;
     const late = rows.filter(r => r.known && !r.done && ptgLaneOf(r.key) && ptgLaneOf(r.key) < today).length;
-    const unknown = PTG.scope === 'open' && !PTG.team && !PTG.who
+    const unknown = PTG.scope === 'open' && !PTG.team && !PTG.who && !PTG.risk
       ? ptAllBugs().filter(b => !b.known && (!PTG.plat || b.src.includes(PTG.plat))).length : 0;
     $('.ptg-summary').innerHTML = [
       `<span>${t('ptg_total', rows.length)}</span>`,
@@ -10285,7 +10313,7 @@ function ptGroupMount(box) {
     else if (el.matches('[data-ptg-who]')) { PTG.who = el.value; ptgSavePrefs(); draw(); }
     else if (el.matches('[data-ptg-plat]')) { PTG.plat = el.value; ptgSavePrefs(); redrawAll(); }
     else if (el.matches('[data-ptg-scope]')) { PTG.scope = el.value; ptgSavePrefs(); redrawAll(); }
-    else if (el.matches('[data-ptg-risk]')) { PTG.risk = el.checked; ptgSavePrefs(); draw(); }
+    else if (el.matches('[data-ptg-risk]')) { PTG.risk = el.value; ptgSavePrefs(); draw(); }
   });
   box.addEventListener('input', e => {
     if (e.target.matches('[data-ptg-q]')) { PTG.q = e.target.value; draw(); }
@@ -10407,17 +10435,22 @@ function ptGroupMount(box) {
     };
     modal.addEventListener('click', async ev => {
       if (ev.target === modal || ev.target.closest('[data-ptb-close]')) { closeDetail(); return; }
-      const riskBtn = ev.target.closest('[data-ptb-risk]');
+      const riskBtn = ev.target.closest('[data-ptb-risk]') || ev.target.closest('[data-ptb-risk-save]');
       if (riskBtn) {
-        const on = !bugIsRisk(key);
+        // The toggle flips the mark (taking whatever tag is typed along with it);
+        // "save tag" always leaves the ticket marked, with the tag as typed.
+        const isSave = riskBtn.matches('[data-ptb-risk-save]');
+        const on = isSave ? true : !bugIsRisk(key);
+        const label = (modal.querySelector('[data-ptb-risk-label]').value || '').trim();
         const st = modal.querySelector('[data-ptb-risk-state]');
         riskBtn.disabled = true;
         st.textContent = t('ptb_saving');
-        const ok = await commitBugRisk(key, on);
+        const ok = await commitBugRisk(key, on, label);
         riskBtn.disabled = false;
         if (!ok) { st.textContent = ''; return; }
         riskChanged = true;
         rerender();
+        drawSelects();   // a new tag joins the Risk filter
         const st2 = modal.querySelector('[data-ptb-risk-state]');
         if (st2) st2.textContent = t('ptb_saved');
         rerenderRiskLists();
@@ -10460,6 +10493,12 @@ function ptGroupMount(box) {
       const ok = await moveCard(key, sel.value);
       st.textContent = ok ? t('ptb_saved') : '';
       if (!ok) sel.value = ptgLaneOf(key);
+    });
+    modal.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter' && ev.target.matches('[data-ptb-risk-label]')) {
+        ev.preventDefault();
+        modal.querySelector('[data-ptb-risk-save]').click();
+      }
     });
     modal._esc = ev => { if (ev.key === 'Escape') closeDetail(); };
     document.addEventListener('keydown', modal._esc);
