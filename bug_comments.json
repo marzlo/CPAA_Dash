@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-27T03:07:50.605Z",
+  "updated_at": "2026-11-27T03:11:07.839Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -586,6 +586,14 @@
         "text": "Harman USB IF VID,PID,ProductVersion",
         "by": "Leyo",
         "at": "2026-11-27T03:07:50.144Z"
+      }
+    ],
+    "NR1LT-7687": [
+      {
+        "id": "mwyemnz2vcljt",
+        "text": "請Harman提供具體說明",
+        "by": "Leyo",
+        "at": "2026-11-27T03:11:06.974Z"
       }
     ]
   }
