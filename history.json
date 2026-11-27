@@ -8121,7 +8121,7 @@
   "bugs_by_team": {
    "MDI_System": {
     "done": 4,
-    "total": 33
+    "total": 34
    },
    "MDT_App": {
     "done": 11,
@@ -8129,7 +8129,7 @@
    },
    "MDT_PM": {
     "done": 25,
-    "total": 39
+    "total": 38
    },
    "MDT_Sys_QA": {
     "done": 4,
