@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-27T04:07:21.688Z",
+  "updated_at": "2026-11-27T04:08:26.754Z",
   "updated_by": "Leyo",
   "comments": {
     "NR1LT-5647": [
@@ -556,6 +556,12 @@
         "text": "早上有請TS抓IOC Log，來進行分析",
         "by": "Leyo",
         "at": "2026-11-24T02:50:58.537Z"
+      },
+      {
+        "id": "mwygodnsf90ay",
+        "text": "Related to NR1LB-284",
+        "by": "Leyo",
+        "at": "2026-11-27T04:08:26.152Z"
       }
     ],
     "NR1LT-7576": [
