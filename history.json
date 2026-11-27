@@ -8059,7 +8059,7 @@
  },
  "2026-11-27": {
   "bugs": {
-   "done": 403,
+   "done": 405,
    "total": 507
   },
   "bugs_by_rca": {
@@ -8068,18 +8068,18 @@
     "total": 265
    },
    "filled": {
-    "done": 218,
+    "done": 220,
     "total": 242
    }
   },
   "bugs_by_status": {
    "Blocked": {
     "done": 0,
-    "total": 44
+    "total": 43
    },
    "Done": {
-    "done": 375,
-    "total": 375
+    "done": 376,
+    "total": 376
    },
    "Eng build": {
     "done": 4,
@@ -8087,11 +8087,11 @@
    },
    "In Progress": {
     "done": 0,
-    "total": 26
+    "total": 28
    },
    "Monitoring": {
-    "done": 3,
-    "total": 3
+    "done": 4,
+    "total": 4
    },
    "Need info": {
     "done": 0,
@@ -8103,7 +8103,7 @@
    },
    "Ready for integration": {
     "done": 0,
-    "total": 6
+    "total": 4
    },
    "Ready for test": {
     "done": 7,
@@ -8111,7 +8111,7 @@
    },
    "Reopen": {
     "done": 0,
-    "total": 7
+    "total": 6
    },
    "To Do": {
     "done": 0,
@@ -8129,7 +8129,7 @@
    },
    "MDT_PM": {
     "done": 25,
-    "total": 39
+    "total": 40
    },
    "MDT_Sys_QA": {
     "done": 4,
@@ -8140,8 +8140,8 @@
     "total": 14
    },
    "TS_CPAA": {
-    "done": 319,
-    "total": 336
+    "done": 321,
+    "total": 335
    },
    "TS_FW": {
     "done": 34,
@@ -8157,8 +8157,8 @@
    "AA": {
     "open": 15,
     "open_by_status": {
-     "Blocked": 9,
-     "In Progress": 5,
+     "Blocked": 8,
+     "In Progress": 6,
      "To Do": 1
     },
     "total": 79,
@@ -8167,10 +8167,9 @@
    "CP": {
     "open": 36,
     "open_by_status": {
-     "Blocked": 20,
-     "In Progress": 10,
+     "Blocked": 19,
+     "In Progress": 12,
      "Ready for integration": 4,
-     "Reopen": 1,
      "To Do": 1
     },
     "total": 96,
@@ -8179,10 +8178,9 @@
    "all": {
     "open": 45,
     "open_by_status": {
-     "Blocked": 25,
-     "In Progress": 13,
+     "Blocked": 24,
+     "In Progress": 15,
      "Ready for integration": 4,
-     "Reopen": 1,
      "To Do": 2
     },
     "total": 166,
