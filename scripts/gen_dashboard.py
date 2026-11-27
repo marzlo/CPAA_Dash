@@ -91,6 +91,14 @@ except FileNotFoundError:
 
 DATA["bug_flags"] = BUG_FLAGS
 
+# Tickets someone marked as a risk from the Pretest bug board. Committed from the
+# browser (GitHub Contents API) and re-read there at load; this copy is the first paint.
+try:
+    with open("bug_risks.json", encoding="utf-8") as f:
+        DATA["bug_risks"] = json.load(f)
+except FileNotFoundError:
+    DATA["bug_risks"] = {"updated_at": None, "updated_by": None, "risks": {}}
+
 # The Q&A tab's own state: a handling status per question plus its comment thread.
 # Jira cannot carry the status (these tickets sit in "To Do" until a whole batch is
 # closed), so this file is the authority on where each question actually stands.
@@ -470,6 +478,15 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .ptb-card:focus-visible { outline: 2px solid var(--series-cp); outline-offset: 1px; }
   .ptb-card.dragging { opacity: .4; }
   .ptb-card.done { opacity: .6; }
+  .ptb-card.risk { border-left: 4px solid var(--critical); }
+  .ptb-card .k .badge.risk-flag { margin-left: 4px; font-size: 10px; padding: 0 5px; }
+  .ptb-card .note { font-size: 11.5px; color: var(--text-secondary); border-top: 1px dashed var(--grid);
+                    padding-top: 4px; margin-top: 1px; display: -webkit-box; -webkit-line-clamp: 3;
+                    -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+  .ptb-card .note .who { color: var(--muted); font-size: 11px; }
+  .ptb-card .note.empty { color: var(--muted); font-style: italic; }
+  .ptb-risk-btn.on { border-color: var(--critical); color: var(--critical); }
+  .pt-bugref .badge.risk-flag { margin-left: 3px; font-size: 10px; padding: 0 5px; }
   .ptb-card .k { font-weight: 700; color: var(--series-cp); display: flex; align-items: center; flex-wrap: wrap; }
   .ptb-card .k .badge.prio-flag { margin-left: 4px; font-size: 10px; padding: 0 5px; }
   .ptb-card .who { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -573,6 +590,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .badge.todo { background: color-mix(in srgb, var(--critical) 15%, transparent); color: var(--critical); }
   .badge.new { background: var(--critical); color: #fff; margin-left: 6px; }
   .badge.prio-flag { background: #ffd43b; color: #4a3800; margin-left: 6px; white-space: nowrap; cursor: help; }
+  .badge.risk-flag { background: color-mix(in srgb, var(--critical) 14%, transparent); color: var(--critical);
+                     border: 1px solid color-mix(in srgb, var(--critical) 45%, transparent);
+                     margin-left: 6px; white-space: nowrap; cursor: help; }
   :root[data-theme="dark"] .badge.progress, @media (prefers-color-scheme: dark) { }
   .filters { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
   .filters select, .filters input {
@@ -1789,9 +1809,84 @@ const BUG_COMMENTS = Object.assign({ updated_at: null, updated_by: null, comment
 const BUG_FLAGS = (RAW.bug_flags && RAW.bug_flags.flags) || {};
 function bugFlagBadge(key) {
   const f = BUG_FLAGS[key];
-  if (!f) return '';
+  const risk = bugRiskBadge(key);
+  if (!f) return risk;
   const tip = (f.rank ? '#' + f.rank + ' ' : '') + (f.note || '');
-  return ` <span class="badge prio-flag" title="${esc(tip)}">${esc(f.label || 'Priority')}${f.rank ? ' #' + f.rank : ''}</span>`;
+  return ` <span class="badge prio-flag" title="${esc(tip)}">${esc(f.label || 'Priority')}${f.rank ? ' #' + f.rank : ''}</span>` + risk;
+}
+
+// --- Risk marks --------------------------------------------------------------------
+// Set from the Pretest bug board's ticket dialog; shown as a red "⚠ Risk" badge next
+// to the key everywhere a bug key is listed (bugFlagBadge carries it, so every place
+// that shows the Priority flag shows this too). bug_risks.json:
+// { updated_at, updated_by, risks: { key: { by, at } } }. The reason lives in the
+// ticket's dashboard notes (bug_comments.json); a risk card shows the newest one.
+const GITHUB_BUG_RISKS_PATH = 'bug_risks.json';
+const BUG_RISKS = Object.assign({ updated_at: null, updated_by: null, risks: {} }, RAW.bug_risks || {});
+function bugIsRisk(key) { return !!(BUG_RISKS.risks || {})[key]; }
+function bugRiskBadge(key) {
+  const r = (BUG_RISKS.risks || {})[key];
+  if (!r) return '';
+  return ` <span class="badge risk-flag" title="${esc(t('risk_tip', r.by || '?', (r.at || '').slice(0, 10)))}">${esc(t('risk_badge'))}</span>`;
+}
+async function refreshBugRisks() {
+  try {
+    const resp = await fetch(`https://raw.githubusercontent.com/${GITHUB_REPO}/main/${GITHUB_BUG_RISKS_PATH}?t=${Date.now()}`, { cache: 'no-store' });
+    if (!resp.ok) return false;
+    const fresh = await resp.json();
+    if (!fresh || typeof fresh !== 'object') return false;
+    // raw.githubusercontent is CDN-cached; never step back to an older copy.
+    if (BUG_RISKS.updated_at && (!fresh.updated_at || new Date(fresh.updated_at) <= new Date(BUG_RISKS.updated_at))) return false;
+    Object.assign(BUG_RISKS, { risks: fresh.risks || {}, updated_at: fresh.updated_at, updated_by: fresh.updated_by });
+    return true;
+  } catch (e) { return false; }
+}
+// Sets (on=true) or clears one ticket's mark: GET, change that one key, PUT — so two
+// people marking different tickets merge instead of overwriting each other.
+async function commitBugRisk(key, on) {
+  const token = getGithubToken(false);
+  if (!token) { alert(t('risk_need_token')); return false; }
+  const apiBase = `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_BUG_RISKS_PATH}`;
+  const hdr = { Authorization: `token ${token}`, Accept: 'application/vnd.github+json' };
+  try {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const getResp = await fetch(apiBase + '?ref=main&t=' + Date.now(), { headers: hdr, cache: 'no-store' });
+      let sha, remote = { risks: Object.assign({}, BUG_RISKS.risks) };
+      if (getResp.ok) {
+        const meta = await getResp.json();
+        sha = meta.sha;
+        try { remote = JSON.parse(decodeURIComponent(escape(atob((meta.content || '').replace(/\n/g, ''))))); }
+        catch (e) { remote = {}; }
+      } else if (getResp.status !== 404) {
+        throw new Error(ghErr('GET', getResp.status));
+      }
+      const risks = Object.assign({}, remote.risks || {});
+      const who = traceUserName(false) || t('notes_meta_unknown');
+      if (on) risks[key] = { by: who, at: new Date().toISOString() }; else delete risks[key];
+      const payload = { updated_at: new Date().toISOString(), updated_by: who, risks };
+      const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+      const putResp = await fetch(apiBase, {
+        method: 'PUT',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, hdr),
+        body: JSON.stringify({ message: 'Update bug risk marks via dashboard', content: b64, sha, branch: 'main' }),
+      });
+      if (putResp.status === 409 && attempt === 0) continue;
+      if (!putResp.ok) throw new Error(ghErr('PUT', putResp.status, (await putResp.text()).slice(0, 200)));
+      Object.assign(BUG_RISKS, payload);
+      return true;
+    }
+    return false;
+  } catch (err) {
+    alert(t('risk_save_error', String((err && err.message) || err)));
+    return false;
+  }
+}
+// The other tabs' lists after a mark changes. The Pretest tab is redrawn by its own
+// caller, which knows whether a dialog is open on it.
+function rerenderRiskLists() {
+  try { renderBugPanel(); } catch (e) { /* tab not built yet */ }
+  try { renderAudioPanel(); } catch (e) { /* tab not built yet */ }
+  try { renderComparePanel(); } catch (e) { /* tab not built yet */ }
 }
 const WATCH = RAW.watch || [];
 // Clarification questions ThunderSoft raised against our requirement documents.
@@ -2488,6 +2583,17 @@ const STRINGS = {
   ptb_f_status: { zh: '狀態', en: 'Status' },
   ptb_f_jira_due: { zh: 'Jira Due date', en: 'Jira due date' },
   ptb_f_lane: { zh: '看板日期', en: 'Board date' },
+  risk_badge: { zh: '⚠ Risk', en: '⚠ Risk' },
+  risk_tip: { zh: (by, at) => `由 ${by} 在 ${at} 標記為 Risk`, en: (by, at) => `Marked as a risk by ${by} on ${at}` },
+  risk_need_token: { zh: '要先設定 🔑 GitHub token 才能標記 Risk', en: 'Set the 🔑 GitHub token first to mark risks' },
+  risk_save_error: { zh: m => `Risk 標記儲存失敗:${m}`, en: m => `Could not save the risk mark: ${m}` },
+  ptb_f_risk: { zh: 'Risk', en: 'Risk' },
+  ptb_risk_on: { zh: '⚠ 標記為 Risk', en: '⚠ Mark as risk' },
+  ptb_risk_off: { zh: '取消 Risk 標記', en: 'Remove risk mark' },
+  ptb_risk_hint: { zh: 'Risk 卡片上會顯示這張票最新的 Dashboard 備註,說明寫在下面的備註欄', en: 'A risk card shows the ticket\'s newest dashboard note — write the reason in the notes below' },
+  ptb_risk_no_note: { zh: '(還沒有 Dashboard 備註)', en: '(no dashboard note yet)' },
+  ptg_risk_only: { zh: '只看 Risk', en: 'Risks only' },
+  ptg_risk_n: { zh: n => `⚠ Risk ${n}`, en: n => `⚠ ${n} risks` },
   ptb_f_updated: { zh: m => `看板最後更新:${m}`, en: m => `Board last saved: ${m}` },
   pt_notes_caption: { zh: '描述這一輪 pretest 的 bug 整體現狀:主要 blocker、狀態分布、卡在誰身上、下一步。與統計數據頁的專案總覽用同一組編輯工具與同一把 token', en: 'The overall pretest bug picture — main blockers, status spread, who things wait on, next steps. Same editor and same token as the project overview on the Stats tab' },
   bug_notes_heading: { zh: 'Bug 備註(可編輯)', en: 'Bug notes (editable)' },
@@ -5870,7 +5976,7 @@ function renderComparePanel() {
                       <span style="font-variant-numeric:tabular-nums;">${Math.round(m.score * 100)}%</span>
                     </div>
                   </td>
-                  <td class="key"><a href="${ticketUrl(m.bug.key)}" target="_blank" rel="noopener noreferrer">${esc(m.bug.key)}</a></td>
+                  <td class="key"><a href="${ticketUrl(m.bug.key)}" target="_blank" rel="noopener noreferrer">${esc(m.bug.key)}</a>${bugRiskBadge(m.bug.key)}</td>
                   <td>${cmpStatusBadge(m.bug)}</td>
                   <td>${esc(m.bug.assignee)}</td>
                   <td>${esc(m.bug.summary)}</td>
@@ -8464,7 +8570,7 @@ function renderAudioPanel() {
   function rowHtml(r) {
     return `
       <tr>
-        <td class="key"><a href="${ticketUrl(r.key)}" target="_blank">${r.key}</a></td>
+        <td class="key"><a href="${ticketUrl(r.key)}" target="_blank">${r.key}</a>${bugRiskBadge(r.key)}</td>
         <td class="ac-cell">${acSelectHtml(r.key)}<span class="cmt-status" data-ac-status="${esc(r.key)}"></span></td>
         <td>${esc(r.group)}</td>
         <td>${esc(r.issueType)}</td>
@@ -9709,7 +9815,7 @@ function ptBugRef(k) {
   const tk = ptTicket(k);
   const st = tk ? bugStatusBadge(tk)
                 : `<span class="badge unknown" title="${esc(t('pt_bug_unknown'))}">?</span>`;
-  return `<span class="pt-bugref"><a href="${ticketUrl(k)}" target="_blank">${esc(k)}</a>${st}</span>`;
+  return `<span class="pt-bugref"><a href="${ticketUrl(k)}" target="_blank">${esc(k)}</a>${st}${bugRiskBadge(k)}</span>`;
 }
 function ptBugStatusText(k) {
   const tk = ptTicket(k);
@@ -9807,14 +9913,15 @@ const JIRA_COMMENTS = RAW.jira_comments || null;   // null = this build predates
 const GITHUB_PT_DL_PATH = 'pretest_deadlines.json';
 const PT_DL = Object.assign({ updated_at: null, updated_by: null, lanes: [], cards: {} },
                             RAW.pretest_deadlines || {});
-const PTG = { team: '', plat: '', who: '', scope: 'open', q: '' };
+const PTG = { team: '', plat: '', who: '', scope: 'open', q: '', risk: false };
 try {
   const saved = JSON.parse(localStorage.getItem('cpaaPtBoard') || '{}');
   ['team', 'plat', 'who'].forEach(k => { if (typeof saved[k] === 'string') PTG[k] = saved[k]; });
   if (['open', 'all'].includes(saved.scope)) PTG.scope = saved.scope;
+  PTG.risk = saved.risk === true;
 } catch (e) { /* no storage */ }
 function ptgSavePrefs() {
-  try { localStorage.setItem('cpaaPtBoard', JSON.stringify({ team: PTG.team, plat: PTG.plat, who: PTG.who, scope: PTG.scope })); }
+  try { localStorage.setItem('cpaaPtBoard', JSON.stringify({ team: PTG.team, plat: PTG.plat, who: PTG.who, scope: PTG.scope, risk: PTG.risk })); }
   catch (e) { /* no storage */ }
 }
 
@@ -9869,6 +9976,7 @@ function ptgFiltered() {
   let rows = ptgBaseRows();
   if (PTG.team) rows = rows.filter(r => r.team === PTG.team);
   if (PTG.who) rows = rows.filter(r => r.assignee === PTG.who);
+  if (PTG.risk) rows = rows.filter(r => bugIsRisk(r.key));
   if (q) rows = rows.filter(r => {
     const j = ptgJira(r.key);
     return r.key.toLowerCase().includes(q) || (r.summary || '').toLowerCase().includes(q) ||
@@ -9890,12 +9998,22 @@ function ptgStatusBadge(r) {
   return r.known ? bugStatusBadge(r)
                  : `<span class="badge unknown" title="${esc(t('pt_bug_unknown'))}">?</span>`;
 }
+// A risk card also carries the ticket's newest dashboard note — the "why" behind the mark.
+function ptgRiskNoteHtml(key) {
+  const list = bugComments(key);
+  const c = list[list.length - 1];
+  if (!c) return `<div class="note empty">${esc(t('ptb_risk_no_note'))}</div>`;
+  const flat = String(c.text || '').replace(/\s+/g, ' ').trim();
+  return `<div class="note">${esc(flat)} <span class="who">— ${esc(c.by || '?')} · ${esc((c.at || '').slice(5, 10).replace('-', '/'))}</span></div>`;
+}
 function ptgCardHtml(r) {
-  return `<div class="ptb-card${r.known && r.done ? ' done' : ''}" draggable="true" tabindex="0" role="button"
+  const risk = bugIsRisk(r.key);
+  return `<div class="ptb-card${r.known && r.done ? ' done' : ''}${risk ? ' risk' : ''}" draggable="true" tabindex="0" role="button"
       data-ptb-card="${esc(r.key)}" title="${esc(r.summary)}">
     <div class="k">${esc(r.key)}${bugFlagBadge(r.key)}</div>
     <div class="who">👤 ${esc(ptgWho(r))}</div>
     ${ptgStatusBadge(r)}
+    ${risk ? ptgRiskNoteHtml(r.key) : ''}
   </div>`;
 }
 function ptgLaneHtml(lane, cards) {
@@ -9930,7 +10048,7 @@ function ptgColumns(rows) {
   const byDate = new Map(cols.map(c => [c.lane ? c.lane.date : '', c]));
   rows.forEach(r => byDate.get(ptgLaneOf(r.key)).cards.push(r));
   cols.forEach(c => c.cards.sort((a, b) =>
-    ((a.known && a.done) - (b.known && b.done)) || pr(a.priority) - pr(b.priority) || a.key.localeCompare(b.key)));
+    ((a.known && a.done) - (b.known && b.done)) || (bugIsRisk(b.key) - bugIsRisk(a.key)) || pr(a.priority) - pr(b.priority) || a.key.localeCompare(b.key)));
   return cols;
 }
 
@@ -9940,7 +10058,7 @@ function ptgText(cols) {
     if (!c.cards.length) return;
     const name = c.lane ? `${c.lane.date}${c.lane.label ? ' ' + c.lane.label : ''}` : t('ptb_unplanned');
     out.push('', `■ ${name} (${c.cards.length})`);
-    c.cards.forEach(r => out.push(`  - ${r.key} [${r.known ? r.status : '?'}] ${r.assignee || '—'} · ${r.summary}`));
+    c.cards.forEach(r => out.push(`  - ${bugIsRisk(r.key) ? '⚠ ' : ''}${r.key} [${r.known ? r.status : '?'}] ${r.assignee || '—'} · ${r.summary}`));
   });
   return out.join('\n');
 }
@@ -9982,6 +10100,10 @@ function ptgDetailHtml(r) {
       <dt>${esc(t('ptb_f_status'))}</dt><dd>${ptgStatusBadge(r)}</dd>
       <dt>${esc(t('ptb_f_jira_due'))}</dt><dd>${due}</dd>
       <dt>${esc(t('ptb_f_lane'))}</dt><dd>${laneSel}</dd>
+      <dt>${esc(t('ptb_f_risk'))}</dt><dd>
+        <button type="button" class="btn small ptb-risk-btn${bugIsRisk(r.key) ? ' on' : ''}" data-ptb-risk="${esc(r.key)}">${esc(t(bugIsRisk(r.key) ? 'ptb_risk_off' : 'ptb_risk_on'))}</button>
+        <span class="save-state" data-ptb-risk-state></span>
+        <div class="caption" style="margin:4px 0 0">${esc(t('ptb_risk_hint'))}</div></dd>
     </dl>
     <div class="ptg-detail">
       <div><h4>${esc(t('ptg_jira_cmts'))}</h4><div class="ptg-jira">${jira}</div></div>
@@ -10070,6 +10192,7 @@ function ptGroupMount(box) {
         <option value="open"${PTG.scope === 'open' ? ' selected' : ''}>${esc(t('ptg_scope_open'))}</option>
         <option value="all"${PTG.scope === 'all' ? ' selected' : ''}>${esc(t('ptg_scope_all'))}</option>
       </select>
+      <label class="chk"><input type="checkbox" data-ptg-risk${PTG.risk ? ' checked' : ''}> ${esc(t('ptg_risk_only'))}</label>
       <input type="text" class="grow" data-ptg-q placeholder="${esc(t('ptg_search'))}" value="${esc(PTG.q)}">
       <button type="button" class="btn small" data-ptg-copy>${esc(t('ptg_copy'))}</button>
     </div>
@@ -10119,6 +10242,7 @@ function ptGroupMount(box) {
       `<span>${t('ptg_total', rows.length)}</span>`,
       `<span>${t('ptg_ts', ts, rows.length - ts)}</span>`,
       `<span>${esc(t('ptg_unplanned_n', cols[0].cards.length))}</span>`,
+      (n => n ? `<span class="warn">${esc(t('ptg_risk_n', n))}</span>` : '')(rows.filter(r => bugIsRisk(r.key)).length),
       late ? `<span class="warn">${esc(t('ptg_late_n', late))}</span>` : '',
       unknown ? `<span>${esc(t('ptg_unknown_n', unknown))}</span>` : '',
       PT_DL.updated_at ? `<span>${esc(t('ptb_f_updated', `${PT_DL.updated_at.slice(0, 10)} ${PT_DL.updated_by || ''}`))}</span>` : '',
@@ -10161,6 +10285,7 @@ function ptGroupMount(box) {
     else if (el.matches('[data-ptg-who]')) { PTG.who = el.value; ptgSavePrefs(); draw(); }
     else if (el.matches('[data-ptg-plat]')) { PTG.plat = el.value; ptgSavePrefs(); redrawAll(); }
     else if (el.matches('[data-ptg-scope]')) { PTG.scope = el.value; ptgSavePrefs(); redrawAll(); }
+    else if (el.matches('[data-ptg-risk]')) { PTG.risk = el.checked; ptgSavePrefs(); draw(); }
   });
   box.addEventListener('input', e => {
     if (e.target.matches('[data-ptg-q]')) { PTG.q = e.target.value; draw(); }
@@ -10266,6 +10391,7 @@ function ptGroupMount(box) {
   });
 
   // The detail dialog lives on <body>, so no column's scroll box can clip it.
+  let riskChanged = false;
   function openDetail(key) {
     const r = ptgRows().find(x => x.key === key);
     if (!r) return;
@@ -10277,9 +10403,26 @@ function ptGroupMount(box) {
     const rerender = () => {
       const fresh = ptgRows().find(x => x.key === key) || r;
       modal.querySelector('.ptb-dialog').innerHTML = ptgDetailHtml(fresh);
+      draw();   // a new note changes what a risk card shows
     };
     modal.addEventListener('click', async ev => {
       if (ev.target === modal || ev.target.closest('[data-ptb-close]')) { closeDetail(); return; }
+      const riskBtn = ev.target.closest('[data-ptb-risk]');
+      if (riskBtn) {
+        const on = !bugIsRisk(key);
+        const st = modal.querySelector('[data-ptb-risk-state]');
+        riskBtn.disabled = true;
+        st.textContent = t('ptb_saving');
+        const ok = await commitBugRisk(key, on);
+        riskBtn.disabled = false;
+        if (!ok) { st.textContent = ''; return; }
+        riskChanged = true;
+        rerender();
+        const st2 = modal.querySelector('[data-ptb-risk-state]');
+        if (st2) st2.textContent = t('ptb_saved');
+        rerenderRiskLists();
+        return;
+      }
       // The dashboard thread: same file and calls as the Bug list's 💬.
       const post = ev.target.closest('[data-bug-cmt-post]');
       if (post) {
@@ -10326,6 +10469,8 @@ function ptGroupMount(box) {
       if (m._esc) document.removeEventListener('keydown', m._esc);
       m.remove();
     });
+    // The Bug list and test-case lists further down this tab show the badge too.
+    if (riskChanged) { riskChanged = false; renderPretestPanel(); }
   }
 
   redrawAll();
@@ -11269,7 +11414,7 @@ function renderPretestPanel() {
       </tr>`;
       body.innerHTML = rows.length ? rows.map(b => `<tr data-bug-row="${esc(b.key)}">
         <td class="cmt-col">${bugCommentBtn(b.key)}</td>
-        <td class="key"><a href="${ticketUrl(b.key)}" target="_blank">${esc(b.key)}</a>${(b.replaces || []).length
+        <td class="key"><a href="${ticketUrl(b.key)}" target="_blank">${esc(b.key)}</a>${bugFlagBadge(b.key)}${(b.replaces || []).length
           ? `<div class="pt-replaces" title="${esc(t('pt_replaces_title'))}">${esc(t('pt_replaces'))} ${b.replaces.map(k =>
               `<a href="${ticketUrl(k)}" target="_blank">${esc(k)}</a>`).join(', ')}</div>` : ''}</td>
         <td title="${esc(t('pt_src_from', (b.from || []).join(', ') || '—'))}">${
@@ -13140,6 +13285,13 @@ refreshTeamOverrides().then(changed => {
   if (!changed) return;
   renderAssigneeBars();
   renderBugPanel();
+});
+
+// Risk marks saved from any browser since this page was built.
+refreshBugRisks().then(changed => {
+  if (!changed) return;
+  rerenderRiskLists();
+  if (!document.querySelector('.ptb-modal')) renderPretestPanel();
 });
 </script>
 </body>
